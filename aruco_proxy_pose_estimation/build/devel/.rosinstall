@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/barracuda/open_house_ws/src/aruco_proxy_pose_estimation/build/devel/setup.sh

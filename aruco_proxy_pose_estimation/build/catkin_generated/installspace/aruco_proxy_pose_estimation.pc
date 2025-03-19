@@ -1,0 +1,8 @@
+prefix=/usr/local
+
+Name: aruco_proxy_pose_estimation
+Description: Description of aruco_proxy_pose_estimation
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

@@ -1,0 +1,16 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/barracuda/open_house_ws/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/home/barracuda/catkin_ws/devel/lib/python3/dist-packages",
+        "/home/barracuda/catkin_ws/src/create_2025_demo/GroundingDINO",
+        "/home/barracuda/catkin_ws/src/create_2025_demo/segment_anything"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/barracuda/open_house_ws/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/home/barracuda/catkin_ws/devel/lib/python3/dist-packages",
+        "/home/barracuda/catkin_ws/src/create_2025_demo/GroundingDINO",
+        "/home/barracuda/catkin_ws/src/create_2025_demo/segment_anything"
+    ]
+}

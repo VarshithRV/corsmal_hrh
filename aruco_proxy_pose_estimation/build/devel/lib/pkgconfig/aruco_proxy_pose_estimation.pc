@@ -1,0 +1,8 @@
+prefix=/home/barracuda/open_house_ws/src/aruco_proxy_pose_estimation/build/devel
+
+Name: aruco_proxy_pose_estimation
+Description: Description of aruco_proxy_pose_estimation
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
