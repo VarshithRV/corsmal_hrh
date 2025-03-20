@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <param name="robot_description" command="xacro --inorder '$(find robot_setup_sim_description)/urdf/setup.xacro'" />
+</launch>

@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="setup">
+  <!-- UR5e Robot -->
+  <xacro:include filename="$(find ur_gazebo)/urdf/ur_macro.xacro"/>
+  <xacro:ur_robot_gazebo 
+    prefix="" 
+    joint_limits_parameters_file="$(find ur_description)/config/ur5e/joint_limits.yaml" 
+    kinematics_parameters_file="$(find ur_description)/config/ur5e/default_kinematics.yaml" 
+    physical_parameters_file="$(find ur_description)/config/ur5e/physical_parameters.yaml"
+    visual_parameters_file="$(find ur_description)/config/ur5e/visual_parameters.yaml"
+    transmission_hw_interface="hardware_interface/PositionJointInterface"
+    safety_limits="false"
+    safety_pos_margin="0.15"
+    safety_k_position="20"
+  />
+
+  <!-- Stand and World -->
+  <link name="robot_stand">
+    <visual><geometry><box size="0.50 0.50 0.50"/></geometry>
+      <material name="black_metal"><color rgba="0.1 0.1 0.1 1"/></material>
+    </visual>
+    <collision><geometry><box size="0.50 0.50 0.50"/></geometry></collision>
+  </link>
+
+  <link name="world"/>
+  <joint name="world_robot_stand" type="fixed">
+    <parent link="world"/>
+    <child link="robot_stand"/>
+    <origin xyz="0.0 0.0 0.25" rpy="0 0 0"/>
+  </joint>
+
+  <joint name="robot_stand_robot" type="fixed">
+    <parent link="robot_stand"/>
+    <child link="base_link"/>
+    <origin xyz="0.0 0.0 0.25" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:include filename="$(find realsense2_description)/urdf/_d435.urdf.xacro"/>
+  <xacro:sensor_d435 name="left_camera" topics_ns="left_camera" parent="base_link">
+    <origin xyz="0.0 -0.40 0.40" rpy="0.0 0.0 0.0"/>
+  </xacro:sensor_d435>
+  <xacro:sensor_d435 name="right_camera" topics_ns="right_camera" parent="base_link">
+    <origin xyz="0.0 0.40 0.40" rpy="0.0 0.0 0.0"/>
+  </xacro:sensor_d435>
+</robot>
