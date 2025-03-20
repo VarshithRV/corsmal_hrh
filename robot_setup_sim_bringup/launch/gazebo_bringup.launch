@@ -31,7 +31,7 @@
   -->
   <!-- Controller configuration -->
   <arg name="controller_config_file" default="$(find robot_setup_sim_bringup)/config/controllers_config.yaml" doc="Config file used for defining the ROS-Control controllers."/>
-  <arg name="controllers" default="joint_state_controller pos_joint_traj_controller" doc="Controllers that are activated by default."/>
+  <arg name="controllers" default="joint_state_controller twist_controller" doc="Controllers that are activated by default."/>
   <arg name="stopped_controllers" default="" doc="Controllers that are initally loaded, but not started."/>
 
   <!-- robot_state_publisher configuration -->
