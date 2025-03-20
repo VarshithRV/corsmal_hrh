@@ -99,7 +99,7 @@
   <transmission name="shoulder_pan_trans">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="shoulder_pan_joint">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="shoulder_pan_motor">
       <mechanicalReduction>1</mechanicalReduction>
@@ -108,7 +108,7 @@
   <transmission name="shoulder_lift_trans">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="shoulder_lift_joint">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="shoulder_lift_motor">
       <mechanicalReduction>1</mechanicalReduction>
@@ -117,7 +117,7 @@
   <transmission name="elbow_trans">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="elbow_joint">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="elbow_motor">
       <mechanicalReduction>1</mechanicalReduction>
@@ -126,7 +126,7 @@
   <transmission name="wrist_1_trans">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="wrist_1_joint">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="wrist_1_motor">
       <mechanicalReduction>1</mechanicalReduction>
@@ -135,7 +135,7 @@
   <transmission name="wrist_2_trans">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="wrist_2_joint">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="wrist_2_motor">
       <mechanicalReduction>1</mechanicalReduction>
@@ -144,7 +144,7 @@
   <transmission name="wrist_3_trans">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="wrist_3_joint">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
     </joint>
     <actuator name="wrist_3_motor">
       <mechanicalReduction>1</mechanicalReduction>
@@ -425,10 +425,11 @@
       <!--robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType-->
     </plugin>
   </gazebo>
+  <!-- Stand and World -->
   <link name="robot_stand">
     <visual>
       <geometry>
-        <box size="0.50 0.50 0.50"/>
+        <box size="0.50 0.50 1.0"/>
       </geometry>
       <material name="black_metal">
         <color rgba="0.1 0.1 0.1 1"/>
@@ -436,7 +437,7 @@
     </visual>
     <collision>
       <geometry>
-        <box size="0.50 0.50 0.50"/>
+        <box size="0.50 0.50 1.0"/>
       </geometry>
     </collision>
   </link>
@@ -444,11 +445,486 @@
   <joint name="world_robot_stand" type="fixed">
     <parent link="world"/>
     <child link="robot_stand"/>
-    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.25"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.5"/>
   </joint>
   <joint name="robot_stand_robot" type="fixed">
     <parent link="robot_stand"/>
     <child link="base_link"/>
-    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.25"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.5"/>
+  </joint>
+  <material name="left_camera_aluminum">
+    <color rgba="0.5 0.5 0.5 1"/>
+  </material>
+  <!-- camera body, with origin at bottom screw mount -->
+  <joint name="left_camera_joint" type="fixed">
+    <origin rpy="0.0 0.5 0.4" xyz="0.0 -0.40 0.40"/>
+    <parent link="base_link"/>
+    <child link="left_camera_bottom_screw_frame"/>
+  </joint>
+  <link name="left_camera_bottom_screw_frame"/>
+  <joint name="left_camera_link_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0.0175 0.0125"/>
+    <parent link="left_camera_bottom_screw_frame"/>
+    <child link="left_camera_link"/>
+  </joint>
+  <link name="left_camera_link">
+    <visual>
+      <origin rpy="1.5707963267948966 0 1.5707963267948966" xyz="0.0149 -0.0175 0"/>
+      <geometry>
+        <!-- <box size="${d435_cam_width} ${d435_cam_height} ${d435_cam_depth}"/> -->
+        <mesh filename="package://realsense2_description/meshes/d435.dae"/>
+        <!--<mesh filename="package://realsense2_description/meshes/d435/d435.dae" />-->
+      </geometry>
+      <material name="left_camera_aluminum"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 -0.0175 0"/>
+      <geometry>
+        <box size="0.02505 0.09 0.025"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <!-- The following are not reliable values, and should not be used for modeling -->
+      <mass value="0.564"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.003881243" ixy="0.0" ixz="0.0" iyy="0.000498940" iyz="0.0" izz="0.003879257"/>
+    </inertial>
+  </link>
+  <!-- camera depth joints and links -->
+  <joint name="left_camera_depth_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="left_camera_link"/>
+    <child link="left_camera_depth_frame"/>
+  </joint>
+  <link name="left_camera_depth_frame"/>
+  <joint name="left_camera_depth_optical_joint" type="fixed">
+    <origin rpy="-1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0"/>
+    <parent link="left_camera_depth_frame"/>
+    <child link="left_camera_depth_optical_frame"/>
+  </joint>
+  <link name="left_camera_depth_optical_frame"/>
+  <!-- camera left IR joints and links -->
+  <joint name="left_camera_left_ir_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0.0 0"/>
+    <parent link="left_camera_depth_frame"/>
+    <child link="left_camera_left_ir_frame"/>
+  </joint>
+  <link name="left_camera_left_ir_frame"/>
+  <joint name="left_camera_left_ir_optical_joint" type="fixed">
+    <origin rpy="-1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0"/>
+    <parent link="left_camera_left_ir_frame"/>
+    <child link="left_camera_left_ir_optical_frame"/>
+  </joint>
+  <link name="left_camera_left_ir_optical_frame"/>
+  <!-- camera right IR joints and links -->
+  <joint name="left_camera_right_ir_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 -0.05 0"/>
+    <parent link="left_camera_depth_frame"/>
+    <child link="left_camera_right_ir_frame"/>
+  </joint>
+  <link name="left_camera_right_ir_frame"/>
+  <joint name="left_camera_right_ir_optical_joint" type="fixed">
+    <origin rpy="-1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0"/>
+    <parent link="left_camera_right_ir_frame"/>
+    <child link="left_camera_right_ir_optical_frame"/>
+  </joint>
+  <link name="left_camera_right_ir_optical_frame"/>
+  <!-- camera color joints and links -->
+  <joint name="left_camera_color_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0.015 0"/>
+    <parent link="left_camera_depth_frame"/>
+    <child link="left_camera_color_frame"/>
+  </joint>
+  <link name="left_camera_color_frame"/>
+  <joint name="left_camera_color_optical_joint" type="fixed">
+    <origin rpy="-1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0"/>
+    <parent link="left_camera_color_frame"/>
+    <child link="left_camera_color_optical_frame"/>
+  </joint>
+  <link name="left_camera_color_optical_frame"/>
+  <gazebo reference="left_camera_link">
+    <self_collide>0</self_collide>
+    <enable_wind>0</enable_wind>
+    <kinematic>0</kinematic>
+    <gravity>1</gravity>
+    <!--<mu>1</mu>-->
+    <mu2>1</mu2>
+    <fdir1>0 0 0</fdir1>
+    <!--<slip1>0</slip1>
+      <slip2>0</slip2>-->
+    <kp>1e+13</kp>
+    <kd>1</kd>
+    <!--<max_vel>0.01</max_vel>
+      <min_depth>0</min_depth>-->
+    <sensor name="left_cameracolor" type="camera">
+      <camera name="left_camera">
+        <horizontal_fov>1.2112585008840648</horizontal_fov>
+        <image>
+          <width>1920</width>
+          <height>1080</height>
+          <format>RGB_INT8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <always_on>1</always_on>
+      <update_rate>30</update_rate>
+      <visualize>1</visualize>
+    </sensor>
+    <sensor name="left_cameraired1" type="camera">
+      <camera name="left_camera">
+        <horizontal_fov>1.4870205226991688</horizontal_fov>
+        <image>
+          <width>1280</width>
+          <height>720</height>
+          <format>L_INT8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.05</stddev>
+        </noise>
+      </camera>
+      <always_on>1</always_on>
+      <update_rate>90</update_rate>
+      <visualize>0</visualize>
+    </sensor>
+    <sensor name="left_cameraired2" type="camera">
+      <camera name="left_camera">
+        <horizontal_fov>1.4870205226991688</horizontal_fov>
+        <image>
+          <width>1280</width>
+          <height>720</height>
+          <format>L_INT8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.05</stddev>
+        </noise>
+      </camera>
+      <always_on>1</always_on>
+      <update_rate>90</update_rate>
+      <visualize>0</visualize>
+    </sensor>
+    <sensor name="left_cameradepth" type="depth">
+      <camera name="left_camera">
+        <horizontal_fov>1.4870205226991688</horizontal_fov>
+        <image>
+          <width>1280</width>
+          <height>720</height>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.100</stddev>
+        </noise>
+      </camera>
+      <always_on>1</always_on>
+      <update_rate>90</update_rate>
+      <visualize>1</visualize>
+    </sensor>
+  </gazebo>
+  <gazebo>
+    <plugin filename="librealsense_gazebo_plugin.so" name="left_camera">
+      <prefix>left_camera</prefix>
+      <depthUpdateRate>60.0</depthUpdateRate>
+      <colorUpdateRate>60.0</colorUpdateRate>
+      <infraredUpdateRate>60.0</infraredUpdateRate>
+      <depthTopicName>depth/image_raw</depthTopicName>
+      <depthCameraInfoTopicName>depth/camera_info</depthCameraInfoTopicName>
+      <colorTopicName>color/image_raw</colorTopicName>
+      <colorCameraInfoTopicName>color/camera_info</colorCameraInfoTopicName>
+      <infrared1TopicName>infra1/image_raw</infrared1TopicName>
+      <infrared1CameraInfoTopicName>infra1/camera_info</infrared1CameraInfoTopicName>
+      <infrared2TopicName>infra2/image_raw</infrared2TopicName>
+      <infrared2CameraInfoTopicName>infra2/camera_info</infrared2CameraInfoTopicName>
+      <colorOpticalframeName>left_camera_color_optical_frame</colorOpticalframeName>
+      <depthOpticalframeName>left_camera_depth_optical_frame</depthOpticalframeName>
+      <infrared1OpticalframeName>left_camera_left_ir_optical_frame</infrared1OpticalframeName>
+      <infrared2OpticalframeName>left_camera_right_ir_optical_frame</infrared2OpticalframeName>
+      <rangeMinDepth>0.2</rangeMinDepth>
+      <rangeMaxDepth>10.0</rangeMaxDepth>
+      <pointCloud>true</pointCloud>
+      <pointCloudTopicName>depth/points</pointCloudTopicName>
+      <pointCloudCutoff>0.5</pointCloudCutoff>
+    </plugin>
+  </gazebo>
+  <material name="right_camera_aluminum">
+    <color rgba="0.5 0.5 0.5 1"/>
+  </material>
+  <!-- camera body, with origin at bottom screw mount -->
+  <joint name="right_camera_joint" type="fixed">
+    <origin rpy="0.0 0.5 -0.4" xyz="0.0 0.40 0.40"/>
+    <parent link="base_link"/>
+    <child link="right_camera_bottom_screw_frame"/>
+  </joint>
+  <link name="right_camera_bottom_screw_frame"/>
+  <joint name="right_camera_link_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0.0175 0.0125"/>
+    <parent link="right_camera_bottom_screw_frame"/>
+    <child link="right_camera_link"/>
+  </joint>
+  <link name="right_camera_link">
+    <visual>
+      <origin rpy="1.5707963267948966 0 1.5707963267948966" xyz="0.0149 -0.0175 0"/>
+      <geometry>
+        <!-- <box size="${d435_cam_width} ${d435_cam_height} ${d435_cam_depth}"/> -->
+        <mesh filename="package://realsense2_description/meshes/d435.dae"/>
+        <!--<mesh filename="package://realsense2_description/meshes/d435/d435.dae" />-->
+      </geometry>
+      <material name="right_camera_aluminum"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 -0.0175 0"/>
+      <geometry>
+        <box size="0.02505 0.09 0.025"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <!-- The following are not reliable values, and should not be used for modeling -->
+      <mass value="0.564"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.003881243" ixy="0.0" ixz="0.0" iyy="0.000498940" iyz="0.0" izz="0.003879257"/>
+    </inertial>
+  </link>
+  <!-- camera depth joints and links -->
+  <joint name="right_camera_depth_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="right_camera_link"/>
+    <child link="right_camera_depth_frame"/>
+  </joint>
+  <link name="right_camera_depth_frame"/>
+  <joint name="right_camera_depth_optical_joint" type="fixed">
+    <origin rpy="-1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0"/>
+    <parent link="right_camera_depth_frame"/>
+    <child link="right_camera_depth_optical_frame"/>
+  </joint>
+  <link name="right_camera_depth_optical_frame"/>
+  <!-- camera left IR joints and links -->
+  <joint name="right_camera_left_ir_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0.0 0"/>
+    <parent link="right_camera_depth_frame"/>
+    <child link="right_camera_left_ir_frame"/>
+  </joint>
+  <link name="right_camera_left_ir_frame"/>
+  <joint name="right_camera_left_ir_optical_joint" type="fixed">
+    <origin rpy="-1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0"/>
+    <parent link="right_camera_left_ir_frame"/>
+    <child link="right_camera_left_ir_optical_frame"/>
+  </joint>
+  <link name="right_camera_left_ir_optical_frame"/>
+  <!-- camera right IR joints and links -->
+  <joint name="right_camera_right_ir_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 -0.05 0"/>
+    <parent link="right_camera_depth_frame"/>
+    <child link="right_camera_right_ir_frame"/>
+  </joint>
+  <link name="right_camera_right_ir_frame"/>
+  <joint name="right_camera_right_ir_optical_joint" type="fixed">
+    <origin rpy="-1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0"/>
+    <parent link="right_camera_right_ir_frame"/>
+    <child link="right_camera_right_ir_optical_frame"/>
+  </joint>
+  <link name="right_camera_right_ir_optical_frame"/>
+  <!-- camera color joints and links -->
+  <joint name="right_camera_color_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0.015 0"/>
+    <parent link="right_camera_depth_frame"/>
+    <child link="right_camera_color_frame"/>
+  </joint>
+  <link name="right_camera_color_frame"/>
+  <joint name="right_camera_color_optical_joint" type="fixed">
+    <origin rpy="-1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0"/>
+    <parent link="right_camera_color_frame"/>
+    <child link="right_camera_color_optical_frame"/>
+  </joint>
+  <link name="right_camera_color_optical_frame"/>
+  <gazebo reference="right_camera_link">
+    <self_collide>0</self_collide>
+    <enable_wind>0</enable_wind>
+    <kinematic>0</kinematic>
+    <gravity>1</gravity>
+    <!--<mu>1</mu>-->
+    <mu2>1</mu2>
+    <fdir1>0 0 0</fdir1>
+    <!--<slip1>0</slip1>
+      <slip2>0</slip2>-->
+    <kp>1e+13</kp>
+    <kd>1</kd>
+    <!--<max_vel>0.01</max_vel>
+      <min_depth>0</min_depth>-->
+    <sensor name="right_cameracolor" type="camera">
+      <camera name="right_camera">
+        <horizontal_fov>1.2112585008840648</horizontal_fov>
+        <image>
+          <width>1920</width>
+          <height>1080</height>
+          <format>RGB_INT8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <always_on>1</always_on>
+      <update_rate>30</update_rate>
+      <visualize>1</visualize>
+    </sensor>
+    <sensor name="right_cameraired1" type="camera">
+      <camera name="right_camera">
+        <horizontal_fov>1.4870205226991688</horizontal_fov>
+        <image>
+          <width>1280</width>
+          <height>720</height>
+          <format>L_INT8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.05</stddev>
+        </noise>
+      </camera>
+      <always_on>1</always_on>
+      <update_rate>90</update_rate>
+      <visualize>0</visualize>
+    </sensor>
+    <sensor name="right_cameraired2" type="camera">
+      <camera name="right_camera">
+        <horizontal_fov>1.4870205226991688</horizontal_fov>
+        <image>
+          <width>1280</width>
+          <height>720</height>
+          <format>L_INT8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.05</stddev>
+        </noise>
+      </camera>
+      <always_on>1</always_on>
+      <update_rate>90</update_rate>
+      <visualize>0</visualize>
+    </sensor>
+    <sensor name="right_cameradepth" type="depth">
+      <camera name="right_camera">
+        <horizontal_fov>1.4870205226991688</horizontal_fov>
+        <image>
+          <width>1280</width>
+          <height>720</height>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.100</stddev>
+        </noise>
+      </camera>
+      <always_on>1</always_on>
+      <update_rate>90</update_rate>
+      <visualize>1</visualize>
+    </sensor>
+  </gazebo>
+  <gazebo>
+    <plugin filename="librealsense_gazebo_plugin.so" name="right_camera">
+      <prefix>right_camera</prefix>
+      <depthUpdateRate>60.0</depthUpdateRate>
+      <colorUpdateRate>60.0</colorUpdateRate>
+      <infraredUpdateRate>60.0</infraredUpdateRate>
+      <depthTopicName>depth/image_raw</depthTopicName>
+      <depthCameraInfoTopicName>depth/camera_info</depthCameraInfoTopicName>
+      <colorTopicName>color/image_raw</colorTopicName>
+      <colorCameraInfoTopicName>color/camera_info</colorCameraInfoTopicName>
+      <infrared1TopicName>infra1/image_raw</infrared1TopicName>
+      <infrared1CameraInfoTopicName>infra1/camera_info</infrared1CameraInfoTopicName>
+      <infrared2TopicName>infra2/image_raw</infrared2TopicName>
+      <infrared2CameraInfoTopicName>infra2/camera_info</infrared2CameraInfoTopicName>
+      <colorOpticalframeName>right_camera_color_optical_frame</colorOpticalframeName>
+      <depthOpticalframeName>right_camera_depth_optical_frame</depthOpticalframeName>
+      <infrared1OpticalframeName>right_camera_left_ir_optical_frame</infrared1OpticalframeName>
+      <infrared2OpticalframeName>right_camera_right_ir_optical_frame</infrared2OpticalframeName>
+      <rangeMinDepth>0.2</rangeMinDepth>
+      <rangeMaxDepth>10.0</rangeMaxDepth>
+      <pointCloud>true</pointCloud>
+      <pointCloudTopicName>depth/points</pointCloudTopicName>
+      <pointCloudCutoff>0.5</pointCloudCutoff>
+    </plugin>
+  </gazebo>
+  <link name="left_tripod">
+    <visual>
+      <geometry>
+        <cylinder length="1.4" radius="0.01"/>
+        <material name="black_metal">
+          <color rgba="0.1 0.1 0.1 1"/>
+        </material>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="1.4" radius="0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_tripod">
+    <visual>
+      <geometry>
+        <cylinder length="1.4" radius="0.01"/>
+        <material name="black_metal">
+          <color rgba="0.1 0.1 0.1 1"/>
+        </material>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="1.4" radius="0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="world_left_tripod" type="fixed">
+    <parent link="world"/>
+    <child link="left_tripod"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.40 0.7"/>
+  </joint>
+  <joint name="world_right_tripod" type="fixed">
+    <parent link="world"/>
+    <child link="right_tripod"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.40 0.7"/>
   </joint>
 </robot>
+
