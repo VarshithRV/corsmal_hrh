@@ -6,6 +6,7 @@ import numpy as np
 from threading import Lock
 import time
 import tf.transformations as tf_trans
+from threading import Lock
 
 INITIAL_POSE = PoseStamped()
 INITIAL_POSE.header.frame_id = "world"
@@ -17,8 +18,8 @@ INITIAL_POSE.pose.orientation.y = 0.0
 INITIAL_POSE.pose.orientation.z = 0.0
 INITIAL_POSE.pose.orientation.w = 1.0
 
-LINEAR_ACCELERATION = 3.0  # m/s²
-ANGULAR_ACCELERATION = 1.0  # rad/s²
+LINEAR_ACCELERATION = 10.0  # m/s²
+ANGULAR_ACCELERATION = 17.45  # rad/s²
 THRESHOLD = 0.01
 P_GAIN = 1.0
 
@@ -62,7 +63,19 @@ class PoseController:
             msg_rate = len(self.message_timestamps)
 
             if msg_rate > 2:
-                self.setpoint_velocity = self.latest_setpoint_msg
+                setpoint_velocity = np.array([self.latest_setpoint_msg.linear.x,self.latest_setpoint_msg.linear.y,self.latest_setpoint_msg.linear.z,
+                                              self.latest_setpoint_msg.angular.x,self.latest_setpoint_msg.angular.y,self.latest_setpoint_msg.angular.z])
+                if np.linalg.norm(setpoint_velocity) > 1.0:
+                    setpoint_velocity = setpoint_velocity/np.linalg.norm(setpoint_velocity)
+                cmd_vel = Twist()
+                cmd_vel.linear.x = setpoint_velocity[0]
+                cmd_vel.linear.y = setpoint_velocity[1]
+                cmd_vel.linear.z = setpoint_velocity[2]
+                cmd_vel.angular.x = setpoint_velocity[3]
+                cmd_vel.angular.y = setpoint_velocity[4]
+                cmd_vel.angular.z = setpoint_velocity[5]
+                self.setpoint_velocity = cmd_vel
+
             else:
                 self.setpoint_velocity = Twist()
 
