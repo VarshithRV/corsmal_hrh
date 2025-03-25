@@ -31,3 +31,14 @@ ANGULAR_P_GAIN : 8
 ANGULAR_I_GAIN : 0
 ANGULAR_D_GAIN : 0
 ANGULAR_K_GAIN : 1
+
+pre_grasp_transform : # transformation from grasp -> pregrasp
+  position :
+    x : -0.1
+    y : 0.0
+    z : 0.0
+  orientation :
+    w : 1 
+    x : 0
+    y : 0
+    z : 0

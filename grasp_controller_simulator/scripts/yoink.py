@@ -1,19 +1,21 @@
 #!/usr/bin/env python
-#Radial tracking code
+#Yoink code
 import yaml
 import rospy
 import tf.transformations as tft
-from geometry_msgs.msg import PoseStamped, Twist
+from geometry_msgs.msg import PoseStamped, Twist, Pose, TransformStamped
 from scipy.spatial.transform import Rotation
 import time
 import numpy as np
 import sys
+import tf2_geometry_msgs
 from threading import Lock
 import math
 
+
 class RadialTracker:
     def __init__(self):
-        self.config_file = '/home/barracuda/corsmal_ws/src/corsmal_hrh/grasp_controller_simulator/scripts/config/radial_tracking.yaml'
+        self.config_file = '/home/barracuda/corsmal_ws/src/corsmal_hrh/grasp_controller_simulator/scripts/config/yoink.yaml'
         
         self.params = self.load_parameters(self.config_file)
         
@@ -63,6 +65,8 @@ class RadialTracker:
 
         self.transformation_interpolation_coefficient = self.params["transformation_interpolation_coefficient"]
 
+        self.pre_grasp_transform = self.params["pre_grasp_transform"]
+
         self.start = rospy.Time.now()
         
         self.current_velocity = None
@@ -98,20 +102,143 @@ class RadialTracker:
         if self.optimal_pose is not None :
             self.optimal_pose_pub.publish(self.optimal_pose)
 
-    def command_velocity(self):
+    def command_radial_track_velocity(self):
         # start = rospy.Time.now()
         rate = rospy.Rate(self.cmd_publish_frequency)
         start = time.time()
-        print("Start : ",start)
         while time.time() - start <= self.duration:
-            print("now : ",time.time())
             if self.filtered_grasp_pose is not None :
-                cmd_vel = self.compute_cmd_vel()
+                cmd_vel = self.compute_cmd_vel("radial_track")
                 self.setpoint_velocity_pub.publish(cmd_vel)
             rate.sleep()
-            
 
-    def compute_optimal_setpoint(self):
+    def command_pre_grasp_velocity(self):
+        rate = rospy.Rate(self.cmd_publish_frequency)
+        while True :
+            
+            optimal_poseL, _, optimal_poseQ = self.compute_pre_grasp_setpoint()
+            
+            current_poseL = np.array([self.current_pose.pose.position.x,self.current_pose.pose.position.y,self.current_pose.pose.position.z])
+            current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
+                                      self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
+            if np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL) < 0.03 and np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)<0.01 : 
+                print("UEEAE")
+                break
+
+            if self.filtered_grasp_pose is not None :
+                cmd_vel = self.compute_cmd_vel("pre_grasp")
+                self.setpoint_velocity_pub.publish(cmd_vel)
+            rate.sleep()
+    
+    def command_pre_grasp_velocity_back(self):
+        rate = rospy.Rate(self.cmd_publish_frequency)
+
+        start = time.time()
+        while time.time() - start <= self.duration:
+
+            if self.filtered_grasp_pose is not None :
+                cmd_vel = self.compute_cmd_vel("pre_grasp")
+                self.setpoint_velocity_pub.publish(cmd_vel)
+            rate.sleep()
+
+    def command_grasp_velocity(self):
+        rate = rospy.Rate(self.cmd_publish_frequency)
+        while True :
+            
+            optimal_poseL, _, optimal_poseQ = self.compute_grasp_setpoint()
+            
+            current_poseL = np.array([self.current_pose.pose.position.x,self.current_pose.pose.position.y,self.current_pose.pose.position.z])
+            current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
+                                      self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
+            if np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL) < 0.03 and np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)<0.01 : 
+                print("UEEAE")
+                cmd_vel = Twist()
+                self.setpoint_velocity_pub.publish(cmd_vel)
+                break
+
+            if self.filtered_grasp_pose is not None :
+                cmd_vel = self.compute_cmd_vel("grasp")
+                self.setpoint_velocity_pub.publish(cmd_vel)
+            rate.sleep()
+
+    def compute_pre_grasp_setpoint(self):
+        pose_setpoint = self.filtered_grasp_pose
+        pose_setpointL = np.array([pose_setpoint.pose.position.x,pose_setpoint.pose.position.y,pose_setpoint.pose.position.z])
+        pose_setpointQ = np.array([pose_setpoint.pose.orientation.x,pose_setpoint.pose.orientation.y,
+                                   pose_setpoint.pose.orientation.z,pose_setpoint.pose.orientation.w])
+        pose_setpointO = np.array(tft.euler_from_quaternion(pose_setpointQ.tolist()))
+        pose_setpointM = tft.concatenate_matrices(tft.translation_matrix(pose_setpointL), tft.quaternion_matrix(pose_setpointQ))
+
+        transform = Pose()
+        transform.position.x = self.pre_grasp_transform["position"]["x"]
+        transform.position.y = self.pre_grasp_transform["position"]["y"]
+        transform.position.z = self.pre_grasp_transform["position"]["z"]
+        transform.orientation.x = self.pre_grasp_transform["orientation"]["x"]
+        transform.orientation.y = self.pre_grasp_transform["orientation"]["y"]
+        transform.orientation.z = self.pre_grasp_transform["orientation"]["z"]
+        transform.orientation.w = self.pre_grasp_transform["orientation"]["w"]
+        transformL = np.array([transform.position.x, transform.position.y, transform.position.z])
+        transformQ = np.array([transform.orientation.x, transform.orientation.y, transform.orientation.z, transform.orientation.w])
+        transformM = tft.concatenate_matrices(tft.translation_matrix(transformL), tft.quaternion_matrix(transformQ))
+        
+        pose_optimal_setpointM = np.dot(pose_setpointM, transformM)
+        pose_optimal_setpointL = tft.translation_from_matrix(pose_optimal_setpointM)
+        pose_optimal_setpointQ = tft.quaternion_from_matrix(pose_optimal_setpointM)
+
+
+        # Create PoseStamped message
+        pose_optimal_setpoint = PoseStamped()
+        pose_optimal_setpoint.header.frame_id = "world"
+        pose_optimal_setpoint.pose.position.x = pose_optimal_setpointL[0]
+        pose_optimal_setpoint.pose.position.y = pose_optimal_setpointL[1]
+        pose_optimal_setpoint.pose.position.z = pose_optimal_setpointL[2]
+        pose_optimal_setpoint.pose.orientation.x = pose_optimal_setpointQ[0]
+        pose_optimal_setpoint.pose.orientation.y = pose_optimal_setpointQ[1]
+        pose_optimal_setpoint.pose.orientation.z = pose_optimal_setpointQ[2]
+        pose_optimal_setpoint.pose.orientation.w = pose_optimal_setpointQ[3]
+
+        return pose_optimal_setpointL,np.array([0,0,0,0]),pose_optimal_setpointQ
+
+    def compute_grasp_setpoint(self):
+        pose_setpoint = self.filtered_grasp_pose
+        pose_setpointL = np.array([pose_setpoint.pose.position.x,pose_setpoint.pose.position.y,pose_setpoint.pose.position.z])
+        pose_setpointQ = np.array([pose_setpoint.pose.orientation.x,pose_setpoint.pose.orientation.y,
+                                   pose_setpoint.pose.orientation.z,pose_setpoint.pose.orientation.w])
+        # pose_setpointO = np.array(tft.euler_from_quaternion(pose_setpointQ.tolist()))
+        # pose_setpointM = tft.concatenate_matrices(tft.translation_matrix(pose_setpointL), tft.quaternion_matrix(pose_setpointQ))
+
+        # transform = Pose()
+        # transform.position.x = self.pre_grasp_transform["position"]["x"]
+        # transform.position.y = self.pre_grasp_transform["position"]["y"]
+        # transform.position.z = self.pre_grasp_transform["position"]["z"]
+        # transform.orientation.x = self.pre_grasp_transform["orientation"]["x"]
+        # transform.orientation.y = self.pre_grasp_transform["orientation"]["y"]
+        # transform.orientation.z = self.pre_grasp_transform["orientation"]["z"]
+        # transform.orientation.w = self.pre_grasp_transform["orientation"]["w"]
+        # transformL = np.array([transform.position.x, transform.position.y, transform.position.z])
+        # transformQ = np.array([transform.orientation.x, transform.orientation.y, transform.orientation.z, transform.orientation.w])
+        # transformM = tft.concatenate_matrices(tft.translation_matrix(transformL), tft.quaternion_matrix(transformQ))
+        
+        # pose_optimal_setpointM = np.dot(pose_setpointM, transformM)
+        # pose_optimal_setpointL = tft.translation_from_matrix(pose_optimal_setpointM)
+        # pose_optimal_setpointQ = tft.quaternion_from_matrix(pose_optimal_setpointM)
+
+
+        # # Create PoseStamped message
+        # pose_optimal_setpoint = PoseStamped()
+        # pose_optimal_setpoint.header.frame_id = "world"
+        # pose_optimal_setpoint.pose.position.x = pose_optimal_setpointL[0]
+        # pose_optimal_setpoint.pose.position.y = pose_optimal_setpointL[1]
+        # pose_optimal_setpoint.pose.position.z = pose_optimal_setpointL[2]
+        # pose_optimal_setpoint.pose.orientation.x = pose_optimal_setpointQ[0]
+        # pose_optimal_setpoint.pose.orientation.y = pose_optimal_setpointQ[1]
+        # pose_optimal_setpoint.pose.orientation.z = pose_optimal_setpointQ[2]
+        # pose_optimal_setpoint.pose.orientation.w = pose_optimal_setpointQ[3]
+
+        return pose_setpointL,np.array([0,0,0,0]),pose_setpointQ
+
+
+    def compute_radial_track_setpoint(self):
         pose_setpoint = self.filtered_grasp_pose
         pose_setpointL = np.array([pose_setpoint.pose.position.x,pose_setpoint.pose.position.y,pose_setpoint.pose.position.z])
     
@@ -161,7 +288,7 @@ class RadialTracker:
         return pose_optimal_setpointL, pose_optimal_setpointO,  pose_optimal_setpointQ
 
 
-    def compute_cmd_vel(self):
+    def compute_cmd_vel(self,setpoint):
         # check if current_pose, current_velocity, and if self.filtered_grasp_pose is being received
         if self.current_pose is None or self.current_velocity is None or self.filtered_grasp_pose is None:
             # rospy.logerr("Current pose or velociy is not received")
@@ -174,8 +301,17 @@ class RadialTracker:
         pose_currentQ = np.array([pose_current.pose.orientation.x,pose_current.pose.orientation.y,
                                     pose_current.pose.orientation.z,pose_current.pose.orientation.w])
         
+        optimal_setpointL = None
+        optimal_setpointO = None
+        optimal_setpointQ = None
 
-        optimal_setpointL, optimal_setpointO, optimal_setpointQ = self.compute_optimal_setpoint()
+        if setpoint == "radial_track":
+            optimal_setpointL, optimal_setpointO, optimal_setpointQ = self.compute_radial_track_setpoint()
+        if setpoint == "pre_grasp":
+            optimal_setpointL, optimal_setpointO, optimal_setpointQ = self.compute_pre_grasp_setpoint()
+        if setpoint == "grasp":
+            optimal_setpointL, optimal_setpointO, optimal_setpointQ = self.compute_grasp_setpoint()
+
         self.optimal_pose = PoseStamped()
         self.optimal_pose.header.frame_id = "world"
         self.optimal_pose.pose.position.x = optimal_setpointL[0]
@@ -233,7 +369,7 @@ class RadialTracker:
             if len(self.pose_message_timestamp_queue) < self.pose_setpoint_frequency_cutoff:
                 self.filtered_grasp_pose = None
             else :
-                self.filtered_grasp_pose = self.proxy_filtered_grasp_pose
+                self.filtered_grasp_pose = self.proxy_filtered_grasp_pose 
         
 
     def load_parameters(self,file_path):
@@ -249,5 +385,11 @@ class RadialTracker:
 if __name__ == "__main__":
     rospy.init_node("radial_tracker")
     radial_tracker = RadialTracker()
-    radial_tracker.command_velocity()
+    # radial_tracker.command_radial_track_velocity()
+    time.sleep(0.1)
+    radial_tracker.command_pre_grasp_velocity()
+    radial_tracker.command_grasp_velocity()
+    time.sleep(0.5)
+    radial_tracker.command_pre_grasp_velocity_back()
+    
     rospy.spin()
