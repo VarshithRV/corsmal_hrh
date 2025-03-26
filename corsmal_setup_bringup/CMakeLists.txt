@@ -11,7 +11,6 @@ find_package(catkin REQUIRED COMPONENTS
   azure_kinect_ros_driver
   realsense2_camera
   realsense2_description
-  universal_robot
   ur_robot_driver
 )
 
