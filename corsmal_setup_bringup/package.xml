@@ -52,18 +52,16 @@
   <build_depend>azure_kinect_ros_driver</build_depend>
   <build_depend>realsense2_camera</build_depend>
   <build_depend>realsense2_description</build_depend>
-  <build_depend>universal_robot</build_depend>
   <build_depend>ur_robot_driver</build_depend>
   <build_export_depend>azure_kinect_ros_driver</build_export_depend>
   <build_export_depend>realsense2_camera</build_export_depend>
   <build_export_depend>realsense2_description</build_export_depend>
-  <build_export_depend>universal_robot</build_export_depend>
   <build_export_depend>ur_robot_driver</build_export_depend>
   <exec_depend>azure_kinect_ros_driver</exec_depend>
   <exec_depend>realsense2_camera</exec_depend>
   <exec_depend>realsense2_description</exec_depend>
-  <exec_depend>universal_robot</exec_depend>
   <exec_depend>ur_robot_driver</exec_depend>
+  <exec_depend>ur16e_moveit_config</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

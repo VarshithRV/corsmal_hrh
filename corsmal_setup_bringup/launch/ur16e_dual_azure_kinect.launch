@@ -1,0 +1,165 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- UR16e Arguments -->
+    <arg name="debug" value="false" doc="Debug flag that will get passed on to ur_common.launch"/>
+    <arg name="robot_ip" value="192.168.1.3" doc="IP address by which the robot can be reached."/>
+    <arg name="reverse_ip" value="" doc="IP of the driver, if set to empty it will detect it automatically."/>
+    <arg name="reverse_port" value="50001" doc="Port that will be opened by the driver to allow direct communication between the driver and the robot controller."/>
+    <arg name="script_sender_port" value="50002" doc="The driver will offer an interface to receive the program's URScript on this port. If the robot cannot connect to this port, `External Control` will stop immediately."/>
+    <arg name="trajectory_port" value="50003" doc="Port that will be opened by the driver to allow trajectory forwarding."/>
+    <arg name="script_command_port" value="50004" doc="Port that will be opened by the driver to allow forwarding script commands to the robot."/>
+    <arg name="tf_prefix" value="" doc="tf_prefix used for the robot."/>
+    <arg name="controllers" value="joint_state_controller scaled_pos_joint_traj_controller speed_scaling_state_controller force_torque_sensor_controller" doc="Controllers that are activated by default."/>
+    <arg name="stopped_controllers" value="twist_controller pos_joint_traj_controller joint_group_vel_controller" doc="Controllers that are initally loaded, but not started."/>
+    <arg name="controller_config_file" value="$(find ur_robot_driver)/config/ur16e_controllers.yaml" doc="Config file used for defining the ROS-Control controllers."/>
+    <arg name="robot_description_file" value="$(find ur_description)/launch/load_ur16e.launch" doc="Robot description launch file."/>
+    <arg name="kinematics_config" value="$(find corsmal_setup_bringup)/config/right_ur16e_kinematics_config.yaml" doc="Kinematics config file used for calibration correction. This will be used to verify the robot's calibration is matching the robot_description."/>
+    <arg name="use_tool_communication" value="false" doc="On e-Series robots tool communication can be enabled with this argument"/>
+    <arg name="tool_voltage" value="0" doc="Tool voltage set at the beginning of the UR program. Only used, when `use_tool_communication` is set to true."/>
+    <arg name="tool_parity" value="0" doc="Parity configuration used for tool communication. Only used, when `use_tool_communication` is set to true."/>
+    <arg name="tool_baud_rate" value="115200" doc="Baud rate used for tool communication. Only used, when `use_tool_communication` is set to true."/>
+    <arg name="tool_stop_bits" value="1" doc="Number of stop bits used for tool communication. Only used, when `use_tool_communication` is set to true."/>
+    <arg name="tool_rx_idle_chars" value="1.5" doc="Number of idle chars in RX channel used for tool communication. Only used, when `use_tool_communication` is set to true."/>
+    <arg name="tool_tx_idle_chars" value="3.5" doc="Number of idle chars in TX channel used for tool communication. Only used, when `use_tool_communication` is set to true."/>
+    <arg name="tool_device_name" value="/tmp/ttyUR" doc="Local device name used for tool communication. Only used, when `use_tool_communication` is set to true."/>
+    <arg name="tool_tcp_port" value="54321" doc="Port on which the robot controller publishes the tool comm interface. Only used, when `use_tool_communication` is set to true."/>
+    <arg name="headless_mode" value="false" doc="Automatically send URScript to robot to execute. On e-Series this does require the robot to be in 'remote-control' mode. With this, the URCap is not needed on the robot."/>  
+    <arg name="ur_hardware_interface_node_required" value="true" doc="Shut down ros environment if ur_hardware_interface-node dies."/>
+
+    <!-- Azure DK left arguments -->
+    <arg name="left_tf_prefix" value="left"/>                       <!-- Prefix added to tf frame IDs. It typically contains a trailing '_' unless empty. -->
+    <arg name="left_overwrite_robot_description" value="false" />         <!-- Flag to publish a standalone azure_description instead of the default robot_descrition parameter-->
+    <arg name="left_depth_enabled"           value="true" />           <!-- Enable or disable the depth camera -->
+    <arg name="left_depth_mode"              value="WFOV_UNBINNED" />  <!-- Set the depth camera mode, which affects FOV, depth range, and camera resolution. See Azure Kinect documentation for full details. Valid options: NFOV_UNBINNED, NFOV_2X2BINNED, WFOV_UNBINNED, WFOV_2X2BINNED, and PASSIVE_IR -->
+    <arg name="left_depth_unit"              value="16UC1" />          <!-- Depth distance units. Options are: "32FC1" (32 bit float metre) or "16UC1" (16 bit integer millimetre) -->
+    <arg name="left_color_enabled"           value="true" />           <!-- Enable or disable the color camera -->
+    <arg name="left_color_format"            value="bgra" />           <!-- The format of RGB camera. Valid options: bgra, jpeg -->
+    <arg name="left_color_resolution"        value="720P" />          <!-- Resolution at which to run the color camera. Valid options: 720P, 1080P, 1440P, 1536P, 2160P, 3072P -->
+    <arg name="left_fps"                     value="15" />              <!-- FPS to run both cameras at. Valid options are 5, 15, and 30 -->
+    <arg name="left_point_cloud"             value="false" />           <!-- Generate a point cloud from depth data. Requires depth_enabled -->
+    <arg name="left_rgb_point_cloud"         value="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
+    <arg name="left_point_cloud_in_depth_frame" value="false" />        <!-- Whether the RGB pointcloud is rendered in the depth frame (true) or RGB frame (false). Will either match the resolution of the depth camera (true) or the RGB camera (false). -->
+    <arg name="left_required"                value="true" />          <!-- Argument which specified if the entire launch file should terminate if the node dies -->
+    <arg name="left_sensor_sn"               value="000206605212" />               <!-- Sensor serial number. If none provided, the first sensor will be selected -->
+    <arg name="left_recording_file"          value="" />               <!-- Absolute path to a mkv recording file which will be used with the playback api instead of opening a device -->
+    <arg name="left_recording_loop_enabled"  value="false" />          <!-- If set to true the recording file will rewind the beginning once end of file is reached -->
+    <arg name="left_body_tracking_enabled"           value="false" />  <!-- If set to true the joint positions will be published as marker arrays -->
+    <arg name="left_body_tracking_smoothing_factor"  value="0.0" />    <!-- Set between 0 for no smoothing and 1 for full smoothing -->
+    <arg name="left_rescale_ir_to_mono8"  value="false" />    <!-- Whether to rescale the IR image to an 8-bit monochrome image for visualization and further processing. A scaling factor (ir_mono8_scaling_factor) is applied. -->
+    <arg name="left_ir_mono8_scaling_factor"  value="1.0" />    <!-- Scaling factor to apply when converting IR to mono8 (see rescale_ir_to_mono8). If using illumination, use the value 0.5-1. If using passive IR, use 10. -->
+    <arg name="left_imu_rate_target" value="0"/>                       <!-- Desired output rate of IMU messages. Set to 0 (default) for full rate (1.6 kHz). --> 
+    <arg name="left_wired_sync_mode" value="0"/>                       <!-- Wired sync mode. 0: OFF, 1: MASTER, 2: SUBORDINATE. --> 
+    <arg name="left_subordinate_delay_off_master_usec" value="0"/>     <!-- Delay subordinate camera off master camera by specified amount in usec. --> 
+
+    <arg name="right_tf_prefix" value="right" />                       <!-- Prefix added to tf frame IDs. It typically contains a trailing '_' unless empty. -->
+    <arg name="right_overwrite_robot_description" value="false" />         <!-- Flag to publish a standalone azure_description instead of the default robot_descrition parameter-->
+    <arg name="right_depth_enabled"           value="true" />           <!-- Enable or disable the depth camera -->
+    <arg name="right_depth_mode"              value="WFOV_UNBINNED" />  <!-- Set the depth camera mode, which affects FOV, depth range, and camera resolution. See Azure Kinect documentation for full details. Valid options: NFOV_UNBINNED, NFOV_2X2BINNED, WFOV_UNBINNED, WFOV_2X2BINNED, and PASSIVE_IR -->
+    <arg name="right_depth_unit"              value="16UC1" />          <!-- Depth distance units. Options are: "32FC1" (32 bit float metre) or "16UC1" (16 bit integer millimetre) -->
+    <arg name="right_color_enabled"           value="true" />           <!-- Enable or disable the color camera -->
+    <arg name="right_color_format"            value="bgra" />           <!-- The format of RGB camera. Valid options: bgra, jpeg -->
+    <arg name="right_color_resolution"        value="720P" />          <!-- Resolution at which to run the color camera. Valid options: 720P, 1080P, 1440P, 1536P, 2160P, 3072P -->
+    <arg name="right_fps"                     value="15" />              <!-- FPS to run both cameras at. Valid options are 5, 15, and 30 -->
+    <arg name="right_point_cloud"             value="false" />           <!-- Generate a point cloud from depth data. Requires depth_enabled -->
+    <arg name="right_rgb_point_cloud"         value="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
+    <arg name="right_point_cloud_in_depth_frame" value="false" />        <!-- Whether the RGB pointcloud is rendered in the depth frame (true) or RGB frame (false). Will either match the resolution of the depth camera (true) or the RGB camera (false). -->
+    <arg name="right_required"                value="true" />          <!-- Argument which specified if the entire launch file should terminate if the node dies -->
+    <arg name="right_sensor_sn"               value="000434312712" />               <!-- Sensor serial number. If none provided, the first sensor will be selected -->
+    <arg name="right_recording_file"          value="" />               <!-- Absolute path to a mkv recording file which will be used with the playback api instead of opening a device -->
+    <arg name="right_recording_loop_enabled"  value="false" />          <!-- If set to true the recording file will rewind the beginning once end of file is reached -->
+    <arg name="right_body_tracking_enabled"           value="false" />  <!-- If set to true the joint positions will be published as marker arrays -->
+    <arg name="right_body_tracking_smoothing_factor"  value="0.0" />    <!-- Set between 0 for no smoothing and 1 for full smoothing -->
+    <arg name="right_rescale_ir_to_mono8"  value="false" />    <!-- Whether to rescale the IR image to an 8-bit monochrome image for visualization and further processing. A scaling factor (ir_mono8_scaling_factor) is applied. -->
+    <arg name="right_ir_mono8_scaling_factor"  value="1.0" />    <!-- Scaling factor to apply when converting IR to mono8 (see rescale_ir_to_mono8). If using illumination, use the value 0.5-1. If using passive IR, use 10. -->
+    <arg name="right_imu_rate_target" value="0"/>                       <!-- Desired output rate of IMU messages. Set to 0 (default) for full rate (1.6 kHz). --> 
+    <arg name="right_wired_sync_mode" value="0"/>                       <!-- Wired sync mode. 0: OFF, 1: MASTER, 2: SUBORDINATE. --> 
+    <arg name="right_subordinate_delay_off_master_usec" value="0"/>     <!-- Delay subordinate camera off master camera by specified amount in usec. --> 
+
+    <!-- UR16e Driver -->
+    <include file="$(find ur_robot_driver)/launch/ur_common.launch">
+        <arg name="debug" value="$(arg debug)"/>
+        <arg name="robot_ip" value="$(arg robot_ip)"/>
+        <arg name="reverse_ip" value="$(arg reverse_ip)"/>
+        <arg name="reverse_port" value="$(arg reverse_port)"/>
+        <arg name="script_sender_port" value="$(arg script_sender_port)"/>
+        <arg name="trajectory_port" value="$(arg trajectory_port)"/>
+        <arg name="script_command_port" value="$(arg script_command_port)"/>
+        <arg name="tf_prefix" value="$(arg tf_prefix)"/>
+        <arg name="controllers" value="$(arg controllers)"/>
+        <arg name="stopped_controllers" value="$(arg stopped_controllers)"/>
+        <arg name="controller_config_file" value="$(arg controller_config_file)"/>
+        <arg name="robot_description_file" value="$(arg robot_description_file)"/>
+        <arg name="kinematics_config" value="$(arg kinematics_config)"/>
+        <arg name="use_tool_communication" value="$(arg use_tool_communication)"/>
+        <arg name="tool_voltage" value="$(arg tool_voltage)"/>
+        <arg name="tool_parity" value="$(arg tool_parity)"/>
+        <arg name="tool_baud_rate" value="$(arg tool_baud_rate)"/>
+        <arg name="tool_stop_bits" value="$(arg tool_stop_bits)"/>
+        <arg name="tool_rx_idle_chars" value="$(arg tool_rx_idle_chars)"/>
+        <arg name="tool_tx_idle_chars" value="$(arg tool_tx_idle_chars)"/>
+        <arg name="tool_device_name" value="$(arg tool_device_name)"/>
+        <arg name="tool_tcp_port" value="$(arg tool_tcp_port)"/>
+        <arg name="headless_mode" value="$(arg headless_mode)"/>
+    </include>
+    <!-- Moveit Planning Interface Launch -->
+    <include file="$(find ur16e_moveit_config)/launch/move_group.launch"/>
+
+    <!-- right azure dk -->
+    <group ns="right_camera">
+        <include file="$(find azure_kinect_ros_driver)/launch/driver.launch">
+            <arg name="tf_prefix" value="$(arg right_tf_prefix)"/>
+            <arg name="overwrite_robot_description" value="$(arg right_overwrite_robot_description)"/>
+            <arg name="depth_enabled" value="$(arg right_depth_enabled)"/>
+            <arg name="depth_mode" value="$(arg right_depth_mode)"/>
+            <arg name="depth_unit" value="$(arg right_depth_unit)"/>
+            <arg name="color_enabled" value="$(arg right_color_enabled)"/>
+            <arg name="color_format" value="$(arg right_color_format)"/>
+            <arg name="color_resolution" value="$(arg right_color_resolution)"/>
+            <arg name="fps" value="$(arg right_fps)"/>
+            <arg name="point_cloud" value="$(arg right_point_cloud)"/>
+            <arg name="rgb_point_cloud" value="$(arg right_rgb_point_cloud)"/>
+            <arg name="point_cloud_in_depth_frame" value="$(arg right_point_cloud_in_depth_frame)"/>
+            <arg name="required" value="$(arg right_required)"/>
+            <arg name="sensor_sn" value="$(arg right_sensor_sn)"/>
+            <arg name="recording_file" value="$(arg right_recording_file)"/>
+            <arg name="recording_loop_enabled" value="$(arg right_recording_loop_enabled)"/>
+            <arg name="body_tracking_enabled" value="$(arg right_body_tracking_enabled)"/>
+            <arg name="body_tracking_smoothing_factor" value="$(arg right_body_tracking_smoothing_factor)"/>
+            <arg name="rescale_ir_to_mono8" value="$(arg right_rescale_ir_to_mono8)"/>
+            <arg name="ir_mono8_scaling_factor" value="$(arg right_ir_mono8_scaling_factor)"/>
+            <arg name="imu_rate_target" value="$(arg right_imu_rate_target)"/>
+            <arg name="wired_sync_mode" value="$(arg right_wired_sync_mode)"/>
+            <arg name="subordinate_delay_off_master_usec" value="$(arg right_subordinate_delay_off_master_usec)"/>
+        </include>
+    </group>
+
+    <!-- left azure dk -->
+    <group ns="left_camera">
+        <include file="$(find azure_kinect_ros_driver)/launch/driver.launch">
+            <arg name="tf_prefix" value="$(arg left_tf_prefix)"/>
+            <arg name="overwrite_robot_description" value="$(arg left_overwrite_robot_description)"/>
+            <arg name="depth_enabled" value="$(arg left_depth_enabled)"/>
+            <arg name="depth_mode" value="$(arg left_depth_mode)"/>
+            <arg name="depth_unit" value="$(arg left_depth_unit)"/>
+            <arg name="color_enabled" value="$(arg left_color_enabled)"/>
+            <arg name="color_format" value="$(arg left_color_format)"/>
+            <arg name="color_resolution" value="$(arg left_color_resolution)"/>
+            <arg name="fps" value="$(arg left_fps)"/>
+            <arg name="point_cloud" value="$(arg left_point_cloud)"/>
+            <arg name="rgb_point_cloud" value="$(arg left_rgb_point_cloud)"/>
+            <arg name="point_cloud_in_depth_frame" value="$(arg left_point_cloud_in_depth_frame)"/>
+            <arg name="required" value="$(arg left_required)"/>
+            <arg name="sensor_sn" value="$(arg left_sensor_sn)"/>
+            <arg name="recording_file" value="$(arg left_recording_file)"/>
+            <arg name="recording_loop_enabled" value="$(arg left_recording_loop_enabled)"/>
+            <arg name="body_tracking_enabled" value="$(arg left_body_tracking_enabled)"/>
+            <arg name="body_tracking_smoothing_factor" value="$(arg left_body_tracking_smoothing_factor)"/>
+            <arg name="rescale_ir_to_mono8" value="$(arg left_rescale_ir_to_mono8)"/>
+            <arg name="ir_mono8_scaling_factor" value="$(arg left_ir_mono8_scaling_factor)"/>
+            <arg name="imu_rate_target" value="$(arg left_imu_rate_target)"/>
+            <arg name="wired_sync_mode" value="$(arg left_wired_sync_mode)"/>
+            <arg name="subordinate_delay_off_master_usec" value="$(arg left_subordinate_delay_off_master_usec)"/>
+        </include>
+    </group>
+</launch>

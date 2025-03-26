@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<launch>
+
+    <arg name="right_tf_prefix" value="right" />                       <!-- Prefix added to tf frame IDs. It typically contains a trailing '_' unless empty. -->
+    <arg name="right_overwrite_robot_description" value="false" />         <!-- Flag to publish a standalone azure_description instead of the default robot_descrition parameter-->
+    <arg name="right_depth_enabled"           value="true" />           <!-- Enable or disable the depth camera -->
+    <arg name="right_depth_mode"              value="WFOV_UNBINNED" />  <!-- Set the depth camera mode, which affects FOV, depth range, and camera resolution. See Azure Kinect documentation for full details. Valid options: NFOV_UNBINNED, NFOV_2X2BINNED, WFOV_UNBINNED, WFOV_2X2BINNED, and PASSIVE_IR -->
+    <arg name="right_depth_unit"              value="16UC1" />          <!-- Depth distance units. Options are: "32FC1" (32 bit float metre) or "16UC1" (16 bit integer millimetre) -->
+    <arg name="right_color_enabled"           value="true" />           <!-- Enable or disable the color camera -->
+    <arg name="right_color_format"            value="bgra" />           <!-- The format of RGB camera. Valid options: bgra, jpeg -->
+    <arg name="right_color_resolution"        value="720P" />          <!-- Resolution at which to run the color camera. Valid options: 720P, 1080P, 1440P, 1536P, 2160P, 3072P -->
+    <arg name="right_fps"                     value="15" />              <!-- FPS to run both cameras at. Valid options are 5, 15, and 30 -->
+    <arg name="right_point_cloud"             value="false" />           <!-- Generate a point cloud from depth data. Requires depth_enabled -->
+    <arg name="right_rgb_point_cloud"         value="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
+    <arg name="right_point_cloud_in_depth_frame" value="false" />        <!-- Whether the RGB pointcloud is rendered in the depth frame (true) or RGB frame (false). Will either match the resolution of the depth camera (true) or the RGB camera (false). -->
+    <arg name="right_required"                value="true" />          <!-- Argument which specified if the entire launch file should terminate if the node dies -->
+    <arg name="right_sensor_sn"               value="000434312712" />               <!-- Sensor serial number. If none provided, the first sensor will be selected -->
+    <arg name="right_recording_file"          value="" />               <!-- Absolute path to a mkv recording file which will be used with the playback api instead of opening a device -->
+    <arg name="right_recording_loop_enabled"  value="false" />          <!-- If set to true the recording file will rewind the beginning once end of file is reached -->
+    <arg name="right_body_tracking_enabled"           value="false" />  <!-- If set to true the joint positions will be published as marker arrays -->
+    <arg name="right_body_tracking_smoothing_factor"  value="0.0" />    <!-- Set between 0 for no smoothing and 1 for full smoothing -->
+    <arg name="right_rescale_ir_to_mono8"  value="false" />    <!-- Whether to rescale the IR image to an 8-bit monochrome image for visualization and further processing. A scaling factor (ir_mono8_scaling_factor) is applied. -->
+    <arg name="right_ir_mono8_scaling_factor"  value="1.0" />    <!-- Scaling factor to apply when converting IR to mono8 (see rescale_ir_to_mono8). If using illumination, use the value 0.5-1. If using passive IR, use 10. -->
+    <arg name="right_imu_rate_target" value="0"/>                       <!-- Desired output rate of IMU messages. Set to 0 (default) for full rate (1.6 kHz). --> 
+    <arg name="right_wired_sync_mode" value="0"/>                       <!-- Wired sync mode. 0: OFF, 1: MASTER, 2: SUBORDINATE. --> 
+    <arg name="right_subordinate_delay_off_master_usec" value="0"/>     <!-- Delay subordinate camera off master camera by specified amount in usec. --> 
+
+    <!-- right azure dk -->
+    <group ns="right_camera">
+        <include file="$(find azure_kinect_ros_driver)/launch/driver.launch">
+            <arg name="tf_prefix" value="$(arg right_tf_prefix)"/>
+            <arg name="overwrite_robot_description" value="$(arg right_overwrite_robot_description)"/>
+            <arg name="depth_enabled" value="$(arg right_depth_enabled)"/>
+            <arg name="depth_mode" value="$(arg right_depth_mode)"/>
+            <arg name="depth_unit" value="$(arg right_depth_unit)"/>
+            <arg name="color_enabled" value="$(arg right_color_enabled)"/>
+            <arg name="color_format" value="$(arg right_color_format)"/>
+            <arg name="color_resolution" value="$(arg right_color_resolution)"/>
+            <arg name="fps" value="$(arg right_fps)"/>
+            <arg name="point_cloud" value="$(arg right_point_cloud)"/>
+            <arg name="rgb_point_cloud" value="$(arg right_rgb_point_cloud)"/>
+            <arg name="point_cloud_in_depth_frame" value="$(arg right_point_cloud_in_depth_frame)"/>
+            <arg name="required" value="$(arg right_required)"/>
+            <arg name="sensor_sn" value="$(arg right_sensor_sn)"/>
+            <arg name="recording_file" value="$(arg right_recording_file)"/>
+            <arg name="recording_loop_enabled" value="$(arg right_recording_loop_enabled)"/>
+            <arg name="body_tracking_enabled" value="$(arg right_body_tracking_enabled)"/>
+            <arg name="body_tracking_smoothing_factor" value="$(arg right_body_tracking_smoothing_factor)"/>
+            <arg name="rescale_ir_to_mono8" value="$(arg right_rescale_ir_to_mono8)"/>
+            <arg name="ir_mono8_scaling_factor" value="$(arg right_ir_mono8_scaling_factor)"/>
+            <arg name="imu_rate_target" value="$(arg right_imu_rate_target)"/>
+            <arg name="wired_sync_mode" value="$(arg right_wired_sync_mode)"/>
+            <arg name="subordinate_delay_off_master_usec" value="$(arg right_subordinate_delay_off_master_usec)"/>
+        </include>
+    </group>
+</launch>
