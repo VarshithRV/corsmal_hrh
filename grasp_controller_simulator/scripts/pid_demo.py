@@ -1,7 +1,7 @@
 import time
 import threading
 
-P = 0.50
+P = 0.8
 I = 0.001
 D = 0.01
 K = 1.0
@@ -31,8 +31,8 @@ def pid():
 if __name__ == "__main__":
     
     time.sleep(2)
-
-    while True : 
+    signal = pid()
+    while abs(error) >= 0.01 : 
         signal = pid()
         current += signal
-        print(f"Current: {current:.4f}, Error: {error:.4f}, Signal: {signal:.6f}")
+        print(f"Current: {current:.4f}, Setpoint: {setpoint:.6f}, Error: {error:.4f}, Signal: {signal:.6f}")
