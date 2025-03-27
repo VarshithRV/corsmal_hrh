@@ -1,0 +1,11 @@
+digraph G {
+"rightcamera_base" -> "rightcamera_body"[label="Broadcaster: /right_camera/robot_state_publisher_azure\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1743087382.489 sec old)\nBuffer length: 0.000 sec\n"];
+"rightcamera_base" -> "rightcamera_visor"[label="Broadcaster: /right_camera/robot_state_publisher_azure\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1743087382.489 sec old)\nBuffer length: 0.000 sec\n"];
+"rightcamera_base" -> "rightdepth_camera_link"[label="Broadcaster: /right_camera/azure_kinect_ros_driver\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1743087382.489 sec old)\nBuffer length: 0.000 sec\n"];
+"rightdepth_camera_link" -> "rightimu_link"[label="Broadcaster: /right_camera/azure_kinect_ros_driver\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1743087382.489 sec old)\nBuffer length: 0.000 sec\n"];
+"rightdepth_camera_link" -> "rightrgb_camera_link"[label="Broadcaster: /right_camera/azure_kinect_ros_driver\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1743087382.489 sec old)\nBuffer length: 0.000 sec\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1743087382.489"[ shape=plaintext ] ;
+ }->"rightcamera_base";
+}
