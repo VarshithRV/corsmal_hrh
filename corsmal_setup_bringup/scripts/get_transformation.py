@@ -36,7 +36,7 @@ def main():
     try:
         trans, rot = get_transformation(args.source_frame, args.target_frame)
         # Save the transformation to the specified output file
-        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../config/', "args.output_filename"+".json")
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../config/', args.output_filename+".json")
         transformation = {"translation": trans, "rotation": rot}
         with open(config_path, 'w') as file:
             json.dump(transformation, file, indent=4)
