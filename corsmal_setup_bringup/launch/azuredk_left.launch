@@ -12,7 +12,7 @@
     <arg name="left_color_resolution"        value="720P" />          <!-- Resolution at which to run the color camera. Valid options: 720P, 1080P, 1440P, 1536P, 2160P, 3072P -->
     <arg name="left_fps"                     value="15" />              <!-- FPS to run both cameras at. Valid options are 5, 15, and 30 -->
     <arg name="left_point_cloud"             value="false" />           <!-- Generate a point cloud from depth data. Requires depth_enabled -->
-    <arg name="left_rgb_point_cloud"         value="false" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
+    <arg name="left_rgb_point_cloud"         value="true" />           <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
     <arg name="left_point_cloud_in_depth_frame" value="false" />        <!-- Whether the RGB pointcloud is rendered in the depth frame (true) or RGB frame (false). Will either match the resolution of the depth camera (true) or the RGB camera (false). -->
     <arg name="left_required"                value="true" />          <!-- Argument which specified if the entire launch file should terminate if the node dies -->
     <arg name="left_sensor_sn"               value="000206605212" />               <!-- Sensor serial number. If none provided, the first sensor will be selected -->
