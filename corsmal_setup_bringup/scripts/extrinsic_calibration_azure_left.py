@@ -59,7 +59,7 @@ if __name__ == '__main__':
         trans, rot = get_transformation(frame_a, frame_b)
 
         # Save the transformation to a file in the ../config/ directory
-        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../config/transformation.json')
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../config/left_azure_extrinsic.json')
         transformation = {"translation": trans, "rotation": rot}
         transformation_json = json.dumps(transformation)
         
