@@ -64,21 +64,20 @@ class ArucoDetectorNode:
                     if success:
                         cv2.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, rvec, tvec, 0.1)
 
-                        # Apply transformation t
                         t = np.array([0.03, 0.03, 0.03])
                         cube_center = tvec.flatten() + t
 
-                        # Cube corners in local coordinates
+                        # Cube corners
                         d = 0.06 / 2  # half of the side length
                         local_corners = np.array([[-d, -d, -d], [d, -d, -d],
                                                   [d, d, -d], [-d, d, -d],
                                                   [-d, -d, d], [d, -d, d],
                                                   [d, d, d], [-d, d, d]])
 
-                        # Transform to world coordinates
+                        # extrinsic projection
                         world_corners = [cube_center + corner for corner in local_corners]
 
-                        # Publish cube edges
+                        # publish the edges
                         for corner in world_corners:
                             edge_pos = PointStamped()
                             edge_pos.header.stamp = rospy.Time.now()
@@ -88,16 +87,13 @@ class ArucoDetectorNode:
                             edge_pos.point.z = corner[2]
                             self.edge_positions_pub.publish(edge_pos)
 
-                        # Project cube corners into the image
+                        # Projection
                         projected_corners, _ = cv2.projectPoints(
                             local_corners, rvec, tvec, self.camera_matrix, self.dist_coeffs
                         )
-
-                        # Ensure points are integers for cv2.line
                         projected_corners = projected_corners.reshape(-1, 2).astype(int)
 
-                        # Draw 3D bounding box
-                        for start, end in zip(range(4), [1, 2, 3, 0]):
+                        for start, end in zip(range(4), [1, 2, 3, 0]): # Draw 3d bbox
                             cv2.line(cv_image, tuple(projected_corners[start]), tuple(projected_corners[end]), (0, 255, 0), 2)
                             cv2.line(cv_image, tuple(projected_corners[start+4]), tuple(projected_corners[end+4]), (0, 255, 0), 2)
                             cv2.line(cv_image, tuple(projected_corners[start]), tuple(projected_corners[start+4]), (0, 255, 0), 2)

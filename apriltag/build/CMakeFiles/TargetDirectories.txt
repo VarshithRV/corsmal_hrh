@@ -1,9 +1,0 @@
-/home/barracuda/corsmal_ws/src/corsmal_hrh/apriltag/build/CMakeFiles/install/strip.dir
-/home/barracuda/corsmal_ws/src/corsmal_hrh/apriltag/build/CMakeFiles/install/local.dir
-/home/barracuda/corsmal_ws/src/corsmal_hrh/apriltag/build/CMakeFiles/install.dir
-/home/barracuda/corsmal_ws/src/corsmal_hrh/apriltag/build/CMakeFiles/list_install_components.dir
-/home/barracuda/corsmal_ws/src/corsmal_hrh/apriltag/build/CMakeFiles/rebuild_cache.dir
-/home/barracuda/corsmal_ws/src/corsmal_hrh/apriltag/build/CMakeFiles/edit_cache.dir
-/home/barracuda/corsmal_ws/src/corsmal_hrh/apriltag/build/CMakeFiles/opencv_demo.dir
-/home/barracuda/corsmal_ws/src/corsmal_hrh/apriltag/build/CMakeFiles/apriltag_demo.dir
-/home/barracuda/corsmal_ws/src/corsmal_hrh/apriltag/build/CMakeFiles/apriltag.dir
