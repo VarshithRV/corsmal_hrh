@@ -1,0 +1,3 @@
+std_msgs/UInt8MultiArray setpoint
+---
+bool result
