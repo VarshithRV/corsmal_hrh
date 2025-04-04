@@ -7,7 +7,7 @@ from fpdf import FPDF
 marker_size = 200  # Marker size in pixels
 
 # Create markers with different IDs
-marker_ids = [21, 0, 5]
+marker_ids = [1,2,3,4,5]
 markers = []
 
 for marker_id in marker_ids:
