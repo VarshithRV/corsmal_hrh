@@ -22,12 +22,12 @@ transformation_interpolation_coefficient : 0.3 #translates to m from the ready p
 
 cmd_publish_frequency : 1000 #hz
 
-LINEAR_P_GAIN : 2000
+LINEAR_P_GAIN : 500
 LINEAR_I_GAIN : 0
 LINEAR_D_GAIN : 0
 LINEAR_K_GAIN : 0.01
 
-ANGULAR_P_GAIN : 8
+ANGULAR_P_GAIN : 2
 ANGULAR_I_GAIN : 0
 ANGULAR_D_GAIN : 0
 ANGULAR_K_GAIN : 1

@@ -121,7 +121,7 @@ class RadialTracker:
             current_poseL = np.array([self.current_pose.pose.position.x,self.current_pose.pose.position.y,self.current_pose.pose.position.z])
             current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
                                       self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
-            if np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL) < 0.03 and np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)<0.01 : 
+            if np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL) < 0.005 and np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)<0.00001 : 
                 print("UEEAE")
                 break
 
@@ -134,7 +134,16 @@ class RadialTracker:
         rate = rospy.Rate(self.cmd_publish_frequency)
 
         start = time.time()
-        while time.time() - start <= self.duration:
+        while True :
+            
+            optimal_poseL, _, optimal_poseQ = self.compute_pre_grasp_setpoint()
+            
+            current_poseL = np.array([self.current_pose.pose.position.x,self.current_pose.pose.position.y,self.current_pose.pose.position.z])
+            current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
+                                      self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
+            if np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL) < 0.005 and np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)<0.00001 : 
+                print("UEEAE")
+                break
 
             if self.filtered_grasp_pose is not None :
                 cmd_vel = self.compute_cmd_vel("pre_grasp")
@@ -150,7 +159,7 @@ class RadialTracker:
             current_poseL = np.array([self.current_pose.pose.position.x,self.current_pose.pose.position.y,self.current_pose.pose.position.z])
             current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
                                       self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
-            if np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL) < 0.03 and np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)<0.01 : 
+            if np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL) < 0.005 and np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)<0.0001 : 
                 print("UEEAE")
                 cmd_vel = Twist()
                 self.setpoint_velocity_pub.publish(cmd_vel)
@@ -236,7 +245,6 @@ class RadialTracker:
         # pose_optimal_setpoint.pose.orientation.w = pose_optimal_setpointQ[3]
 
         return pose_setpointL,np.array([0,0,0,0]),pose_setpointQ
-
 
     def compute_radial_track_setpoint(self):
         pose_setpoint = self.filtered_grasp_pose
@@ -326,9 +334,11 @@ class RadialTracker:
         self.errorOprev = self.errorO
 
         self.errorL = optimal_setpointL - pose_currentL
-        q_error = tft.quaternion_multiply(optimal_setpointQ, tft.quaternion_conjugate(pose_currentQ))
+
+        # q_error = tft.quaternion_multiply(optimal_setpointQ, tft.quaternion_conjugate(pose_currentQ))
+        q_error = optimal_setpointQ - pose_currentQ
+        
         self.errorO = np.array(tft.euler_from_quaternion(q_error))
-        # self.errorO = optimal_setpointO - pose_currentO # this is wrong
 
         self.errorLsum = self.errorLsum + self.errorL
         self.errorOsum = self.errorOsum + self.errorO # this is also really wrong gotta do the whole PID thing later
@@ -388,8 +398,9 @@ if __name__ == "__main__":
     # radial_tracker.command_radial_track_velocity()
     time.sleep(0.1)
     radial_tracker.command_pre_grasp_velocity()
+    time.sleep(0.1)
     radial_tracker.command_grasp_velocity()
-    time.sleep(0.5)
+    time.sleep(0.1)
     radial_tracker.command_pre_grasp_velocity_back()
-    
+    time.sleep(0.1)
     rospy.spin()
