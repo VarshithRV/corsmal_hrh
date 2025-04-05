@@ -21,7 +21,7 @@ INITIAL_POSE.pose.orientation.w = 1.0
 LINEAR_ACCELERATION = 10.0  # m/s²
 ANGULAR_ACCELERATION = 17.45  # rad/s²
 THRESHOLD = 0.01
-P_GAIN = 1.0
+P_GAIN = 1
 
 class PoseController:
     def __init__(self):
@@ -62,7 +62,7 @@ class PoseController:
             self.message_timestamps = [t for t in self.message_timestamps if now - t <= 1.0]
             msg_rate = len(self.message_timestamps)
 
-            if msg_rate > 2:
+            if msg_rate > 30:
                 setpoint_velocity = np.array([self.latest_setpoint_msg.linear.x,self.latest_setpoint_msg.linear.y,self.latest_setpoint_msg.linear.z,
                                               self.latest_setpoint_msg.angular.x,self.latest_setpoint_msg.angular.y,self.latest_setpoint_msg.angular.z])
                 if np.linalg.norm(setpoint_velocity) > 1.0:
