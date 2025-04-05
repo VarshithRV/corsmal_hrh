@@ -1,0 +1,31 @@
+ready_ee_pose :
+  position :
+    x : 0 #m
+    y : 0
+    z : 0
+  orientation : # Quaternion
+    w : 1 
+    x : 0
+    y : 0
+    z : 0
+
+max_linear_acceleration : 10 #m/s^2
+max_linear_velocity : 1 #m/s
+max_angular_acceleration : 17.45 # rad/s^2
+max_angular_velocity : 3.14 # rad/s
+
+transformation_interpolation_coefficient : 0.3 #translates to m from the ready pose
+
+cmd_publish_frequency : 1000 #hz
+
+gains :
+  linear : 
+    p : 500
+    i : 0
+    d : 0
+    k : 0.01
+  angular : 
+    p : 2
+    i : 0
+    d : 0
+    k : 1

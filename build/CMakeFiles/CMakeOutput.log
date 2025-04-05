@@ -1,0 +1,317 @@
+The system is: Linux - 5.15.0-131-generic - x86_64
+Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+Compiler: /usr/bin/avr-gcc 
+Build flags: 
+Id flags:  
+
+The output was:
+0
+
+
+Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "a.out"
+
+The C compiler identification is GNU, found in "/home/barracuda/corsmal_ws/src/corsmal_hrh/build/CMakeFiles/3.16.3/CompilerIdC/a.out"
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: /usr/bin/avr-g++ 
+Build flags: 
+Id flags:  
+
+The output was:
+0
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+
+The CXX compiler identification is GNU, found in "/home/barracuda/corsmal_ws/src/corsmal_hrh/build/CMakeFiles/3.16.3/CompilerIdCXX/a.out"
+
+Determining if the C compiler works passed with the following output:
+Change Dir: /home/barracuda/corsmal_ws/src/corsmal_hrh/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_52914 && [1/2] Building C object CMakeFiles/cmTC_52914.dir/testCCompiler.c.o
+[2/2] Linking C executable cmTC_52914
+
+
+
+Detecting C compiler ABI info compiled with the following output:
+Change Dir: /home/barracuda/corsmal_ws/src/corsmal_hrh/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_29c9b && [1/2] Building C object CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o
+Using built-in specs.
+Reading specs from /usr/lib/gcc/avr/5.4.0/device-specs/specs-avr2
+COLLECT_GCC=/usr/bin/avr-gcc
+Target: avr
+Configured with: ../gcc/configure -v --enable-languages=c,c++ --prefix=/usr/lib --infodir=/usr/share/info --mandir=/usr/share/man --bindir=/usr/bin --libexecdir=/usr/lib --libdir=/usr/lib --enable-shared --with-system-zlib --enable-long-long --enable-nls --without-included-gettext --disable-libssp --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=avr CFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' CPPFLAGS='-Wdate-time -D_FORTIFY_SOURCE=2' CXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' FCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' FFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' GCJFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' LDFLAGS='-Wl,-Bsymbolic-functions -Wl,-z,relro' OBJCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' OBJCXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat '
+Thread model: single
+gcc version 5.4.0 (GCC) 
+COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o' '-c' '-specs=device-specs/specs-avr2'
+ /usr/lib/gcc/avr/5.4.0/cc1 -quiet -v /usr/share/cmake-3.16/Modules/CMakeCCompilerABI.c -mn-flash=1 -mskip-bug -quiet -dumpbase CMakeCCompilerABI.c -auxbase-strip CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o -version -o /tmp/cchXOaXW.s
+GNU C11 (GCC) version 5.4.0 (avr)
+	compiled by GNU C version 9.3.0, GMP version 6.2.0, MPFR version 4.0.2, MPC version 1.1.0
+GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+ignoring nonexistent directory "/usr/lib/gcc/avr/5.4.0/../../../avr/sys-include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /usr/lib/gcc/avr/5.4.0/include
+ /usr/lib/gcc/avr/5.4.0/include-fixed
+ /usr/lib/gcc/avr/5.4.0/../../../avr/include
+End of search list.
+GNU C11 (GCC) version 5.4.0 (avr)
+	compiled by GNU C version 9.3.0, GMP version 6.2.0, MPFR version 4.0.2, MPC version 1.1.0
+GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+Compiler executable checksum: f2848de572ae61fde707cec720401d83
+COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o' '-c' '-specs=device-specs/specs-avr2'
+ /usr/lib/gcc/avr/5.4.0/../../../avr/bin/as -mmcu=avr2 -o CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o /tmp/cchXOaXW.s
+COMPILER_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/../../../avr/bin/
+LIBRARY_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/../../../avr/lib/
+COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o' '-c' '-specs=device-specs/specs-avr2'
+[2/2] Linking C executable cmTC_29c9b
+Using built-in specs.
+Reading specs from /usr/lib/gcc/avr/5.4.0/device-specs/specs-avr2
+COLLECT_GCC=/usr/bin/avr-gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/avr/5.4.0/lto-wrapper
+Target: avr
+Configured with: ../gcc/configure -v --enable-languages=c,c++ --prefix=/usr/lib --infodir=/usr/share/info --mandir=/usr/share/man --bindir=/usr/bin --libexecdir=/usr/lib --libdir=/usr/lib --enable-shared --with-system-zlib --enable-long-long --enable-nls --without-included-gettext --disable-libssp --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=avr CFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' CPPFLAGS='-Wdate-time -D_FORTIFY_SOURCE=2' CXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' FCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' FFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' GCJFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' LDFLAGS='-Wl,-Bsymbolic-functions -Wl,-z,relro' OBJCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' OBJCXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat '
+Thread model: single
+gcc version 5.4.0 (GCC) 
+COMPILER_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/../../../avr/bin/
+LIBRARY_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/../../../avr/lib/
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_29c9b' '-specs=device-specs/specs-avr2'
+ /usr/lib/gcc/avr/5.4.0/collect2 -plugin /usr/lib/gcc/avr/5.4.0/liblto_plugin.so -plugin-opt=/usr/lib/gcc/avr/5.4.0/lto-wrapper -plugin-opt=-fresolution=/tmp/ccp0FEop.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lm -plugin-opt=-pass-through=-lc --pmem-wrap-around=8k -o cmTC_29c9b -L/usr/lib/gcc/avr/5.4.0 -L/usr/lib/gcc/avr/5.4.0/../../../avr/lib CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o --start-group -lgcc -lm -lc --end-group
+
+
+
+Parsed C implicit include dir info from above output: rv=done
+  found start of include info
+  found start of implicit include info
+    add: [/usr/lib/gcc/avr/5.4.0/include]
+    add: [/usr/lib/gcc/avr/5.4.0/include-fixed]
+    add: [/usr/lib/gcc/avr/5.4.0/../../../avr/include]
+  end of search list found
+  collapse include dir [/usr/lib/gcc/avr/5.4.0/include] ==> [/usr/lib/gcc/avr/5.4.0/include]
+  collapse include dir [/usr/lib/gcc/avr/5.4.0/include-fixed] ==> [/usr/lib/gcc/avr/5.4.0/include-fixed]
+  collapse include dir [/usr/lib/gcc/avr/5.4.0/../../../avr/include] ==> [/usr/lib/avr/include]
+  implicit include dirs: [/usr/lib/gcc/avr/5.4.0/include;/usr/lib/gcc/avr/5.4.0/include-fixed;/usr/lib/avr/include]
+
+
+Parsed C implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /home/barracuda/corsmal_ws/src/corsmal_hrh/build/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command(s):/usr/bin/ninja cmTC_29c9b && [1/2] Building C object CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o]
+  ignore line: [Using built-in specs.]
+  ignore line: [Reading specs from /usr/lib/gcc/avr/5.4.0/device-specs/specs-avr2]
+  ignore line: [COLLECT_GCC=/usr/bin/avr-gcc]
+  ignore line: [Target: avr]
+  ignore line: [Configured with: ../gcc/configure -v --enable-languages=c c++ --prefix=/usr/lib --infodir=/usr/share/info --mandir=/usr/share/man --bindir=/usr/bin --libexecdir=/usr/lib --libdir=/usr/lib --enable-shared --with-system-zlib --enable-long-long --enable-nls --without-included-gettext --disable-libssp --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=avr CFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' CPPFLAGS='-Wdate-time -D_FORTIFY_SOURCE=2' CXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' FCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' FFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' GCJFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' LDFLAGS='-Wl -Bsymbolic-functions -Wl -z relro' OBJCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' OBJCXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ']
+  ignore line: [Thread model: single]
+  ignore line: [gcc version 5.4.0 (GCC) ]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o' '-c' '-specs=device-specs/specs-avr2']
+  ignore line: [ /usr/lib/gcc/avr/5.4.0/cc1 -quiet -v /usr/share/cmake-3.16/Modules/CMakeCCompilerABI.c -mn-flash=1 -mskip-bug -quiet -dumpbase CMakeCCompilerABI.c -auxbase-strip CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o -version -o /tmp/cchXOaXW.s]
+  ignore line: [GNU C11 (GCC) version 5.4.0 (avr)]
+  ignore line: [	compiled by GNU C version 9.3.0  GMP version 6.2.0  MPFR version 4.0.2  MPC version 1.1.0]
+  ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+  ignore line: [ignoring nonexistent directory "/usr/lib/gcc/avr/5.4.0/../../../avr/sys-include"]
+  ignore line: [#include "..." search starts here:]
+  ignore line: [#include <...> search starts here:]
+  ignore line: [ /usr/lib/gcc/avr/5.4.0/include]
+  ignore line: [ /usr/lib/gcc/avr/5.4.0/include-fixed]
+  ignore line: [ /usr/lib/gcc/avr/5.4.0/../../../avr/include]
+  ignore line: [End of search list.]
+  ignore line: [GNU C11 (GCC) version 5.4.0 (avr)]
+  ignore line: [	compiled by GNU C version 9.3.0  GMP version 6.2.0  MPFR version 4.0.2  MPC version 1.1.0]
+  ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+  ignore line: [Compiler executable checksum: f2848de572ae61fde707cec720401d83]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o' '-c' '-specs=device-specs/specs-avr2']
+  ignore line: [ /usr/lib/gcc/avr/5.4.0/../../../avr/bin/as -mmcu=avr2 -o CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o /tmp/cchXOaXW.s]
+  ignore line: [COMPILER_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/../../../avr/bin/]
+  ignore line: [LIBRARY_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/../../../avr/lib/]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o' '-c' '-specs=device-specs/specs-avr2']
+  ignore line: [[2/2] Linking C executable cmTC_29c9b]
+  ignore line: [Using built-in specs.]
+  ignore line: [Reading specs from /usr/lib/gcc/avr/5.4.0/device-specs/specs-avr2]
+  ignore line: [COLLECT_GCC=/usr/bin/avr-gcc]
+  ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/avr/5.4.0/lto-wrapper]
+  ignore line: [Target: avr]
+  ignore line: [Configured with: ../gcc/configure -v --enable-languages=c c++ --prefix=/usr/lib --infodir=/usr/share/info --mandir=/usr/share/man --bindir=/usr/bin --libexecdir=/usr/lib --libdir=/usr/lib --enable-shared --with-system-zlib --enable-long-long --enable-nls --without-included-gettext --disable-libssp --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=avr CFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' CPPFLAGS='-Wdate-time -D_FORTIFY_SOURCE=2' CXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' FCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' FFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' GCJFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' LDFLAGS='-Wl -Bsymbolic-functions -Wl -z relro' OBJCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' OBJCXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ']
+  ignore line: [Thread model: single]
+  ignore line: [gcc version 5.4.0 (GCC) ]
+  ignore line: [COMPILER_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/../../../avr/bin/]
+  ignore line: [LIBRARY_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/../../../avr/lib/]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_29c9b' '-specs=device-specs/specs-avr2']
+  link line: [ /usr/lib/gcc/avr/5.4.0/collect2 -plugin /usr/lib/gcc/avr/5.4.0/liblto_plugin.so -plugin-opt=/usr/lib/gcc/avr/5.4.0/lto-wrapper -plugin-opt=-fresolution=/tmp/ccp0FEop.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lm -plugin-opt=-pass-through=-lc --pmem-wrap-around=8k -o cmTC_29c9b -L/usr/lib/gcc/avr/5.4.0 -L/usr/lib/gcc/avr/5.4.0/../../../avr/lib CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o --start-group -lgcc -lm -lc --end-group]
+    arg [/usr/lib/gcc/avr/5.4.0/collect2] ==> ignore
+    arg [-plugin] ==> ignore
+    arg [/usr/lib/gcc/avr/5.4.0/liblto_plugin.so] ==> ignore
+    arg [-plugin-opt=/usr/lib/gcc/avr/5.4.0/lto-wrapper] ==> ignore
+    arg [-plugin-opt=-fresolution=/tmp/ccp0FEop.res] ==> ignore
+    arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+    arg [-plugin-opt=-pass-through=-lm] ==> ignore
+    arg [-plugin-opt=-pass-through=-lc] ==> ignore
+    arg [--pmem-wrap-around=8k] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTC_29c9b] ==> ignore
+    arg [-L/usr/lib/gcc/avr/5.4.0] ==> dir [/usr/lib/gcc/avr/5.4.0]
+    arg [-L/usr/lib/gcc/avr/5.4.0/../../../avr/lib] ==> dir [/usr/lib/gcc/avr/5.4.0/../../../avr/lib]
+    arg [CMakeFiles/cmTC_29c9b.dir/CMakeCCompilerABI.c.o] ==> ignore
+    arg [--start-group] ==> ignore
+    arg [-lgcc] ==> lib [gcc]
+    arg [-lm] ==> lib [m]
+    arg [-lc] ==> lib [c]
+    arg [--end-group] ==> ignore
+  collapse library dir [/usr/lib/gcc/avr/5.4.0] ==> [/usr/lib/gcc/avr/5.4.0]
+  collapse library dir [/usr/lib/gcc/avr/5.4.0/../../../avr/lib] ==> [/usr/lib/avr/lib]
+  implicit libs: [gcc;m;c]
+  implicit dirs: [/usr/lib/gcc/avr/5.4.0;/usr/lib/avr/lib]
+  implicit fwks: []
+
+
+Determining if the CXX compiler works passed with the following output:
+Change Dir: /home/barracuda/corsmal_ws/src/corsmal_hrh/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_9f93c && [1/2] Building CXX object CMakeFiles/cmTC_9f93c.dir/testCXXCompiler.cxx.o
+[2/2] Linking CXX executable cmTC_9f93c
+
+
+
+Detecting CXX compiler ABI info compiled with the following output:
+Change Dir: /home/barracuda/corsmal_ws/src/corsmal_hrh/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_8b7f3 && [1/2] Building CXX object CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o
+Using built-in specs.
+Reading specs from /usr/lib/gcc/avr/5.4.0/device-specs/specs-avr2
+COLLECT_GCC=/usr/bin/avr-g++
+Target: avr
+Configured with: ../gcc/configure -v --enable-languages=c,c++ --prefix=/usr/lib --infodir=/usr/share/info --mandir=/usr/share/man --bindir=/usr/bin --libexecdir=/usr/lib --libdir=/usr/lib --enable-shared --with-system-zlib --enable-long-long --enable-nls --without-included-gettext --disable-libssp --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=avr CFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' CPPFLAGS='-Wdate-time -D_FORTIFY_SOURCE=2' CXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' FCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' FFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' GCJFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' LDFLAGS='-Wl,-Bsymbolic-functions -Wl,-z,relro' OBJCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' OBJCXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat '
+Thread model: single
+gcc version 5.4.0 (GCC) 
+COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-specs=device-specs/specs-avr2'
+ /usr/lib/gcc/avr/5.4.0/cc1plus -quiet -v /usr/share/cmake-3.16/Modules/CMakeCXXCompilerABI.cpp -mn-flash=1 -mskip-bug -quiet -dumpbase CMakeCXXCompilerABI.cpp -auxbase-strip CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o -version -mn-flash=1 -mskip-bug -fno-rtti -fno-enforce-eh-specs -fno-exceptions -o /tmp/cckZxmzj.s
+GNU C++ (GCC) version 5.4.0 (avr)
+	compiled by GNU C version 9.3.0, GMP version 6.2.0, MPFR version 4.0.2, MPC version 1.1.0
+GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+ignoring nonexistent directory "/usr/lib/gcc/avr/5.4.0/../../../avr/include/c++/5.4.0"
+ignoring nonexistent directory "/usr/lib/gcc/avr/5.4.0/../../../avr/include/c++/5.4.0/avr"
+ignoring nonexistent directory "/usr/lib/gcc/avr/5.4.0/../../../avr/include/c++/5.4.0/backward"
+ignoring nonexistent directory "/usr/lib/gcc/avr/5.4.0/../../../avr/sys-include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /usr/lib/gcc/avr/5.4.0/include
+ /usr/lib/gcc/avr/5.4.0/include-fixed
+ /usr/lib/gcc/avr/5.4.0/../../../avr/include
+End of search list.
+GNU C++ (GCC) version 5.4.0 (avr)
+	compiled by GNU C version 9.3.0, GMP version 6.2.0, MPFR version 4.0.2, MPC version 1.1.0
+GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+Compiler executable checksum: 218701cd14638d8ef22197eaa5f4bfa2
+COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-specs=device-specs/specs-avr2'
+ /usr/lib/gcc/avr/5.4.0/../../../avr/bin/as -mmcu=avr2 -o CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o /tmp/cckZxmzj.s
+COMPILER_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/../../../avr/bin/
+LIBRARY_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/../../../avr/lib/
+COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-specs=device-specs/specs-avr2'
+[2/2] Linking CXX executable cmTC_8b7f3
+Using built-in specs.
+Reading specs from /usr/lib/gcc/avr/5.4.0/device-specs/specs-avr2
+COLLECT_GCC=/usr/bin/avr-g++
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/avr/5.4.0/lto-wrapper
+Target: avr
+Configured with: ../gcc/configure -v --enable-languages=c,c++ --prefix=/usr/lib --infodir=/usr/share/info --mandir=/usr/share/man --bindir=/usr/bin --libexecdir=/usr/lib --libdir=/usr/lib --enable-shared --with-system-zlib --enable-long-long --enable-nls --without-included-gettext --disable-libssp --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=avr CFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' CPPFLAGS='-Wdate-time -D_FORTIFY_SOURCE=2' CXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' FCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' FFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' GCJFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' LDFLAGS='-Wl,-Bsymbolic-functions -Wl,-z,relro' OBJCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' OBJCXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat '
+Thread model: single
+gcc version 5.4.0 (GCC) 
+COMPILER_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/../../../avr/bin/
+LIBRARY_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/../../../avr/lib/
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_8b7f3' '-specs=device-specs/specs-avr2'
+ /usr/lib/gcc/avr/5.4.0/collect2 -plugin /usr/lib/gcc/avr/5.4.0/liblto_plugin.so -plugin-opt=/usr/lib/gcc/avr/5.4.0/lto-wrapper -plugin-opt=-fresolution=/tmp/ccDoTWcC.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lm -plugin-opt=-pass-through=-lc --pmem-wrap-around=8k -o cmTC_8b7f3 -L/usr/lib/gcc/avr/5.4.0 -L/usr/lib/gcc/avr/5.4.0/../../../avr/lib CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o -lgcc -lm --start-group -lgcc -lm -lc --end-group
+
+
+
+Parsed CXX implicit include dir info from above output: rv=done
+  found start of include info
+  found start of implicit include info
+    add: [/usr/lib/gcc/avr/5.4.0/include]
+    add: [/usr/lib/gcc/avr/5.4.0/include-fixed]
+    add: [/usr/lib/gcc/avr/5.4.0/../../../avr/include]
+  end of search list found
+  collapse include dir [/usr/lib/gcc/avr/5.4.0/include] ==> [/usr/lib/gcc/avr/5.4.0/include]
+  collapse include dir [/usr/lib/gcc/avr/5.4.0/include-fixed] ==> [/usr/lib/gcc/avr/5.4.0/include-fixed]
+  collapse include dir [/usr/lib/gcc/avr/5.4.0/../../../avr/include] ==> [/usr/lib/avr/include]
+  implicit include dirs: [/usr/lib/gcc/avr/5.4.0/include;/usr/lib/gcc/avr/5.4.0/include-fixed;/usr/lib/avr/include]
+
+
+Parsed CXX implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /home/barracuda/corsmal_ws/src/corsmal_hrh/build/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command(s):/usr/bin/ninja cmTC_8b7f3 && [1/2] Building CXX object CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o]
+  ignore line: [Using built-in specs.]
+  ignore line: [Reading specs from /usr/lib/gcc/avr/5.4.0/device-specs/specs-avr2]
+  ignore line: [COLLECT_GCC=/usr/bin/avr-g++]
+  ignore line: [Target: avr]
+  ignore line: [Configured with: ../gcc/configure -v --enable-languages=c c++ --prefix=/usr/lib --infodir=/usr/share/info --mandir=/usr/share/man --bindir=/usr/bin --libexecdir=/usr/lib --libdir=/usr/lib --enable-shared --with-system-zlib --enable-long-long --enable-nls --without-included-gettext --disable-libssp --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=avr CFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' CPPFLAGS='-Wdate-time -D_FORTIFY_SOURCE=2' CXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' FCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' FFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' GCJFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' LDFLAGS='-Wl -Bsymbolic-functions -Wl -z relro' OBJCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' OBJCXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ']
+  ignore line: [Thread model: single]
+  ignore line: [gcc version 5.4.0 (GCC) ]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-specs=device-specs/specs-avr2']
+  ignore line: [ /usr/lib/gcc/avr/5.4.0/cc1plus -quiet -v /usr/share/cmake-3.16/Modules/CMakeCXXCompilerABI.cpp -mn-flash=1 -mskip-bug -quiet -dumpbase CMakeCXXCompilerABI.cpp -auxbase-strip CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o -version -mn-flash=1 -mskip-bug -fno-rtti -fno-enforce-eh-specs -fno-exceptions -o /tmp/cckZxmzj.s]
+  ignore line: [GNU C++ (GCC) version 5.4.0 (avr)]
+  ignore line: [	compiled by GNU C version 9.3.0  GMP version 6.2.0  MPFR version 4.0.2  MPC version 1.1.0]
+  ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+  ignore line: [ignoring nonexistent directory "/usr/lib/gcc/avr/5.4.0/../../../avr/include/c++/5.4.0"]
+  ignore line: [ignoring nonexistent directory "/usr/lib/gcc/avr/5.4.0/../../../avr/include/c++/5.4.0/avr"]
+  ignore line: [ignoring nonexistent directory "/usr/lib/gcc/avr/5.4.0/../../../avr/include/c++/5.4.0/backward"]
+  ignore line: [ignoring nonexistent directory "/usr/lib/gcc/avr/5.4.0/../../../avr/sys-include"]
+  ignore line: [#include "..." search starts here:]
+  ignore line: [#include <...> search starts here:]
+  ignore line: [ /usr/lib/gcc/avr/5.4.0/include]
+  ignore line: [ /usr/lib/gcc/avr/5.4.0/include-fixed]
+  ignore line: [ /usr/lib/gcc/avr/5.4.0/../../../avr/include]
+  ignore line: [End of search list.]
+  ignore line: [GNU C++ (GCC) version 5.4.0 (avr)]
+  ignore line: [	compiled by GNU C version 9.3.0  GMP version 6.2.0  MPFR version 4.0.2  MPC version 1.1.0]
+  ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+  ignore line: [Compiler executable checksum: 218701cd14638d8ef22197eaa5f4bfa2]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-specs=device-specs/specs-avr2']
+  ignore line: [ /usr/lib/gcc/avr/5.4.0/../../../avr/bin/as -mmcu=avr2 -o CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o /tmp/cckZxmzj.s]
+  ignore line: [COMPILER_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/../../../avr/bin/]
+  ignore line: [LIBRARY_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/../../../avr/lib/]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-specs=device-specs/specs-avr2']
+  ignore line: [[2/2] Linking CXX executable cmTC_8b7f3]
+  ignore line: [Using built-in specs.]
+  ignore line: [Reading specs from /usr/lib/gcc/avr/5.4.0/device-specs/specs-avr2]
+  ignore line: [COLLECT_GCC=/usr/bin/avr-g++]
+  ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/avr/5.4.0/lto-wrapper]
+  ignore line: [Target: avr]
+  ignore line: [Configured with: ../gcc/configure -v --enable-languages=c c++ --prefix=/usr/lib --infodir=/usr/share/info --mandir=/usr/share/man --bindir=/usr/bin --libexecdir=/usr/lib --libdir=/usr/lib --enable-shared --with-system-zlib --enable-long-long --enable-nls --without-included-gettext --disable-libssp --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=avr CFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' CPPFLAGS='-Wdate-time -D_FORTIFY_SOURCE=2' CXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' FCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' FFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' GCJFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong' LDFLAGS='-Wl -Bsymbolic-functions -Wl -z relro' OBJCFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ' OBJCXXFLAGS='-g -O2 -fdebug-prefix-map=/build/gcc-avr-q39GPj/gcc-avr-5.4.0+Atmel3.6.1=. -fstack-protector-strong -Wformat ']
+  ignore line: [Thread model: single]
+  ignore line: [gcc version 5.4.0 (GCC) ]
+  ignore line: [COMPILER_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/:/usr/lib/gcc/avr/5.4.0/../../../avr/bin/]
+  ignore line: [LIBRARY_PATH=/usr/lib/gcc/avr/5.4.0/:/usr/lib/gcc/avr/5.4.0/../../../avr/lib/]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_8b7f3' '-specs=device-specs/specs-avr2']
+  link line: [ /usr/lib/gcc/avr/5.4.0/collect2 -plugin /usr/lib/gcc/avr/5.4.0/liblto_plugin.so -plugin-opt=/usr/lib/gcc/avr/5.4.0/lto-wrapper -plugin-opt=-fresolution=/tmp/ccDoTWcC.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lm -plugin-opt=-pass-through=-lc --pmem-wrap-around=8k -o cmTC_8b7f3 -L/usr/lib/gcc/avr/5.4.0 -L/usr/lib/gcc/avr/5.4.0/../../../avr/lib CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o -lgcc -lm --start-group -lgcc -lm -lc --end-group]
+    arg [/usr/lib/gcc/avr/5.4.0/collect2] ==> ignore
+    arg [-plugin] ==> ignore
+    arg [/usr/lib/gcc/avr/5.4.0/liblto_plugin.so] ==> ignore
+    arg [-plugin-opt=/usr/lib/gcc/avr/5.4.0/lto-wrapper] ==> ignore
+    arg [-plugin-opt=-fresolution=/tmp/ccDoTWcC.res] ==> ignore
+    arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+    arg [-plugin-opt=-pass-through=-lm] ==> ignore
+    arg [-plugin-opt=-pass-through=-lc] ==> ignore
+    arg [--pmem-wrap-around=8k] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTC_8b7f3] ==> ignore
+    arg [-L/usr/lib/gcc/avr/5.4.0] ==> dir [/usr/lib/gcc/avr/5.4.0]
+    arg [-L/usr/lib/gcc/avr/5.4.0/../../../avr/lib] ==> dir [/usr/lib/gcc/avr/5.4.0/../../../avr/lib]
+    arg [CMakeFiles/cmTC_8b7f3.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+    arg [-lgcc] ==> lib [gcc]
+    arg [-lm] ==> lib [m]
+    arg [--start-group] ==> ignore
+    arg [-lgcc] ==> lib [gcc]
+    arg [-lm] ==> lib [m]
+    arg [-lc] ==> lib [c]
+    arg [--end-group] ==> ignore
+  collapse library dir [/usr/lib/gcc/avr/5.4.0] ==> [/usr/lib/gcc/avr/5.4.0]
+  collapse library dir [/usr/lib/gcc/avr/5.4.0/../../../avr/lib] ==> [/usr/lib/avr/lib]
+  implicit libs: [gcc;m;gcc;m;c]
+  implicit dirs: [/usr/lib/gcc/avr/5.4.0;/usr/lib/avr/lib]
+  implicit fwks: []
+
+
