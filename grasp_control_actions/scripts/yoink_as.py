@@ -5,14 +5,12 @@ import rospy
 import tf.transformations as tft
 from std_msgs.msg import Float32
 from geometry_msgs.msg import PoseStamped, Twist, Pose, TransformStamped
-from scipy.spatial.transform import Rotation
 import time
 import numpy as np
-import os
-import sys
-import tf2_geometry_msgs
 from threading import Lock
 import math
+import actionlib
+from grasp_control_actions.msg import YoinkAction, YoinkActionFeedback, YoinkActionResult, YoinkActionGoal
 
 
 class Yoink:
@@ -95,6 +93,22 @@ class Yoink:
 
         self._qsum  = np.zeros((4,1),dtype=float)
 
+        # create action server for Yoink
+        self.yoink_action_server = actionlib.SimpleActionServer(
+            "yoink", YoinkAction, self.yoink_action_callback, auto_start=False
+        )
+
+        self.yoink_action_server.start()
+
+    def yoink_action_callback(self,goal:YoinkActionGoal):
+        rospy.loginfo("Action started")
+        self.goto_pre_grasp()
+        # self.grasp()
+        result = YoinkActionResult()
+        result.result = True
+        self.yoink_action_server.set_succeeded(result=result)
+
+
     def publish_error_velocity(self,event):
         self.linear_error_publisher.publish(Float32(self.linear_error))
         self.angular_error_publisher.publish(Float32(self.angular_error))
@@ -105,7 +119,7 @@ class Yoink:
     def goto_pre_grasp(self):
         if self.filtered_grasp_pose is None :
             rospy.logerr("No filtered grasp pose received")
-            return
+            return False
 
         self.errorLprev = np.zeros((3,),dtype=float)
         self.errorLsum = np.zeros((3,),dtype=float)
@@ -125,7 +139,11 @@ class Yoink:
             if np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL) < self.linear_stop_threshold and np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)<self.angular_stop_threshold : 
                 cmd_vel = Twist()
                 print("Reached pre grasp")
-                # break
+                self.errorLprev = np.zeros((3,1),dtype=float)
+                self.errorLsum = np.zeros((3,1),dtype=float)
+                self.errorOprev = np.zeros((4,1),dtype=float)
+                self.errorOsum = np.zeros((4,1),dtype=float)
+                return True
             
             self.linear_error = np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)
             self.angular_error = np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)
@@ -137,13 +155,17 @@ class Yoink:
             self.setpoint_velocity_pub.publish(cmd_vel)
             rate.sleep()
 
-        self.errorLprev = np.zeros((3,1),dtype=float)
-        self.errorLsum = np.zeros((3,1),dtype=float)
-        self.errorOprev = np.zeros((4,1),dtype=float)
-        self.errorOsum = np.zeros((4,1),dtype=float)
+        
+        
+        
+        
 
     # Grasp
     def grasp(self):
+        if self.filtered_grasp_pose is None :
+            rospy.logerr("No filtered grasp pose received")
+            return False
+        
         self.errorLprev = np.zeros((3,1),dtype=float)
         self.errorLsum = np.zeros((3,1),dtype=float)
         self.errorOprev = np.zeros((4,1),dtype=float)
@@ -164,7 +186,11 @@ class Yoink:
                     cmd_vel = Twist()
                     print("Reached Grasp Position")
                     # command the gripper so that it closes here
-                    break
+                    self.errorLprev = np.zeros((3,1),dtype=float)
+                    self.errorLsum = np.zeros((3,1),dtype=float)
+                    self.errorOprev = np.zeros((4,1),dtype=float)
+                    self.errorOsum = np.zeros((4,1),dtype=float)
+                    return True
 
                 if self.filtered_grasp_pose is not None :
                     cmd_vel = self.compute_cmd_vel(optimal_setpointL=pose_setpointL,optimal_setpointQ=pose_setpointQ)
@@ -172,14 +198,11 @@ class Yoink:
                 self.setpoint_velocity = cmd_vel
                 self.setpoint_velocity_pub.publish(cmd_vel)
                 rate.sleep()
-            self.errorLprev = np.zeros((3,1),dtype=float)
-            self.errorLsum = np.zeros((3,1),dtype=float)
-            self.errorOprev = np.zeros((4,1),dtype=float)
-            self.errorOsum = np.zeros((4,1),dtype=float)
+
         
         else : 
             rospy.logerr("Filtered grasp pose is not received")
-            return
+            return False
         
     # This computes the pre grasp setpoint in (linear, euler, quaterion) format
     def compute_pre_grasp_setpoint(self):
@@ -321,6 +344,6 @@ if __name__ == "__main__":
     rospy.init_node("radial_tracker")
     yoink = Yoink()
     rospy.sleep(0.9)
-    yoink.goto_pre_grasp()
+    # yoink.goto_pre_grasp()
     # yoink.grasp()
     rospy.spin()
