@@ -30,7 +30,7 @@ if __name__ == "__main__":
     print("Result before completion : ",result)
     print("sleeping for 0.5s and then stopping")
     rospy.sleep(2)
-    mp.yoink_client.cancel_goal()
+    # mp.yoink_client.cancel_goal()
     # print("Tried to cancel the goal")
     # mp.yoink_client.wait_for_result()
     result = mp.yoink_client.get_result()

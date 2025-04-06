@@ -105,11 +105,14 @@ class Yoink:
         rospy.loginfo("Preempt requested")
 
     def yoink_action_callback(self,goal:YoinkActionGoal):
+        start = rospy.get_time()
         rospy.loginfo("Action started")
         grasp_result1 = self.goto_pre_grasp()
         grasp_result2 = self.grasp()
         result = YoinkActionResult()
         result.result = grasp_result1 and grasp_result2
+        finish = rospy.get_time()
+        rospy.loginfo("Time taken for yoink : %s"%(finish-start))
         self.yoink_action_server.set_succeeded(result=result)
 
 
@@ -143,9 +146,7 @@ class Yoink:
 
                 if abs(np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ))<self.angular_stop_threshold : 
                     cmd_vel = Twist()
-                    print(np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL) < self.linear_stop_threshold)
-                    print(np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)<self.angular_stop_threshold)
-                    print("Reached pre grasp")
+                    rospy.loginfo("Reached pre grasp")
                     self.errorLprev = np.zeros((3,),dtype=float)
                     self.errorLsum = np.zeros((3,),dtype=float)
                     self.errorOprev = np.zeros((4,),dtype=float)
@@ -199,7 +200,7 @@ class Yoink:
 
                     if abs(np.linalg.norm(pose_setpointL) - np.linalg.norm(current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(pose_setpointQ) - np.linalg.norm(current_poseQ))<self.angular_stop_threshold : 
                         cmd_vel = Twist()
-                        print("Reached Grasp Position")
+                        rospy.loginfo("Reached Grasp Position")
                         # command the gripper so that it closes here
                         self.errorLprev = np.zeros((3,),dtype=float)
                         self.errorLsum = np.zeros((3,),dtype=float)
