@@ -2,3 +2,7 @@ std_msgs/Float32 timeout
 ---
 bool result
 ---
+std_msgs/Float32 linear_error
+std_msgs/Float32 linear_velocity
+std_msgs/Float32 angular_error
+std_msgs/Float32 angular_velocity

@@ -69,7 +69,7 @@ class Yoink:
         self._now = None
         self.optimal_pose = None
         
-        # pose_controller format
+        # pose_controller format interface
         self.current_pose_sub = rospy.Subscriber("/pose_controller/current_pose",PoseStamped,callback=self.current_pose_cb)
         self.current_velocity_sub = rospy.Subscriber("/pose_controller/current_velocity",Twist,callback=self.current_velocity_cb)
         self.setpoint_velocity_pub = rospy.Publisher("/pose_controller/setpoint_velocity",Twist,queue_size=1)
@@ -359,7 +359,7 @@ class Yoink:
 
 
 if __name__ == "__main__":
-    rospy.init_node("radial_tracker")
+    rospy.init_node("yoink")
     yoink = Yoink()
     rospy.sleep(0.5)
     rospy.spin()
