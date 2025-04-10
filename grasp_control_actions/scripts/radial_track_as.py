@@ -61,7 +61,7 @@ class RadialTracker:
         self.errorOprev = np.array([0,0,0],dtype=float)
         self.feedback = RadialTrackingFeedback()
 
-        rospy.loginfo("Started the yoink node with parameters:")
+        rospy.loginfo("Started the radial_track node with parameters:")
         for item in self.params:
             rospy.loginfo(f"{item} : {self.params[item]}")
         

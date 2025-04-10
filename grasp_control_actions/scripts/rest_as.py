@@ -40,7 +40,7 @@ class Rest:
         self.rest_joint_state = [self.base, self.shoulder, self.elbow, self.wrist1, self.wrist2, self.wrist3]
         self._waypoints = []
 
-        rospy.loginfo("Started the yoink node with parameters:")
+        rospy.loginfo("Started the rest node with parameters:")
         for item in self.params:
             rospy.loginfo(f"{item} : {self.params[item]}")
         

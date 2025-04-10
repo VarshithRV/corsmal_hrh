@@ -1,4 +1,4 @@
-geometry_msgs/PoseStamped default_position
+geometry_msgs/PoseStamped place_position
 ---
 bool result
 ---

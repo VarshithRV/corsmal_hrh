@@ -3,7 +3,7 @@
 # should be uninterruptible
 # will have to load an unload joint_traj type controller, for simulation, use the pos_joint_traj_controller
 # switch controllers between joint_group_pos_controller and pos_joint_traj_controller
-# should initialize scene
+# should initialize scene?
 
 import moveit_commander.roscpp_initializer
 import yaml
@@ -16,39 +16,54 @@ import numpy as np
 from threading import Lock
 import math
 import actionlib
-from grasp_control_actions.msg import RestAction, RestActionFeedback, RestActionResult, RestActionGoal, RestFeedback
+from grasp_control_actions.msg import PlaceMsgAction, PlaceMsgActionResult, PlaceMsgGoal, PlaceMsgFeedback
 import moveit_commander, moveit_msgs.msg
 from moveit_commander.conversions import pose_to_list
 from controller_manager_msgs.srv import SwitchController,SwitchControllerRequest, SwitchControllerResponse
 import sys
+import quaternion
 import copy
 from math import pi, tau, dist, fabs, cos
 
 
-class Rest:
+class Place:
     def __init__(self):
         
-        self.params = rospy.get_param("/rest_as")
+        self.params = rospy.get_param("/place_as")
 
-        self.base = self.params["rest_joint_state"]["base"]
-        self.shoulder = self.params["rest_joint_state"]["shoulder"]
-        self.elbow = self.params["rest_joint_state"]["elbow"]
-        self.wrist1 = self.params["rest_joint_state"]["wrist1"]
-        self.wrist2 = self.params["rest_joint_state"]["wrist2"]
-        self.wrist3 = self.params["rest_joint_state"]["wrist3"]
+        self.default_position = PoseStamped()
+        self.default_position.header.frame_id = "world"
+        self.default_position.pose.position.x =self.params["default_position"]["position"]["x"]
+        self.default_position.pose.position.y =self.params["default_position"]["position"]["y"]
+        self.default_position.pose.position.z =self.params["default_position"]["position"]["z"]
+        self.default_position.pose.orientation.x =self.params["default_position"]["orientation"]["x"]
+        self.default_position.pose.orientation.y =self.params["default_position"]["orientation"]["y"]
+        self.default_position.pose.orientation.z =self.params["default_position"]["orientation"]["z"]
+        self.default_position.pose.orientation.w =self.params["default_position"]["orientation"]["w"]
 
-        self.rest_joint_state = [self.base, self.shoulder, self.elbow, self.wrist1, self.wrist2, self.wrist3]
+        self.preplace_transformation = PoseStamped()
+        self.preplace_transformation.header.frame_id = "world"
+        self.preplace_transformation.pose.position.x =self.params["preplace_transformation"]["position"]["x"]
+        self.preplace_transformation.pose.position.y =self.params["preplace_transformation"]["position"]["y"]
+        self.preplace_transformation.pose.position.z =self.params["preplace_transformation"]["position"]["z"]
+        self.preplace_transformation.pose.orientation.x =self.params["preplace_transformation"]["orientation"]["x"]
+        self.preplace_transformation.pose.orientation.y =self.params["preplace_transformation"]["orientation"]["y"]
+        self.preplace_transformation.pose.orientation.z =self.params["preplace_transformation"]["orientation"]["z"]
+        self.preplace_transformation.pose.orientation.w =self.params["preplace_transformation"]["orientation"]["w"]
+
+        self.use_default_position = self.params["use_default_position"]
+
         self._waypoints = []
 
-        rospy.loginfo("Started the yoink node with parameters:")
+        rospy.loginfo("Started the place node with parameters:")
         for item in self.params:
             rospy.loginfo(f"{item} : {self.params[item]}")
         
         self.start = rospy.Time.now()
 
-        # create action server for Rest
-        self.rest_action_server = actionlib.SimpleActionServer(
-            "rest", RestAction, self.rest_action_callback, auto_start=False
+        # create action server for Place
+        self.place_action_server = actionlib.SimpleActionServer(
+            "place_server", PlaceMsgAction, self.place_action_callback, auto_start=False
         )
 
         # moveit stuff
@@ -67,8 +82,39 @@ class Rest:
         self.switch_controller = rospy.ServiceProxy("/controller_manager/switch_controller",SwitchController)
 
         # preempt registration
-        self.rest_action_server.register_preempt_callback(self.rest_preempt_callback)
-        self.rest_action_server.start()
+        self.place_action_server.register_preempt_callback(self.place_preempt_callback)
+        self.place_action_server.start()
+
+    def execute_waypoints(self, waypoints):
+        rospy.loginfo("Waypoints : %s", waypoints)
+
+        # plan a cartesian path
+        try : 
+            (plan, fraction) = self.move_group.compute_cartesian_path(
+                waypoints,  # waypoints to follow
+                0.005,  # eef_step
+            )
+            # rospy.loginfo("Manually retiming the trajectory with velocity_scaling = 1, acceleration_scaling_factor = 0.5")
+            plan=self.move_group.retime_trajectory(self.move_group.get_current_state(),plan,velocity_scaling_factor = 1.0,algorithm="time_optimal_trajectory_generation")
+
+        except Exception as e:
+            print(e)
+            return False
+
+        # display the plan
+        display_trajectory = moveit_msgs.msg.DisplayTrajectory()
+        display_trajectory.trajectory_start = self.robot.get_current_state()
+        display_trajectory.trajectory.append(plan)
+        self.display_trajectory_publisher.publish(display_trajectory)
+
+        # execute the plan
+        rospy.loginfo("Executing")
+        try : 
+            self.move_group.execute(plan, wait=True)
+            self.move_group.stop()
+        except Exception as e:
+            print(e)
+            return False
 
     def switch_controller_to_moveit(self):
         switch_controller_msg = SwitchControllerRequest()
@@ -99,39 +145,61 @@ class Rest:
             rospy.loginfo("Controller switched to joint position group")
         return success
 
-    def rest_preempt_callback(self):
-        rospy.loginfo("Preempt requested")
+    def place_preempt_callback(self):
+        rospy.loginfo("Preempt requested, not supported for place")
 
     def is_close(self,array1, array2):
         return True if np.isclose(np.array(array1),np.array(array2), 0.01,0.01,False).all() else False
 
-    def rest_action_callback(self,goal:RestActionGoal):
+    def place_action_callback(self,goal:PlaceMsgGoal):
         start = rospy.get_time()
         rospy.loginfo("Action started")
         if self.switch_controller_to_moveit() : 
             pass
         else : 
-            rospy.logerr("Controller not switch to the right one, aborting")
-            self.rest_action_server.set_aborted(RestActionResult(result=False))
+            rospy.logerr("Controller not switched from joint_group_pos_controller to pos_joint_traj_controller, aborting")
+            self.place_action_server.set_aborted(PlaceMsgActionResult(result=False))
             return
-        rospy.loginfo("Commanding robot to go to joint state : %s"%(str(self.rest_joint_state)))
-        try : 
-            self.move_group.go(self.rest_joint_state, wait=False)
-        except Exception as e:
-            rospy.loginfo("Reaching joint state failed due to : %s"%e)
-        rate = rospy.Rate(30)
-        while not self.is_close(self.rest_joint_state,self.move_group.get_current_joint_values()) and not self.rest_action_server.is_preempt_requested():
-            rate.sleep()
+        
+        rospy.loginfo("Starting place now")
+        place_position = goal.place_position if not self.use_default_position else self.default_position
+        preplace_position = PoseStamped()
+        _preplace_position = np.array([place_position.pose.position.x,place_position.pose.position.y,place_position.pose.position.z])
+        _preplace_orientation = quaternion.from_float_array([place_position.pose.orientation.w, place_position.pose.orientation.x,place_position.pose.orientation.y,place_position.pose.orientation.z])
+        _preplace_orientation_rotation = quaternion.from_float_array([self.preplace_transformation.pose.orientation.w,self.preplace_transformation.pose.orientation.x,self.preplace_transformation.pose.orientation.y,self.preplace_transformation.pose.orientation.z])
+        _pure_position_quaternion = quaternion.from_float_array([0.0,self.preplace_transformation.pose.position.x,self.preplace_transformation.pose.position.y,self.preplace_transformation.pose.position.z])
+        _pure_rotated_position_quaternion = _preplace_orientation_rotation * _pure_position_quaternion * _preplace_orientation_rotation.conjugate()
+        _rotated_position = np.array([_pure_rotated_position_quaternion.x,_pure_rotated_position_quaternion.y,_pure_rotated_position_quaternion.z])
+        _preplace_position = _preplace_position + _rotated_position
+
+        preplace_position.header.frame_id = "world"
+        preplace_position.pose.position.x,preplace_position.pose.position.y,preplace_position.pose.position.z = _preplace_position[0],_preplace_position[1],_preplace_position[2]
+        preplace_position.pose.orientation.x,preplace_position.pose.orientation.y,preplace_position.pose.orientation.z,preplace_position.pose.orientation.w = _preplace_orientation.x,_preplace_orientation.y,_preplace_orientation.z,_preplace_orientation.w
+
+        # preplace_position -> place
+        self._waypoints.clear()
+        self._waypoints.append(copy.deepcopy(preplace_position.pose))
+        self._waypoints.append(copy.deepcopy(place_position.pose))
+        
+        if self.execute_waypoints(waypoints = self._waypoints):
+            pass
+        else:
+            self._waypoints.clear()
+            self.place_action_server.set_succeeded(PlaceMsgActionResult(result=True))
+            return
+
+        self._waypoints.clear()
         finish = rospy.get_time()
         if self.switch_controller_to_servo():
             pass
         else :
             rospy.logerr("Controller not switched from pos_joint_traj_controller to joint_group_pos_controller")
         rospy.loginfo("Time taken for place : %s"%(finish-start))
-        self.rest_action_server.set_succeeded(RestActionResult(result=True))
+        self.place_action_server.set_succeeded(PlaceMsgActionResult(result=True))
+        return
 
 if __name__ == "__main__":
-    rospy.init_node("rest")
-    rest = Rest()
+    rospy.init_node("place")
+    place = Place()
     rospy.sleep(0.5)
     rospy.spin()
