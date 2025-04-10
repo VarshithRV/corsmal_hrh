@@ -119,10 +119,17 @@ class Rest:
             self.move_group.go(self.rest_joint_state, wait=False)
         except Exception as e:
             rospy.loginfo("Reaching joint state failed due to : %s"%e)
+            self.rest_action_server.set_succeeded(RestActionResult(result=False))
         rate = rospy.Rate(30)
         while not self.is_close(self.rest_joint_state,self.move_group.get_current_joint_values()) and not self.rest_action_server.is_preempt_requested():
             rate.sleep()
+        try :
+            self.move_group.stop()
+        except Exception as e:
+            rospy.logerr("Could not stop, exception : %s"%e)
+            
         finish = rospy.get_time()
+
         if self.switch_controller_to_servo():
             pass
         else :

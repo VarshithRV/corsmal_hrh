@@ -73,6 +73,7 @@ add_action_files(
   Yoink.action
   RadialTracking.action
   Rest.action
+  Place.action
 )
 
 # Generate added messages and services with any dependencies listed here

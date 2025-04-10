@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-# this is a node that should host an action server that will move the robot to a rest state
-# should be interruptible
+# this is a node that should host an action server that will place the object in hand to a default location or a location provided in the goal
+# should be uninterruptible
 # will have to load an unload joint_traj type controller, for simulation, use the pos_joint_traj_controller
 # switch controllers between joint_group_pos_controller and pos_joint_traj_controller
 # should initialize scene

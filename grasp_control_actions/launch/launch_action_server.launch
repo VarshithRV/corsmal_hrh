@@ -4,5 +4,6 @@
     <rosparam command="load" file="$(find grasp_control_actions)/config/yoink.yaml" ns="yoink_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/radial_tracking.yaml" ns="radial_track_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/rest.yaml" ns="rest_as"/>
+    <rosparam command="load" file="$(find grasp_control_actions)/config/palce.yaml" ns="place_as"/>
 
 </launch>
