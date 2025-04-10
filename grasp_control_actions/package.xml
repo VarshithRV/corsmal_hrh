@@ -70,6 +70,9 @@
   <build_depend>genmsg</build_depend>
   <build_export_depend>genmsg</build_export_depend>
   <exec_depend>genmsg</exec_depend>
+  <exec_depend>controller_manager_msgs</exec_depend>
+  <build_depend>controller_manager_msgs</build_depend>
+  <build_export_depend>controller_manager_msgs</build_export_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

@@ -40,7 +40,7 @@
 
   <!-- Gazebo parameters -->
   <arg name="paused" default="true" doc="Starts Gazebo in paused mode" />
-  <arg name="gui" default="true" doc="Starts Gazebo gui" />
+  <arg name="gui" default="false" doc="Starts Gazebo gui" />
 
   <!-- Load urdf on the parameter server -->
   <include file="$(find robot_setup_sim_description)/launch/load_setup_sim.launch">

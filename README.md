@@ -102,6 +102,11 @@ The `/arduino/controller/controller.ino` is the file to be loaded into an **ardu
 ### robot_setup_sim_bringup
 
 **Description**: Launches a simulation in gazebo of a ur5e, 2 realsense d435i with controllers and moveit move_group. Launches moveit_servo for velocity control of the end effector.
+This loads the following controllers : 
+- joint_group_pos_controller : used by moveit servo for servo control of the end effector. In stopped state, need to start it using command `/contoller_manager/switch_controller` to start `/joint_group_pos_controller` and stop `pos_joint_traj_controller`.
+- joint_state_controller : joint state broadcast
+- pos_joint_traj_controller : joint trajectory control for moveit planning, need to switch back to this for moveit planning layer to take control. The simulation starts with a paused physics, to unpause it, we need to use the services : `/gazebo/pause_physics` and `/gazebo/unpause_physics`.
+
 
 **Launch Process**:
 1. launch `/launch/gazebo_bringup.launch`.
