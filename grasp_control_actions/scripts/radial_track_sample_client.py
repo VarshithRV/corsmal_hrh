@@ -23,7 +23,6 @@ if __name__ == "__main__":
     rospy.init_node("motion_planning_client")
     mp = MpClass()
     rospy.loginfo("Sending pick and place goal")
-    rospy.sleep(2)
     radial_trackGoal = RadialTrackingGoal()
     radial_trackGoal.timeout.data = 0.0 # set 0 to run indefinitely, otherwise give a positive value
     mp.radial_tracking_client.send_goal(radial_trackGoal)

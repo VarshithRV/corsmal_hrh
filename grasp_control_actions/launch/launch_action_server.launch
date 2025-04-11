@@ -5,5 +5,19 @@
     <rosparam command="load" file="$(find grasp_control_actions)/config/radial_tracking.yaml" ns="radial_track_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/rest.yaml" ns="rest_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place.yaml" ns="place_as"/>
-
+    <!-- <group ns = "radial_track">
+        <node pkg="grasp_control_actions" type="radial_track_as.py" name="radial_track_server" output="screen"/>
+    </group>
+    <group ns = "yoink">
+        <node pkg="grasp_control_actions" type="yoink_as.py" name="yoink_server" output="screen"/>
+    </group>
+    <group ns = "rest">
+        <node pkg="grasp_control_actions" type="rest_as.py" name="rest_server" output="screen"/>
+    </group>
+    <group ns = "place_object">
+        <node pkg="grasp_control_actions" type="place_as.py" name="place_object_server" output="screen"/>
+    </group> -->
+    <node pkg="grasp_control_actions" type="radial_track_as.py" name="radial_track_server" output="screen"/>
+    <node pkg="grasp_control_actions" type="rest_as.py" name="rest_server" output="screen"/>
+    <node pkg="grasp_control_actions" type="place_as.py" name="place_object_server" output="screen"/>
 </launch>
