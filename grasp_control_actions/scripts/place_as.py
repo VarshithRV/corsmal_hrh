@@ -55,7 +55,7 @@ class Place:
 
         self._waypoints = []
 
-        rospy.loginfo("Started the place node with parameters:")
+        rospy.loginfo("%s : Started the place node with parameters:"%rospy.get_name())
         for item in self.params:
             rospy.loginfo(f"{item} : {self.params[item]}")
         
@@ -86,7 +86,7 @@ class Place:
         self.place_action_server.start()
 
     def execute_waypoints(self, waypoints):
-        rospy.loginfo("Waypoints : %s", waypoints)
+        rospy.loginfo("%s : Executing waypoints : %s", rospy.get_name(),waypoints)
 
         # plan a cartesian path
         try : 
@@ -94,11 +94,10 @@ class Place:
                 waypoints,  # waypoints to follow
                 0.005,  # eef_step
             )
-            # rospy.loginfo("Manually retiming the trajectory with velocity_scaling = 1, acceleration_scaling_factor = 0.5")
             plan=self.move_group.retime_trajectory(self.move_group.get_current_state(),plan,velocity_scaling_factor = 1.0,algorithm="time_optimal_trajectory_generation")
 
         except Exception as e:
-            print(e)
+            rospy.logerr("%s : %s",rospy.get_name(),e)
             return False
 
         # display the plan
@@ -107,13 +106,11 @@ class Place:
         display_trajectory.trajectory.append(plan)
         self.display_trajectory_publisher.publish(display_trajectory)
 
-        # execute the plan
-        rospy.loginfo("Executing")
         try : 
             self.move_group.execute(plan, wait=True)
             self.move_group.stop()
         except Exception as e:
-            print(e)
+            rospy.logerr("%s : %s",rospy.get_name(),e)
             return False
 
     def switch_controller_to_moveit(self):
@@ -126,9 +123,9 @@ class Place:
         try : 
             success = self.switch_controller.call(switch_controller_msg)
         except rospy.ServiceException as e:
-            rospy.loginfo("%s"%e)
+            rospy.loginfo("%s : %s",rospy.get_name(),e)
         if success : 
-            rospy.loginfo("Controller switched to joint position trajectory")
+            rospy.loginfo("%s: Controller switched to joint position trajectory",rospy.get_name())
         return success
 
     def switch_controller_to_servo(self):
@@ -140,28 +137,28 @@ class Place:
         try : 
             success = self.switch_controller.call(switch_controller_msg)
         except rospy.ServiceException as e:
-            rospy.loginfo("%s"%e)
+            rospy.loginfo("%s : %s",rospy.get_name(),e)
         if success : 
-            rospy.loginfo("Controller switched to joint position group")
+            rospy.loginfo("%s : Controller switched to joint position group",rospy.get_name())
         return success
 
     def place_preempt_callback(self):
-        rospy.loginfo("Preempt requested, not supported for place")
+        rospy.loginfo("%s : Preempt requested, not supported for place",rospy.get_name())
 
     def is_close(self,array1, array2):
         return True if np.isclose(np.array(array1),np.array(array2), 0.01,0.01,False).all() else False
 
     def place_action_callback(self,goal:PlaceMsgGoal):
         start = rospy.get_time()
-        rospy.loginfo("Action started")
+        rospy.loginfo("%s : Action started",rospy.get_name())
         if self.switch_controller_to_moveit() : 
             pass
         else : 
-            rospy.logerr("Controller not switched from joint_group_pos_controller to pos_joint_traj_controller, aborting")
+            rospy.logerr("%s : Controller not switched from joint_group_pos_controller to pos_joint_traj_controller, aborting",rospy.get_name())
             self.place_action_server.set_aborted(PlaceMsgActionResult(result=False))
             return
         
-        rospy.loginfo("Starting place now")
+        rospy.loginfo("%s : Starting place now",rospy.get_name())
         place_position = goal.place_position if not self.use_default_position else self.default_position
         preplace_position = PoseStamped()
         _preplace_position = np.array([place_position.pose.position.x,place_position.pose.position.y,place_position.pose.position.z])
@@ -193,8 +190,8 @@ class Place:
         if self.switch_controller_to_servo():
             pass
         else :
-            rospy.logerr("Controller not switched from pos_joint_traj_controller to joint_group_pos_controller")
-        rospy.loginfo("Time taken for place : %s"%(finish-start))
+            rospy.logerr("%s : Controller not switched from pos_joint_traj_controller to joint_group_pos_controller",rospy.get_name())
+        rospy.loginfo("%s : Time taken for place : %s",rospy.get_name(),(finish-start))
         self.place_action_server.set_succeeded(PlaceMsgActionResult(result=True))
         return
 

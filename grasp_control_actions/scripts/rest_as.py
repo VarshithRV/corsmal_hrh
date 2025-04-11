@@ -40,7 +40,7 @@ class Rest:
         self.rest_joint_state = [self.base, self.shoulder, self.elbow, self.wrist1, self.wrist2, self.wrist3]
         self._waypoints = []
 
-        rospy.loginfo("Started the rest node with parameters:")
+        rospy.loginfo("%s : Started the rest node with parameters:",rospy.get_name())
         for item in self.params:
             rospy.loginfo(f"{item} : {self.params[item]}")
         
@@ -80,9 +80,9 @@ class Rest:
         try : 
             success = self.switch_controller.call(switch_controller_msg)
         except rospy.ServiceException as e:
-            rospy.loginfo("%s"%e)
+            rospy.loginfo("%s : %s",rospy.get_name(),e)
         if success : 
-            rospy.loginfo("Controller switched to joint position trajectory")
+            rospy.loginfo("%s : Controller switched to joint position trajectory",rospy.get_name())
         return success
 
     def switch_controller_to_servo(self):
@@ -94,31 +94,31 @@ class Rest:
         try : 
             success = self.switch_controller.call(switch_controller_msg)
         except rospy.ServiceException as e:
-            rospy.loginfo("%s"%e)
+            rospy.loginfo("%s : %s",rospy.get_name(),e)
         if success : 
-            rospy.loginfo("Controller switched to joint position group")
+            rospy.loginfo("%s : Controller switched to joint position group",rospy.get_name())
         return success
 
     def rest_preempt_callback(self):
-        rospy.loginfo("Preempt requested")
+        rospy.loginfo("%s : Preempt requested",rospy.get_name())
 
     def is_close(self,array1, array2):
         return True if np.isclose(np.array(array1),np.array(array2), 0.01,0.01,False).all() else False
 
     def rest_action_callback(self,goal:RestActionGoal):
         start = rospy.get_time()
-        rospy.loginfo("Action started")
+        rospy.loginfo("%s : Action started",rospy.get_name())
         if self.switch_controller_to_moveit() : 
             pass
         else : 
-            rospy.logerr("Controller not switch to the right one, aborting")
+            rospy.logerr("%s : Controller not switch to the right one, aborting",rospy.get_name())
             self.rest_action_server.set_aborted(RestActionResult(result=False))
             return
-        rospy.loginfo("Commanding robot to go to joint state : %s"%(str(self.rest_joint_state)))
+        rospy.loginfo("%s : Commanding robot to go to joint state : %s",rospy.get_name(),(str(self.rest_joint_state)))
         try : 
             self.move_group.go(self.rest_joint_state, wait=False)
         except Exception as e:
-            rospy.loginfo("Reaching joint state failed due to : %s"%e)
+            rospy.loginfo("%s : Reaching joint state failed due to : %s",rospy.get_name(),e)
             self.rest_action_server.set_succeeded(RestActionResult(result=False))
         rate = rospy.Rate(30)
         while not self.is_close(self.rest_joint_state,self.move_group.get_current_joint_values()) and not self.rest_action_server.is_preempt_requested():
@@ -126,15 +126,15 @@ class Rest:
         try :
             self.move_group.stop()
         except Exception as e:
-            rospy.logerr("Could not stop, exception : %s"%e)
+            rospy.logerr("%s : Could not stop, exception : %s",rospy.get_name(),e)
             
         finish = rospy.get_time()
 
         if self.switch_controller_to_servo():
             pass
         else :
-            rospy.logerr("Controller not switched from pos_joint_traj_controller to joint_group_pos_controller")
-        rospy.loginfo("Time taken for place : %s"%(finish-start))
+            rospy.logerr("%s : Controller not switched from pos_joint_traj_controller to joint_group_pos_controller",rospy.get_name())
+        rospy.loginfo("%s : Time taken for place : %s",rospy.get_name(),(finish-start))
         self.rest_action_server.set_succeeded(RestActionResult(result=True))
 
 if __name__ == "__main__":

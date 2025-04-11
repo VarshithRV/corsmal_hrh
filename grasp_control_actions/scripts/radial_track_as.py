@@ -16,7 +16,6 @@ import numpy as np
 from threading import Lock
 import math
 import actionlib
-from scipy.spatial.transform import Rotation
 from grasp_control_actions.msg import RadialTrackingAction, RadialTrackingActionFeedback, RadialTrackingGoal, RadialTrackingActionResult, RadialTrackingActionGoal, RadialTrackingFeedback
 import moveit_commander, moveit_msgs.msg
 from moveit_commander.conversions import pose_to_list
@@ -72,7 +71,7 @@ class RadialTracker:
         self.errorOprev = np.array([0,0,0],dtype=float)
         self.feedback = RadialTrackingFeedback()
 
-        rospy.loginfo("Started the radial_track node with parameters:")
+        rospy.loginfo("%s : Started the radial_track node with parameters:",rospy.get_name())
         for item in self.params:
             rospy.loginfo(f"{item} : {self.params[item]}")
         
@@ -150,9 +149,9 @@ class RadialTracker:
         try : 
             success = self.switch_controller.call(switch_controller_msg)
         except rospy.ServiceException as e:
-            rospy.loginfo("%s"%e)
+            rospy.loginfo("%s : %s",rospy.get_name(),e)
         if success : 
-            rospy.loginfo("Controller switched to joint position trajectory")
+            rospy.loginfo("%s : Controller switched to joint position trajectory",rospy.get_name())
         return success
 
     def switch_controller_to_servo(self):
@@ -164,13 +163,13 @@ class RadialTracker:
         try : 
             success = self.switch_controller.call(switch_controller_msg)
         except rospy.ServiceException as e:
-            rospy.loginfo("%s"%e)
+            rospy.loginfo("%s : %s",rospy.get_name(),e)
         if success : 
-            rospy.loginfo("Controller switched to joint position group")
+            rospy.loginfo("%s : Controller switched to joint position group",rospy.get_name())
         return success
 
     def radial_track_preempt_callback(self):
-        rospy.loginfo("Preempt requested")
+        rospy.loginfo("%s : Preempt requested",rospy.get_name())
         self.errorLprev = np.zeros((3,),dtype=float)
         self.errorLsum = np.zeros((3,),dtype=float)
         self.errorOprev = np.zeros((4,),dtype=float)
@@ -178,7 +177,7 @@ class RadialTracker:
 
     def radial_track_action_callback(self,goal:RadialTrackingGoal):
         start = rospy.get_time()
-        rospy.loginfo("Action started")
+        rospy.loginfo("%s : Action started", rospy.get_name())
         
         if self.switch_controller_to_servo() : 
             pass
@@ -198,7 +197,7 @@ class RadialTracker:
         result.result = radial_track_result
         finish = rospy.get_time()
         
-        rospy.loginfo("Time taken for radial tracking : %s"%(finish-start))
+        rospy.loginfo("%s : Time taken for radial tracking : %s",rospy.get_name(),(finish-start))
         self.radial_tracking_server.set_succeeded(result=result)
 
     def update_current_pose(self,event):
@@ -236,7 +235,7 @@ class RadialTracker:
                 if abs(np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ))<self.angular_stop_threshold : 
                     cmd_vel = TwistStamped()
                     cmd_vel.header.frame_id = "world"
-                    rospy.loginfo("Reached pre grasp")
+                    rospy.loginfo("%s : Reached pre grasp",rospy.get_name())
 
                 if self.filtered_grasp_pose is not None :
                     cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ)
@@ -253,7 +252,7 @@ class RadialTracker:
 
                 rate.sleep()
             else : 
-                rospy.loginfo("Preempted requested while in pre grasp")
+                rospy.loginfo("%s : Preempted requested while in pre grasp",rospy.get_name())
                 return False
     
     # Grasp
@@ -283,7 +282,7 @@ class RadialTracker:
                     if abs(np.linalg.norm(pose_setpointL) - np.linalg.norm(current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(pose_setpointQ) - np.linalg.norm(current_poseQ))<self.angular_stop_threshold : 
                         cmd_vel = TwistStamped()
                         cmd_vel.header.frame_id = "world"
-                        rospy.loginfo("Reached Grasp Position")
+                        rospy.loginfo("%s : Reached Grasp Position",rospy.get_name())
                         # command the gripper so that it closes here
                         self.errorLprev = np.zeros((3,),dtype=float)
                         self.errorLsum = np.zeros((3,),dtype=float)
@@ -305,7 +304,7 @@ class RadialTracker:
 
                     rate.sleep()
                 else :
-                    rospy.loginfo("Preempted requested while in grasp")
+                    rospy.loginfo("%s : Preempted requested while in grasp",rospy.get_name())
                     return False
 
         
@@ -340,7 +339,6 @@ class RadialTracker:
                     if  rospy.get_time() - start >= timeout:
                         cmd_vel = TwistStamped()
                         cmd_vel.header.frame_id = "world"
-                        # rospy.loginfo("Reached pre grasp")
                         self.errorLprev = np.zeros((3,),dtype=float)
                         self.errorLsum = np.zeros((3,),dtype=float)
                         self.errorOprev = np.zeros((4,),dtype=float)
@@ -365,7 +363,7 @@ class RadialTracker:
                 rate.sleep()
 
             else : 
-                rospy.loginfo("Preempted requested while in pre grasp")
+                rospy.loginfo("%s : Preempted requested while in pre grasp",rospy.get_name())
                 return False
 
     def compute_radial_track_setpoint(self):
@@ -395,26 +393,8 @@ class RadialTracker:
         pose_optimal_setpointM = np.concatenate((new_x,new_y,new_z),axis=1)
         pose_optimal_setpointM = np.concatenate((pose_optimal_setpointM,np.zeros((3,1))),axis=1)
         pose_optimal_setpointM = np.concatenate((pose_optimal_setpointM,np.array([0.0,0.0,0.0,1.0]).reshape(1,4)),axis=0)
-        
-        # rot = Rotation.from_matrix(pose_optimal_setpointM)
-        # jumbled = rot.as_quat().tolist()
-        # pose_optimal_setpointQ = np.array([jumbled[3],jumbled[1],jumbled[2],jumbled[0]])
-        # pose_optimal_setpointO = rot.as_euler("XYZ")
 
         pose_optimal_setpointQ = tft.quaternion_from_matrix(pose_optimal_setpointM)
-
-        # print("#######")
-        # print("Filtered Object L : ",filtered_object_poseL)
-        # print("Predefined ready L : ",ready_poseL)
-        # print("Computed optimal setpoint L ",pose_optimal_setpointL)
-        # print("New_x : ",new_x)
-        # print("New_y : ",new_y)
-        # print("New_z : ",new_z)
-        # print("Rot : ", pose_optimal_setpointM)
-        # print("Quat : ",pose_optimal_setpointQ)
-        # print("RPY : ",pose_optimal_setpointO)
-        # print("#######")
-
         return pose_optimal_setpointL, pose_optimal_setpointO, pose_optimal_setpointQ
 
     # This computes the pre grasp setpoint in (linear, euler, quaterion) format, ==filtered_grasp_pose.transform, return in L,O,Q tuple format
@@ -527,7 +507,7 @@ class RadialTracker:
             
     # update grasp pose if message frequency is greater than the threshold
     def update_grasp_pose(self,event):
-        with self.mutex : 
+        with self.mutex :
             self.pose_message_timestamp_queue = [t for t in self.pose_message_timestamp_queue if time.time() - t <= 1]
             if len(self.pose_message_timestamp_queue) < self.pose_setpoint_frequency_cutoff:
                 self.filtered_grasp_pose = None

@@ -31,7 +31,7 @@ if __name__ == "__main__":
     print("sleeping for 0.5s and then stopping")
     rospy.sleep(2)
     # print("Tried to cancel the goal")
-    # mp.radial_tracking_client.cancel_goal()
+    mp.radial_tracking_client.cancel_goal()
     # mp.yoink_client.wait_for_result()
     result = mp.radial_tracking_client.get_result()
     print("Radial Tracking result is: ",mp.radial_tracking_client.get_result())

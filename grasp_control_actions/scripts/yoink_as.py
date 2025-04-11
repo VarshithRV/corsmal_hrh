@@ -57,7 +57,7 @@ class Yoink:
         self.errorOprev = np.array([0,0,0],dtype=float)
         self.feedback = YoinkFeedback()
 
-        rospy.loginfo("Started the yoink node with parameters:")
+        rospy.loginfo("%s : Started the yoink node with parameters:",rospy.get_name())
         for item in self.params:
             rospy.loginfo(f"{item} : {self.params[item]}")
         
@@ -136,9 +136,9 @@ class Yoink:
         try : 
             success = self.switch_controller.call(switch_controller_msg)
         except rospy.ServiceException as e:
-            rospy.loginfo("%s"%e)
+            rospy.loginfo("%s : %s",rospy.get_name(),e)
         if success : 
-            rospy.loginfo("Controller switched to joint position trajectory")
+            rospy.loginfo("%s : Controller switched to joint position trajectory",rospy.get_name())
         return success
 
     def switch_controller_to_servo(self):
@@ -150,21 +150,21 @@ class Yoink:
         try : 
             success = self.switch_controller.call(switch_controller_msg)
         except rospy.ServiceException as e:
-            rospy.loginfo("%s"%e)
+            rospy.loginfo("%s : %s",rospy.get_name(),e)
         if success : 
-            rospy.loginfo("Controller switched to joint position group")
+            rospy.loginfo("%s : Controller switched to joint position group",rospy.get_name())
         return success
 
     def yoink_preempt_callback(self):
-        rospy.loginfo("Preempt requested")
+        rospy.loginfo("%s: Preempt requested",rospy.get_name())
 
     def yoink_action_callback(self,goal:YoinkActionGoal):
         start = rospy.get_time()
-        rospy.loginfo("Action started")
+        rospy.loginfo("%s : Action started",rospy.get_name())
         if self.switch_controller_to_servo() : 
             pass
         else : 
-            rospy.logerr("Controller not switched from pos_joint_traj_controller to joint_group_pos_controller , aborting")
+            rospy.logerr("%s : Controller not switched from pos_joint_traj_controller to joint_group_pos_controller , aborting",rospy.get_name())
             self.yoink_action_server.set_aborted(YoinkActionResult(result=False))
             return
         grasp_result1 = self.goto_pre_grasp()
@@ -172,7 +172,7 @@ class Yoink:
         result = YoinkActionResult()
         result.result = grasp_result1 and grasp_result2
         finish = rospy.get_time()
-        rospy.loginfo("Time taken for yoink : %s"%(finish-start))
+        rospy.loginfo("%s : Time taken for yoink : %s",rospy.get_name(),(finish-start))
         self.yoink_action_server.set_succeeded(result=result)
 
 
@@ -185,7 +185,7 @@ class Yoink:
     # This commands the robot to go to pre grasp
     def goto_pre_grasp(self):
         if self.filtered_grasp_pose is None :
-            rospy.logerr("No filtered grasp pose received")
+            rospy.logerr("%s : No filtered grasp pose received",rospy.get_name())
             return False
 
         self.errorLprev = np.zeros((3,),dtype=float)
@@ -207,7 +207,7 @@ class Yoink:
                 if abs(np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ))<self.angular_stop_threshold : 
                     cmd_vel = TwistStamped()
                     cmd_vel.header.frame_id = "world"
-                    rospy.loginfo("Reached pre grasp")
+                    rospy.loginfo("%s : Reached pre grasp",rospy.get_name())
                     self.errorLprev = np.zeros((3,),dtype=float)
                     self.errorLsum = np.zeros((3,),dtype=float)
                     self.errorOprev = np.zeros((4,),dtype=float)
@@ -232,13 +232,13 @@ class Yoink:
 
                 rate.sleep()
             else : 
-                rospy.loginfo("Preempted requested while in pre grasp")
+                rospy.loginfo("%s : Preempted requested while in pre grasp",rospy.get_name())
                 return False
     
     # Grasp
     def grasp(self):
         if self.filtered_grasp_pose is None :
-            rospy.logerr("No filtered grasp pose received")
+            rospy.logerr("%s : No filtered grasp pose received",rospy.get_name())
             return False
         
         self.errorLprev = np.zeros((3,),dtype=float)
@@ -262,7 +262,7 @@ class Yoink:
                     if abs(np.linalg.norm(pose_setpointL) - np.linalg.norm(current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(pose_setpointQ) - np.linalg.norm(current_poseQ))<self.angular_stop_threshold : 
                         cmd_vel = TwistStamped()
                         cmd_vel.header.frame_id = "world"
-                        rospy.loginfo("Reached Grasp Position")
+                        rospy.loginfo("%s : Reached Grasp Position",rospy.get_name())
                         # command the gripper so that it closes here
                         self.errorLprev = np.zeros((3,),dtype=float)
                         self.errorLsum = np.zeros((3,),dtype=float)
@@ -276,12 +276,12 @@ class Yoink:
                     self.setpoint_velocity_pub.publish(cmd_vel)
                     rate.sleep()
                 else :
-                    rospy.loginfo("Preempted requested while in grasp")
+                    rospy.loginfo("%s : Preempted requested while in grasp",rospy.get_name())
                     return False
 
         
         else : 
-            rospy.logerr("Filtered grasp pose is not received")
+            rospy.logerr("%s : Filtered grasp pose is not received",rospy.get_name())
             return False
         
     # This computes the pre grasp setpoint in (linear, euler, quaterion) format
