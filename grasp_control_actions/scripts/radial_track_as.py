@@ -107,7 +107,7 @@ class RadialTracker:
         # service proxy for switch controllers
         self.switch_controller = rospy.ServiceProxy("/controller_manager/switch_controller",SwitchController)
         
-        # pose_controller format
+        # simulation interface format
         self.setpoint_velocity_pub = rospy.Publisher("/servo_server/delta_twist_cmds",TwistStamped,queue_size=1)
         self.optimal_pose_pub =  rospy.Publisher("/optimal_pose",PoseStamped,queue_size=1)
         # publish error and velocity magnitude for debug
@@ -197,12 +197,6 @@ class RadialTracker:
         result = RadialTrackingActionResult()
         result.result = radial_track_result
         finish = rospy.get_time()
-        if self.switch_controller_to_moveit() : 
-            pass
-        else : 
-            rospy.logerr("Controller not switched from joint_group_pos_controller to pos_joint_traj_controller, aborting")
-            self.radial_tracking_server.set_aborted(RadialTrackingActionResult(result=False))
-            return
         
         rospy.loginfo("Time taken for radial tracking : %s"%(finish-start))
         self.radial_tracking_server.set_succeeded(result=result)

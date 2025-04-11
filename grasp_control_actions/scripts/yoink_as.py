@@ -1,16 +1,25 @@
 #!/usr/bin/env python
 # This should be a yoink server that will perform the grab, should be interruptible
+# yoink servo node
+# connect the servo topic
+# add moveit initialization
+# update the ee pose using moveit
+
 import yaml
 import rospy
 import tf.transformations as tft
 from std_msgs.msg import Float32
-from geometry_msgs.msg import PoseStamped, Twist, Pose, TransformStamped
+from geometry_msgs.msg import PoseStamped, TwistStamped, Pose, TransformStamped
 import time
 import numpy as np
 from threading import Lock
 import math
 import actionlib
 from grasp_control_actions.msg import YoinkAction, YoinkActionFeedback, YoinkActionResult, YoinkActionGoal, YoinkFeedback
+from controller_manager_msgs.srv import SwitchController,SwitchControllerRequest, SwitchControllerResponse
+import moveit_commander, moveit_msgs.msg
+from moveit_commander.conversions import pose_to_list
+import sys
 
 
 class Yoink:
@@ -54,7 +63,6 @@ class Yoink:
         
         self.start = rospy.Time.now()
         
-        self.current_velocity = None
         self.current_pose = None
         self.setpoint_velocity = None
         self.filtered_grasp_pose = None
@@ -68,11 +76,22 @@ class Yoink:
         self.mutex = Lock()
         self._now = None
         self.optimal_pose = None
-        
-        # pose_controller format interface
-        self.current_pose_sub = rospy.Subscriber("/pose_controller/current_pose",PoseStamped,callback=self.current_pose_cb)
-        self.current_velocity_sub = rospy.Subscriber("/pose_controller/current_velocity",Twist,callback=self.current_velocity_cb)
-        self.setpoint_velocity_pub = rospy.Publisher("/pose_controller/setpoint_velocity",Twist,queue_size=1)
+
+        # moveit stuff
+        moveit_commander.roscpp_initialize(sys.argv)
+        self.robot = moveit_commander.RobotCommander()
+        self.scene = moveit_commander.PlanningSceneInterface()
+        self.group_name = "manipulator"
+        self.move_group = moveit_commander.MoveGroupCommander(self.group_name)
+        self.display_trajectory_publisher = rospy.Publisher(
+            "/move_group/display_planned_path",
+            moveit_msgs.msg.DisplayTrajectory,
+            queue_size=20,
+        )
+        # service proxy for switch controllers
+        self.switch_controller = rospy.ServiceProxy("/controller_manager/switch_controller",SwitchController)
+        # simulation interface
+        self.setpoint_velocity_pub = rospy.Publisher("/servo_server/delta_twist_cmds",TwistStamped,queue_size=1)
         self.optimal_pose_pub =  rospy.Publisher("/optimal_pose",PoseStamped,queue_size=1)
         # publish error and velocity magnitude for debug
         self.linear_error_publisher =  rospy.Publisher("/linear_error",Float32,queue_size=1)
@@ -82,6 +101,9 @@ class Yoink:
 
         # filtered grasp pose connection
         self.filtered_grasp_pose_sub = rospy.Subscriber("/filtered_grasp_pose",PoseStamped,callback=self.filtered_grasp_pose_cb)
+
+        # Timer to update current_pose
+        current_pose_update_timer = rospy.Timer(rospy.Duration(0.01),callback=self.update_current_pose)
 
         # Timer to update the filtered grasp pose
         filtered_grasp_pose_update_timer = rospy.Timer(rospy.Duration(0.01),callback=self.update_grasp_pose)
@@ -101,12 +123,50 @@ class Yoink:
         self.yoink_action_server.register_preempt_callback(self.yoink_preempt_callback)
         self.yoink_action_server.start()
 
+    def update_current_pose(self,event):
+        self.current_pose = self.move_group.get_current_pose() # as a PoseStamped
+
+    def switch_controller_to_moveit(self):
+        switch_controller_msg = SwitchControllerRequest()
+        switch_controller_msg.start_controllers =  ["pos_joint_traj_controller"]
+        switch_controller_msg.stop_controllers = ["joint_group_pos_controller"]
+        switch_controller_msg.strictness = 2
+        switch_controller_msg.start_asap = True
+        switch_controller_msg.timeout = 0.0
+        try : 
+            success = self.switch_controller.call(switch_controller_msg)
+        except rospy.ServiceException as e:
+            rospy.loginfo("%s"%e)
+        if success : 
+            rospy.loginfo("Controller switched to joint position trajectory")
+        return success
+
+    def switch_controller_to_servo(self):
+        switch_controller_msg = SwitchControllerRequest()
+        switch_controller_msg.start_controllers = ["joint_group_pos_controller"]
+        switch_controller_msg.stop_controllers = ["pos_joint_traj_controller"]
+        switch_controller_msg.strictness = 2
+        switch_controller_msg.start_asap = True
+        try : 
+            success = self.switch_controller.call(switch_controller_msg)
+        except rospy.ServiceException as e:
+            rospy.loginfo("%s"%e)
+        if success : 
+            rospy.loginfo("Controller switched to joint position group")
+        return success
+
     def yoink_preempt_callback(self):
         rospy.loginfo("Preempt requested")
 
     def yoink_action_callback(self,goal:YoinkActionGoal):
         start = rospy.get_time()
         rospy.loginfo("Action started")
+        if self.switch_controller_to_servo() : 
+            pass
+        else : 
+            rospy.logerr("Controller not switched from pos_joint_traj_controller to joint_group_pos_controller , aborting")
+            self.yoink_action_server.set_aborted(YoinkActionResult(result=False))
+            return
         grasp_result1 = self.goto_pre_grasp()
         grasp_result2 = self.grasp()
         result = YoinkActionResult()
@@ -145,7 +205,8 @@ class Yoink:
                                           self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
 
                 if abs(np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ))<self.angular_stop_threshold : 
-                    cmd_vel = Twist()
+                    cmd_vel = TwistStamped()
+                    cmd_vel.header.frame_id = "world"
                     rospy.loginfo("Reached pre grasp")
                     self.errorLprev = np.zeros((3,),dtype=float)
                     self.errorLsum = np.zeros((3,),dtype=float)
@@ -199,7 +260,8 @@ class Yoink:
                     current_poseQ = [current_pose.pose.orientation.x,current_pose.pose.orientation.y,current_pose.pose.orientation.z,current_pose.pose.orientation.w]
 
                     if abs(np.linalg.norm(pose_setpointL) - np.linalg.norm(current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(pose_setpointQ) - np.linalg.norm(current_poseQ))<self.angular_stop_threshold : 
-                        cmd_vel = Twist()
+                        cmd_vel = TwistStamped()
+                        cmd_vel.header.frame_id = "world"
                         rospy.loginfo("Reached Grasp Position")
                         # command the gripper so that it closes here
                         self.errorLprev = np.zeros((3,),dtype=float)
@@ -264,10 +326,12 @@ class Yoink:
 
     # Computes the velocity to command
     def compute_cmd_vel(self,optimal_setpointL,optimal_setpointQ):
-        # check if current_pose, current_velocity
-        if self.current_pose is None or self.current_velocity is None:
+        # check if current_pose
+        if self.current_pose is None:
             # rospy.logerr("Current pose or velociy is not received")
-            return Twist()
+            vel= TwistStamped()
+            vel.header.frame_id = "world"
+            return vel
         
         pose_current = self.current_pose
         pose_currentL = np.array([pose_current.pose.position.x,pose_current.pose.position.y,pose_current.pose.position.z])
@@ -315,13 +379,14 @@ class Yoink:
         self.linear_velocity = np.linalg.norm(velocityL)
         self.angular_velocity = np.linalg.norm(velocityO)
         # form cmd_vel message
-        cmd_vel = Twist()
-        cmd_vel.linear.x = velocityL[0]
-        cmd_vel.linear.y = velocityL[1]
-        cmd_vel.linear.z = velocityL[2]
-        cmd_vel.angular.x = velocityO[0]
-        cmd_vel.angular.y = velocityO[1]
-        cmd_vel.angular.z = velocityO[2]
+        cmd_vel = TwistStamped()
+        cmd_vel.header.frame_id = "world"
+        cmd_vel.twist.linear.x = velocityL[0]
+        cmd_vel.twist.linear.y = velocityL[1]
+        cmd_vel.twist.linear.z = velocityL[2]
+        cmd_vel.twist.angular.x = velocityO[0]
+        cmd_vel.twist.angular.y = velocityO[1]
+        cmd_vel.twist.angular.z = velocityO[2]
         return cmd_vel
 
     # publish optimal pose to debug
@@ -335,12 +400,7 @@ class Yoink:
         velocityO = self.ANGULAR_K* ((self.ANGULAR_P_GAIN*errorO) + (self.ANGULAR_I_GAIN*errorOsum*self.dt) + (self.ANGULAR_D_GAIN*(errorOdiff/self.dt)))
         return velocityL, velocityO
 
-    # callback functions below
-    def current_pose_cb(self,msg: PoseStamped):
-        self.current_pose = msg
-
-    def current_velocity_cb(self,msg: Twist):
-        self.current_velocity = msg
+    
 
     def filtered_grasp_pose_cb(self,msg: PoseStamped):
         with self.mutex : 

@@ -25,7 +25,7 @@ pre_grasp_transform : # transformation from grasp -> pregrasp
   position :
     x : 0.0
     y : 0.0
-    z : -0.15
+    z : -0.1
   orientation :
     w : 1 
     x : 0

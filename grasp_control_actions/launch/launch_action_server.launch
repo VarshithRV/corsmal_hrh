@@ -6,11 +6,18 @@
     <rosparam command="load" file="$(find grasp_control_actions)/config/rest.yaml" ns="rest_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place.yaml" ns="place_as"/>
     <node pkg="grasp_control_actions" type="radial_track_as.py" name="radial_track_server" output="screen">
-        <remap from="/linear_error" to="/radial_track_server/linear_error"/>
-        <remap from="/angular_error" to="/radial_track_server/angular_error"/>
-        <remap from="/linear_velocity" to="/radial_track_server/linear_velocity"/>
-        <remap from="/angular_velocity" to="/radial_track_server/angular_velocity"/>
-        <remap from="/optimal_pose" to="/radial_track_server/optimal_pose"/>
+        <remap from="/linear_error" to="/radial_track/linear_error"/>
+        <remap from="/angular_error" to="/radial_track/angular_error"/>
+        <remap from="/linear_velocity" to="/radial_track/linear_velocity"/>
+        <remap from="/angular_velocity" to="/radial_track/angular_velocity"/>
+        <remap from="/optimal_pose" to="/radial_track/optimal_pose"/>
+    </node>
+    <node pkg="grasp_control_actions" type="yoink_as.py" name="yoink_server" output="screen">
+        <remap from="/linear_error" to="/yoink/linear_error"/>
+        <remap from="/angular_error" to="/yoink/angular_error"/>
+        <remap from="/linear_velocity" to="/yoink/linear_velocity"/>
+        <remap from="/angular_velocity" to="/yoink/angular_velocity"/>
+        <remap from="/optimal_pose" to="/yoink/optimal_pose"/>
     </node>
     <node pkg="grasp_control_actions" type="rest_as.py" name="rest_server" output="screen"/>
     <node pkg="grasp_control_actions" type="place_as.py" name="place_object_server" output="screen"/>
