@@ -1,4 +1,11 @@
 <?xml version="1.0"?>
 <launch>
     <rosparam command="load" file="$(find aruco_proxy_pose_estimation)/config/aruco_proxy_pose_estimation.yaml" ns="aruco_proxy_pose_estimation"/>
+    <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch">
+        <arg name="color_width" value="640" />
+        <arg name="color_height" value="480" />
+        <arg name="enable_pointcloud" value="true" />
+        <arg name="filters" value="pointcloud,decimation,spatial,temporal,hole_filling"/>
+    </include>
+    <node pkg="aruco_proxy_pose_estimation" type="aruco_proxy_pose_estimation_filtered.py" name="aruco_proxy_pose_estimation_filtered" />
 </launch>

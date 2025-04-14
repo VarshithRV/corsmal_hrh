@@ -163,7 +163,7 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  scripts/detect_aruco_realsense.py scripts/aruco_proxy_pose_estimation.py
+  scripts/detect_aruco_realsense.py scripts/aruco_proxy_pose_estimation.py scripts/aruco_proxy_pose_estimation_filtered.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

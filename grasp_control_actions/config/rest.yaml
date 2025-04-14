@@ -1,8 +1,8 @@
 # This is the rest position joint state
 rest_joint_state:
-  base: 0.07720567051531457
-  shoulder: -1.9245883593144733
-  elbow: 2.4197320327269836
-  wrist1: -0.49685624735965295
-  wrist2: 1.6912396761923985
-  wrist3: -1.6049935518526617
+  base: 0.127
+  shoulder: -1.446
+  elbow: 2.125
+  wrist1: -0.771
+  wrist2: 1.721
+  wrist3: 0.0
