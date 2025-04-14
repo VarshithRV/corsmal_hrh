@@ -1,0 +1,10 @@
+dimension :
+  length : 105 
+  width : 65
+  depth : 68
+
+marker_size : 40.0
+
+filters : 
+  linear_infinite_impulse_response :
+    exponential_smoothing_coefficient : 0.25

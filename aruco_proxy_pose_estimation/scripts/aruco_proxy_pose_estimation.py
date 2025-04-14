@@ -27,11 +27,8 @@ class pose_estimation():
         self.camera_matrix = None
         self.dist_coeffs = None
     
-        # camera info subscriber
         rospy.Subscriber("/camera/color/camera_info",CameraInfo,callback = self.camera_info_cb)
-        # color image subscriber
         rospy.Subscriber("/camera/color/image_raw",Image,callback=self.color_cb)
-        # depth image subscriber
         rospy.Subscriber("/camera/aligned_depth_to_color/image_raw",Image,callback=self.depth_cb)
 
         rospy.wait_for_message("/camera/color/image_raw",Image)
@@ -40,7 +37,7 @@ class pose_estimation():
 
         self.cuboid_publisher = rospy.Publisher("/cuboid_pose",PoseStamped,queue_size=10)
 
-        rospy.Timer(rospy.Duration(1/30),callback=self.publish_aruco_pose)
+        rospy.Timer(rospy.Duration(1/30),callback=self.publish_aruco_pose) # 30 fps
 
 
     def publish_aruco_pose(self,event):
@@ -148,20 +145,15 @@ class pose_estimation():
                 return cuboid_pose
             
             return None
-        
 
-
-    # depth image callback
     def depth_cb(self,msg:Image):
         ros_image = msg
         self.depth_image = self.cv_bridge.imgmsg_to_cv2(ros_image,"passthrough")
 
-    # color image callback
     def color_cb(self,msg:Image):
         ros_image = msg
         self.color_image = self.cv_bridge.imgmsg_to_cv2(ros_image,"bgr8")
 
-    # camera info callback
     def camera_info_cb(self,msg:CameraInfo):
         self.camera_info = msg
         self.camera_matrix = np.array(msg.K).reshape([3,3])
