@@ -202,37 +202,39 @@ class pose_estimation():
             cuboid_pose.pose.orientation.z = q[2]
             cuboid_pose.pose.orientation.w = q[3]
 
-            # the rest is cuboid stuff, that uses the final pose of the cube 
-            cv2.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, center_rvec, center_tvec, 0.1)
-            corners_wrt_cuboid = np.array([[self.LENGTH/2,self.WIDTH/2,-self.DEPTH/2],[-self.LENGTH/2,self.WIDTH/2,-self.DEPTH/2],
-                                          [-self.LENGTH/2,-self.WIDTH/2,-self.DEPTH/2],[self.LENGTH/2,-self.WIDTH/2,-self.DEPTH/2],
-                                          [self.LENGTH/2,self.WIDTH/2,self.DEPTH/2],[-self.LENGTH/2,self.WIDTH/2,self.DEPTH/2],
-                                          [-self.LENGTH/2,-self.WIDTH/2,self.DEPTH/2],[self.LENGTH/2,-self.WIDTH/2,self.DEPTH/2]])
+            # # the rest is cuboid stuff, that uses the final pose of the cube 
+            # cv2.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, center_rvec, center_tvec, 0.1)
+            # corners_wrt_cuboid = np.array([[self.LENGTH/2,self.WIDTH/2,-self.DEPTH/2],[-self.LENGTH/2,self.WIDTH/2,-self.DEPTH/2],
+            #                               [-self.LENGTH/2,-self.WIDTH/2,-self.DEPTH/2],[self.LENGTH/2,-self.WIDTH/2,-self.DEPTH/2],
+            #                               [self.LENGTH/2,self.WIDTH/2,self.DEPTH/2],[-self.LENGTH/2,self.WIDTH/2,self.DEPTH/2],
+            #                               [-self.LENGTH/2,-self.WIDTH/2,self.DEPTH/2],[self.LENGTH/2,-self.WIDTH/2,self.DEPTH/2]])
             
             
-            corners_wrt_camera = np.zeros((8, 3))
-            i=0
-            for cornerns in corners_wrt_cuboid:
-                corner_homogeneous = np.append(cornerns, 1)
-                corner_transformed = average_center_cuboid@corner_homogeneous
-                corners_wrt_camera[i] = corner_transformed[:3]
-                i+=1
-            corners_wrt_camera_pxpy = np.zeros((8, 2))
-            for i, corner in enumerate(corners_wrt_camera):
-                corner_2d, _ = cv2.projectPoints(corner.reshape(-1, 3), np.zeros((3, 1)), np.zeros((3, 1)), self.camera_matrix, self.dist_coeffs)
-                corners_wrt_camera_pxpy[i] = corner_2d.reshape(-1, 2)
-            cv2.aruco.drawDetectedMarkers(cv_image, [corners_21], np.array([21]))
-            edges = [[0,1],[1,2],[2,3],[0,3], #front face
-                     [4,5],[5,6],[6,7],[4,7],# back face
-                     [2,6],[1,5],[0,4],[3,7]# parallel edges
-                     ]
+            # corners_wrt_camera = np.zeros((8, 3))
+            # i=0
+            # for cornerns in corners_wrt_cuboid:
+            #     corner_homogeneous = np.append(cornerns, 1)
+            #     corner_transformed = average_center_cuboid@corner_homogeneous
+            #     corners_wrt_camera[i] = corner_transformed[:3]
+            #     i+=1
+            # corners_wrt_camera_pxpy = np.zeros((8, 2))
+            # for i, corner in enumerate(corners_wrt_camera):
+            #     corner_2d, _ = cv2.projectPoints(corner.reshape(-1, 3), np.zeros((3, 1)), np.zeros((3, 1)), self.camera_matrix, self.dist_coeffs)
+            #     corners_wrt_camera_pxpy[i] = corner_2d.reshape(-1, 2)
+            # cv2.aruco.drawDetectedMarkers(cv_image, [corners_21], np.array([21]))
+            # edges = [[0,1],[1,2],[2,3],[0,3], #front face
+            #          [4,5],[5,6],[6,7],[4,7],# back face
+            #          [2,6],[1,5],[0,4],[3,7]# parallel edges
+            #          ]
             
-            for edge in edges:
-                pt1 = tuple(corners_wrt_camera_pxpy[edge[0]].astype(int))
-                pt2 = tuple(corners_wrt_camera_pxpy[edge[1]].astype(int))
-                cv2.line(cv_image, pt1, pt2, (0, 255, 0), 2)
-            cv2.imshow("annotated_image",cv_image)
-            cv2.waitKey(1)
+            # for edge in edges:
+            #     pt1 = tuple(corners_wrt_camera_pxpy[edge[0]].astype(int))
+            #     pt2 = tuple(corners_wrt_camera_pxpy[edge[1]].astype(int))
+            #     cv2.line(cv_image, pt1, pt2, (0, 255, 0), 2)
+            # cv2.imshow("annotated_image",cv_image)
+            # cv2.waitKey(1)
+
+            
             return cuboid_pose
         
     
