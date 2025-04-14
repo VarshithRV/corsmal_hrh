@@ -86,9 +86,10 @@ class Place:
         self.place_action_server.start()
 
     def execute_waypoints(self, waypoints):
-        rospy.loginfo("%s : Executing waypoints : %s", rospy.get_name(),waypoints)
+        # rospy.loginfo("%s : Executing waypoints : %s", rospy.get_name(),waypoints)
 
         # plan a cartesian path
+        # Need to check how to make this faster
         try : 
             (plan, fraction) = self.move_group.compute_cartesian_path(
                 waypoints,  # waypoints to follow
@@ -182,15 +183,9 @@ class Place:
             pass
         else:
             self._waypoints.clear()
-            self.place_action_server.set_succeeded(PlaceMsgActionResult(result=True))
-            return
-
         self._waypoints.clear()
         finish = rospy.get_time()
-        if self.switch_controller_to_servo():
-            pass
-        else :
-            rospy.logerr("%s : Controller not switched from pos_joint_traj_controller to joint_group_pos_controller",rospy.get_name())
+
         rospy.loginfo("%s : Time taken for place : %s",rospy.get_name(),(finish-start))
         self.place_action_server.set_succeeded(PlaceMsgActionResult(result=True))
         return

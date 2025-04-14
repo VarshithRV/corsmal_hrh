@@ -129,12 +129,8 @@ class Rest:
             rospy.logerr("%s : Could not stop, exception : %s",rospy.get_name(),e)
             
         finish = rospy.get_time()
-
-        if self.switch_controller_to_servo():
-            pass
-        else :
-            rospy.logerr("%s : Controller not switched from pos_joint_traj_controller to joint_group_pos_controller",rospy.get_name())
-        rospy.loginfo("%s : Time taken for place : %s",rospy.get_name(),(finish-start))
+        
+        rospy.loginfo("%s : Time taken for rest : %s",rospy.get_name(),(finish-start))
         self.rest_action_server.set_succeeded(RestActionResult(result=True))
 
 if __name__ == "__main__":
