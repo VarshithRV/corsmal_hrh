@@ -3,7 +3,7 @@ dimension :
   width : 65
   depth : 68
 
-marker_size : 40.0
+marker_size : 65.5
 
 filters : 
   linear_infinite_impulse_response :

@@ -7,5 +7,7 @@
         <arg name="enable_pointcloud" value="true" />
         <arg name="filters" value="pointcloud,decimation,spatial,temporal,hole_filling"/>
     </include>
-    <node pkg="aruco_proxy_pose_estimation" type="aruco_proxy_pose_estimation_filtered.py" name="aruco_proxy_pose_estimation_filtered" />
+    <node pkg="aruco_proxy_pose_estimation" type="aruco_proxy_pose_estimation_filtered.py" name="aruco_proxy_pose_estimation_filtered">
+        <remap from="/cuboid_pose_filtered" to="/pose_statistics_input_topic"/>
+    </node>
 </launch>

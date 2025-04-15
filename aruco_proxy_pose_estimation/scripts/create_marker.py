@@ -4,10 +4,10 @@ from fpdf import FPDF
 
 # Define the dictionary and marker size
 # aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
-marker_size = 200  # Marker size in pixels
+marker_size = 330  # Marker size in pixels
 
 # Create markers with different IDs
-marker_ids = [1,2,3,4,5]
+marker_ids = [1,2,3,21]
 markers = []
 
 for marker_id in marker_ids:
@@ -26,9 +26,8 @@ for i, marker_img in enumerate(markers):
     cv2.imwrite(filename, marker_img)
     
     # Add marker image to the PDF
-    pdf.image(filename, x=10, y=10 + i * (marker_size / 5 + 10), w=marker_size / 5, h=marker_size / 5)
+    pdf.image(filename, x=10, y=5 + i * (marker_size / 5 + 5), w=marker_size / 5, h=marker_size / 5)
 
 # Save the PDF
 pdf.output("aruco_markers.pdf")
-
 print("PDF with ArUco markers created successfully.")
