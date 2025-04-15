@@ -37,7 +37,7 @@ if __name__ == "__main__":
     # radial track for a few seconds
     rospy.loginfo("%s : radial tracking",rospy.get_name())
     radial_trackGoal = RadialTrackingGoal()
-    radial_trackGoal.timeout.data = 0.8
+    radial_trackGoal.timeout.data = 0.75
     mp.radial_tracking_client.send_goal(radial_trackGoal)
     mp.radial_tracking_client.wait_for_result()
     result = mp.radial_tracking_client.get_result()

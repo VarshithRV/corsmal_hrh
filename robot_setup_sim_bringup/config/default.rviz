@@ -5,6 +5,8 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /RobotModel1
+        - /TF1
         - /TF1/Frames1
         - /MotionPlanning1
         - /MotionPlanning1/Planning Request1
@@ -343,7 +345,7 @@ Visualization Manager:
         upper_arm_link:
           Value: false
         world:
-          Value: false
+          Value: true
         wrist_1_link:
           Value: false
         wrist_2_link:
@@ -837,7 +839,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.7028093338012695
+      Distance: 1.9620357751846313
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -845,17 +847,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.6271375417709351
-        Y: -0.055212199687957764
-        Z: 1.4254984855651855
+        X: 0.26204797625541687
+        Y: 0.43513551354408264
+        Z: 1.1274696588516235
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4997963011264801
+      Pitch: 0.3497960865497589
       Target Frame: <Fixed Frame>
-      Yaw: 5.278595924377441
+      Yaw: 5.201776027679443
     Saved: ~
 Window Geometry:
   Displays:
