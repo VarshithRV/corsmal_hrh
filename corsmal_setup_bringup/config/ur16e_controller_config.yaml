@@ -37,7 +37,7 @@ joint_state_controller:
 #     stopped_velocity_tolerance: 0.05
 #     shoulder_pan_joint: {trajectory: 0.1, goal: 0.1}
 #     shoulder_lift_joint: {trajectory: 0.1, goal: 0.1}
-#     elbow_joint: {trajectory: 0.1, goal: 0.1}
+#     elbow_joint: {trajectory: 0.1, goal: 0.1} 
 #     wrist_1_joint: {trajectory: 0.1, goal: 0.1}
 #     wrist_2_joint: {trajectory: 0.1, goal: 0.1}
 #     wrist_3_joint: {trajectory: 0.1, goal: 0.1}
@@ -185,7 +185,7 @@ pose_based_cartesian_traj_controller:
     type: pose_controllers/CartesianTrajectoryController
 
     # UR driver convention
-    base: base
+    base: base_link
     tip: tool0_controller
     joints: *robot_joints
 
@@ -193,8 +193,8 @@ joint_based_cartesian_traj_controller:
     type: position_controllers/CartesianTrajectoryController
 
     # UR driver convention
-    base: base
-    tip: tool0
+    base: base_link
+    tip: tool0_controller
     joints: *robot_joints
 
 robot_status_controller:
