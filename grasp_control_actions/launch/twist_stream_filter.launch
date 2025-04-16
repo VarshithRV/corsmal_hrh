@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Node to filter velocity stream -->
+  <node name="twist_stream_filter" pkg="grasp_control_actions" type="twist_stream_filter.py" output="screen">
+    <param name="input_topic" value="/end_effector_cmd_vel" />
+    <param name="output_topic" value="/twist_controller/command" />
+    <param name="timeout" value="0.05" />
+  </node>
+</launch>

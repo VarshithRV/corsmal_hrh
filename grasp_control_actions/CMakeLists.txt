@@ -171,7 +171,7 @@ include_directories(
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
   scripts/place_as.py scripts/rest_as.py scripts/radial_track_as.py
-  scripts/place_vel_as.py scripts/yoink_as.py
+  scripts/place_vel_as.py scripts/yoink_as.py scripts/twist_stream_filter.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

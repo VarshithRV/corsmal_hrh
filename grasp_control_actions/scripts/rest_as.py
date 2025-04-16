@@ -29,6 +29,11 @@ class Rest:
     def __init__(self):
         
         self.params = rospy.get_param("/rest_as")
+        self.common_params = rospy.get_param("/common_parameters")
+
+        self.servo_topic = self.common_params["servo_topic"]
+        self.servo_controller = self.common_params["servo_controller"]
+        self.traj_controller = self.common_params["traj_controller"]
 
         self.base = self.params["rest_joint_state"]["base"]
         self.shoulder = self.params["rest_joint_state"]["shoulder"]
@@ -43,6 +48,8 @@ class Rest:
         rospy.loginfo("%s : Started the rest node with parameters:",rospy.get_name())
         for item in self.params:
             rospy.loginfo(f"{item} : {self.params[item]}")
+        for item in self.common_params:
+            rospy.loginfo(f"{item} : {self.common_params[item]}")
         
         self.start = rospy.Time.now()
 
@@ -72,8 +79,8 @@ class Rest:
 
     def switch_controller_to_moveit(self):
         switch_controller_msg = SwitchControllerRequest()
-        switch_controller_msg.start_controllers =  ["pos_joint_traj_controller"]
-        switch_controller_msg.stop_controllers = ["joint_group_pos_controller"]
+        switch_controller_msg.start_controllers =  [self.traj_controller]
+        switch_controller_msg.stop_controllers = [self.servo_controller]
         switch_controller_msg.strictness = 2
         switch_controller_msg.start_asap = True
         switch_controller_msg.timeout = 0.0
@@ -87,8 +94,8 @@ class Rest:
 
     def switch_controller_to_servo(self):
         switch_controller_msg = SwitchControllerRequest()
-        switch_controller_msg.start_controllers = ["joint_group_pos_controller"]
-        switch_controller_msg.stop_controllers = ["pos_joint_traj_controller"]
+        switch_controller_msg.start_controllers = [self.servo_controller]
+        switch_controller_msg.stop_controllers = [self.traj_controller]
         switch_controller_msg.strictness = 2
         switch_controller_msg.start_asap = True
         try : 

@@ -23,6 +23,11 @@ class Place:
     def __init__(self):
         
         self.params = rospy.get_param("/place_vel_as")
+        self.common_params = rospy.get_param("/common_parameters")
+
+        self.servo_topic = self.common_params["servo_topic"]
+        self.servo_controller = self.common_params["servo_controller"]
+        self.traj_controller = self.common_params["traj_controller"]
         
         self.LINEAR_P_GAIN = self.params["gains"]["linear"]["p"]
         self.LINEAR_I_GAIN = self.params["gains"]["linear"]["i"]
@@ -79,7 +84,9 @@ class Place:
         rospy.loginfo("%s : Started the place node with parameters:",rospy.get_name())
         for item in self.params:
             rospy.loginfo(f"{item} : {self.params[item]}")
-        
+        for item in self.common_params:
+            rospy.loginfo(f"{item} : {self.common_params[item]}")
+            
         self.start = rospy.Time.now()
         
         self.current_pose = None
@@ -110,7 +117,7 @@ class Place:
         # service proxy for switch controllers
         self.switch_controller = rospy.ServiceProxy("/controller_manager/switch_controller",SwitchController)
         # simulation interface
-        self.setpoint_velocity_pub = rospy.Publisher("/servo_server/delta_twist_cmds",TwistStamped,queue_size=1)
+        self.setpoint_velocity_pub = rospy.Publisher(self.servo_topic,TwistStamped,queue_size=1)
         self.optimal_pose_pub =  rospy.Publisher("/optimal_pose",PoseStamped,queue_size=1)
         # publish error and velocity magnitude for debug
         self.linear_error_publisher =  rospy.Publisher("/linear_error",Float32,queue_size=1)
@@ -147,8 +154,8 @@ class Place:
 
     def switch_controller_to_moveit(self):
         switch_controller_msg = SwitchControllerRequest()
-        switch_controller_msg.start_controllers =  ["pos_joint_traj_controller"]
-        switch_controller_msg.stop_controllers = ["joint_group_pos_controller"]
+        switch_controller_msg.start_controllers =  [self.traj_controller]
+        switch_controller_msg.stop_controllers = [self.servo_controller]
         switch_controller_msg.strictness = 2
         switch_controller_msg.start_asap = True
         switch_controller_msg.timeout = 0.0
@@ -162,8 +169,8 @@ class Place:
 
     def switch_controller_to_servo(self):
         switch_controller_msg = SwitchControllerRequest()
-        switch_controller_msg.start_controllers = ["joint_group_pos_controller"]
-        switch_controller_msg.stop_controllers = ["pos_joint_traj_controller"]
+        switch_controller_msg.start_controllers = [self.servo_controller]
+        switch_controller_msg.stop_controllers = [self.traj_controller]
         switch_controller_msg.strictness = 2
         switch_controller_msg.start_asap = True
         try : 
