@@ -16,8 +16,8 @@ class TwistStreamFilter:
         self.input_topic = rospy.get_param("~input_topic", "/cmd_vel_in")
         self.output_topic = rospy.get_param("~output_topic", "/cmd_vel")
         self.timeout = rospy.get_param("~timeout", 0.05)
-        self.source_frame = rospy.get_param("~source_frame", "base_link")
-        self.target_frame = rospy.get_param("~target_frame", "world")
+        self.source_frame = rospy.get_param("~source_frame", "world")
+        self.target_frame = rospy.get_param("~target_frame", "base")
 
         self.lock = threading.Lock()
         self.last_msg_time = None

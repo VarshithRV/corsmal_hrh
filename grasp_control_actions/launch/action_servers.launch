@@ -37,5 +37,7 @@
         <param name="input_topic" value="/end_effector_cmd_vel" />
         <param name="output_topic" value="/twist_controller/command" />
         <param name="timeout" value="0.05" />
-      </node>
+        <param name="source_frame" value="base_link" />
+        <param name="target_frame" value="base" />
+    </node>
 </launch>
