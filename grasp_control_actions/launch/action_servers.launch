@@ -6,7 +6,7 @@
     <rosparam command="load" file="$(find grasp_control_actions)/config/rest.yaml" ns="rest_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place.yaml" ns="place_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place_vel.yaml" ns="place_vel_as"/>
-    <rosparam command="load" file="$(find grasp_control_actions)/config/common_parameters_ur5e_sim.yaml" ns="common_parameters"/>
+    <rosparam command="load" file="$(find grasp_control_actions)/config/common_parameters_ur16e.yaml" ns="common_parameters"/>
 
     <node pkg="grasp_control_actions" type="radial_track_as.py" name="radial_track_server" output="screen">
         <remap from="/linear_error" to="/radial_track/linear_error"/>
@@ -37,7 +37,7 @@
         <param name="input_topic" value="/end_effector_cmd_vel" />
         <param name="output_topic" value="/twist_controller/command" />
         <param name="timeout" value="0.05" />
-        <param name="source_frame" value="base_link" />
-        <param name="target_frame" value="base" />
+        <param name="source_frame" value="base_link" /> <!-- this is the planning frame -->
+        <param name="target_frame" value="base" /> <!-- this is always base -->
     </node>
 </launch>
