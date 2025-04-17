@@ -6,7 +6,10 @@ from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PoseStamped, Pose, PointStamped, Point
 import sys
 import tf.transformations as t
-import yaml, os, copy 
+import yaml, os, copy
+import tf2_ros
+import tf2_geometry_msgs
+from geometry_msgs.msg import PoseStamped, TransformStamped, Quaternion
 
 class pose_estimation():
     def __init__(self):
@@ -27,16 +30,27 @@ class pose_estimation():
         self.LENGTH = self.params["dimension"]["length"]/1000
         self.WIDTH = self.params["dimension"]["width"]/1000
         self.DEPTH = self.params["dimension"]["depth"]/1000
+        self.rgb_image_topic = rospy.get_param("~rgb_image_topic","/camera/color/image_raw")
+        self.rgb_camera_info_topic = rospy.get_param("~rgb_camera_info_topic","/camera/color/camera_info")
+        self.depth_image_topic = rospy.get_param("~depth_image_topic","/camera/aligned_depth_to_color/image_raw")
+        self.target_frame = rospy.get_param("~target_frame","base_link")
         self.linear_infinite_impulse_response_coefficient = self.params["filters"]["linear_infinite_impulse_response"]["exponential_smoothing_coefficient"]
         self.filtered_pose = None
+        self.rotation_matrix = None
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        self.offset_xyz = [0,0,-0.1]
+        self.offset_quat = [0,0,0,1]
     
-        rospy.Subscriber("/camera/color/camera_info",CameraInfo,callback = self.camera_info_cb)
-        rospy.Subscriber("/camera/color/image_raw",Image,callback=self.color_cb)
-        rospy.Subscriber("/camera/aligned_depth_to_color/image_raw",Image,callback=self.depth_cb)
+        rospy.Subscriber(self.rgb_camera_info_topic,CameraInfo,callback = self.camera_info_cb)
+        rospy.Subscriber(self.rgb_image_topic,Image,callback=self.color_cb)
+        rospy.Subscriber(self.depth_image_topic,Image,callback=self.depth_cb)
+        rospy.loginfo("%s : waiting for messages now",rospy.get_name())
+        rospy.wait_for_message(self.rgb_image_topic,Image)
+        rospy.wait_for_message(self.depth_image_topic,Image)
+        rospy.wait_for_message(self.rgb_camera_info_topic,CameraInfo)
 
-        rospy.wait_for_message("/camera/color/image_raw",Image)
-        rospy.wait_for_message("/camera/aligned_depth_to_color/image_raw",Image)
-        rospy.wait_for_message("/camera/color/camera_info",CameraInfo)
+        self._wait_for_static_rotation()
 
         self.cuboid_publisher = rospy.Publisher("/cuboid_pose",PoseStamped,queue_size=10)
         self.cuboid_filtered_publisher = rospy.Publisher("/cuboid_pose_filtered",PoseStamped,queue_size=10)
@@ -46,16 +60,69 @@ class pose_estimation():
         for item in self.params:
             rospy.loginfo(f"{item} : {self.params[item]}")
 
+    def apply_pose_offset(self,original_pose, target_frame, offset_xyz, offset_quat, tf_buffer):
+        try:
+            # Lookup transform from original_pose's frame to target_frame
+            transform = tf_buffer.lookup_transform(
+                target_frame,
+                original_pose.header.frame_id,
+                rospy.Time(0),
+                rospy.Duration(1.0)
+            )
+
+            # Transform the pose to the target frame
+            pose_in_target = tf2_geometry_msgs.do_transform_pose(original_pose, transform)
+
+            # Create a TransformStamped representing the offset
+            offset_transform = TransformStamped()
+            offset_transform.header.stamp = rospy.Time.now()
+            offset_transform.header.frame_id = target_frame
+            offset_transform.child_frame_id = "offset_pose"
+            offset_transform.transform.translation.x = offset_xyz[0]
+            offset_transform.transform.translation.y = offset_xyz[1]
+            offset_transform.transform.translation.z = offset_xyz[2]
+            offset_transform.transform.rotation = Quaternion(*offset_quat)
+
+            # Apply the offset transform to the transformed pose
+            final_pose = tf2_geometry_msgs.do_transform_pose(pose_in_target, offset_transform)
+
+            return final_pose
+
+        except (tf2_ros.LookupException, tf2_ros.ExtrapolationException, tf2_ros.ConnectivityException) as e:
+            rospy.logwarn("Transform failed: %s", str(e))
+            return None
+
+
+    def _wait_for_static_rotation(self):
+        rospy.loginfo(f"Waiting for static transform from {self.camera_info.header.frame_id} to {self.target_frame}...")
+
+        while not rospy.is_shutdown() and self.rotation_matrix is None:
+            try:
+                tf_msg = self.tf_buffer.lookup_transform(
+                    self.target_frame,
+                    self.camera_info.header.frame_id,
+                    rospy.Time(0),
+                    rospy.Duration(1.0)
+                )
+                quat = tf_msg.transform.rotation
+                self.rotation_matrix = t.quaternion_matrix(
+                    [quat.x, quat.y, quat.z, quat.w]
+                )[:3, :3]
+                rospy.loginfo("Static transform acquired.")
+            except (tf2_ros.LookupException, tf2_ros.ExtrapolationException, tf2_ros.ConnectivityException) as e:
+                rospy.logerr_throttle(5.0, f"Waiting for static transform: {e}")
+                rospy.sleep(1.0)
 
     def publish_aruco_pose(self,event):
         cuboid_pose = self.detect_aruco()
+        if cuboid_pose is None :
+            return
+        cuboid_pose = self.apply_pose_offset(cuboid_pose,self.target_frame,self.offset_xyz,self.offset_quat,self.tf_buffer)
         cuboid_pose_filtered = None
         if cuboid_pose is not None : 
             cuboid_pose_filtered = self.low_pass_filter_pose(cuboid_pose)
         if cuboid_pose_filtered is not None : 
             self.cuboid_filtered_publisher.publish(cuboid_pose_filtered)
-        if cuboid_pose is not None : 
-            self.cuboid_publisher.publish(cuboid_pose)
 
     def average_transformations_batch(self,transformations: np.ndarray) -> np.ndarray:
         assert transformations.ndim == 3 and transformations.shape[1:] == (4, 4), \
@@ -77,7 +144,6 @@ class pose_estimation():
         T_avg[:3, :3] = R_avg
         T_avg[:3, 3] = avg_translation
         return T_avg
-
         
     def detect_aruco(self):
         gray = cv2.cvtColor(self.color_image,cv2.COLOR_BGR2GRAY)
@@ -178,7 +244,7 @@ class pose_estimation():
                 return None
 
             cuboid_pose = PoseStamped()
-            cuboid_pose.header.frame_id = "camera_color_optical_frame"
+            cuboid_pose.header.frame_id = self.camera_info.header.frame_id
             # print(aruco_detections)
 
             # this has to be computed for all 4 posese
@@ -202,42 +268,41 @@ class pose_estimation():
             cuboid_pose.pose.orientation.z = q[2]
             cuboid_pose.pose.orientation.w = q[3]
 
-            # # the rest is cuboid stuff, that uses the final pose of the cube 
-            # cv2.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, center_rvec, center_tvec, 0.1)
-            # corners_wrt_cuboid = np.array([[self.LENGTH/2,self.WIDTH/2,-self.DEPTH/2],[-self.LENGTH/2,self.WIDTH/2,-self.DEPTH/2],
-            #                               [-self.LENGTH/2,-self.WIDTH/2,-self.DEPTH/2],[self.LENGTH/2,-self.WIDTH/2,-self.DEPTH/2],
-            #                               [self.LENGTH/2,self.WIDTH/2,self.DEPTH/2],[-self.LENGTH/2,self.WIDTH/2,self.DEPTH/2],
-            #                               [-self.LENGTH/2,-self.WIDTH/2,self.DEPTH/2],[self.LENGTH/2,-self.WIDTH/2,self.DEPTH/2]])
+            # the rest is cuboid stuff, that uses the final pose of the cube 
+            cv2.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, center_rvec, center_tvec, 0.1)
+            corners_wrt_cuboid = np.array([[self.LENGTH/2,self.WIDTH/2,-self.DEPTH/2],[-self.LENGTH/2,self.WIDTH/2,-self.DEPTH/2],
+                                          [-self.LENGTH/2,-self.WIDTH/2,-self.DEPTH/2],[self.LENGTH/2,-self.WIDTH/2,-self.DEPTH/2],
+                                          [self.LENGTH/2,self.WIDTH/2,self.DEPTH/2],[-self.LENGTH/2,self.WIDTH/2,self.DEPTH/2],
+                                          [-self.LENGTH/2,-self.WIDTH/2,self.DEPTH/2],[self.LENGTH/2,-self.WIDTH/2,self.DEPTH/2]])
             
             
-            # corners_wrt_camera = np.zeros((8, 3))
-            # i=0
-            # for cornerns in corners_wrt_cuboid:
-            #     corner_homogeneous = np.append(cornerns, 1)
-            #     corner_transformed = average_center_cuboid@corner_homogeneous
-            #     corners_wrt_camera[i] = corner_transformed[:3]
-            #     i+=1
-            # corners_wrt_camera_pxpy = np.zeros((8, 2))
-            # for i, corner in enumerate(corners_wrt_camera):
-            #     corner_2d, _ = cv2.projectPoints(corner.reshape(-1, 3), np.zeros((3, 1)), np.zeros((3, 1)), self.camera_matrix, self.dist_coeffs)
-            #     corners_wrt_camera_pxpy[i] = corner_2d.reshape(-1, 2)
-            # # cv2.aruco.drawDetectedMarkers(cv_image, [corners_21], np.array([21]))
-            # edges = [[0,1],[1,2],[2,3],[0,3], #front face
-            #          [4,5],[5,6],[6,7],[4,7],# back face
-            #          [2,6],[1,5],[0,4],[3,7]# parallel edges
-            #          ]
+            corners_wrt_camera = np.zeros((8, 3))
+            i=0
+            for cornerns in corners_wrt_cuboid:
+                corner_homogeneous = np.append(cornerns, 1)
+                corner_transformed = average_center_cuboid@corner_homogeneous
+                corners_wrt_camera[i] = corner_transformed[:3]
+                i+=1
+            corners_wrt_camera_pxpy = np.zeros((8, 2))
+            for i, corner in enumerate(corners_wrt_camera):
+                corner_2d, _ = cv2.projectPoints(corner.reshape(-1, 3), np.zeros((3, 1)), np.zeros((3, 1)), self.camera_matrix, self.dist_coeffs)
+                corners_wrt_camera_pxpy[i] = corner_2d.reshape(-1, 2)
+            # cv2.aruco.drawDetectedMarkers(cv_image, [corners_21], np.array([21]))
+            edges = [[0,1],[1,2],[2,3],[0,3], #front face
+                     [4,5],[5,6],[6,7],[4,7],# back face
+                     [2,6],[1,5],[0,4],[3,7]# parallel edges
+                     ]
             
-            # for edge in edges:
-            #     pt1 = tuple(corners_wrt_camera_pxpy[edge[0]].astype(int))
-            #     pt2 = tuple(corners_wrt_camera_pxpy[edge[1]].astype(int))
-            #     cv2.line(cv_image, pt1, pt2, (0, 255, 0), 2)
-            # cv2.imshow("annotated_image",cv_image)
-            # cv2.waitKey(1)
+            for edge in edges:
+                pt1 = tuple(corners_wrt_camera_pxpy[edge[0]].astype(int))
+                pt2 = tuple(corners_wrt_camera_pxpy[edge[1]].astype(int))
+                cv2.line(cv_image, pt1, pt2, (0, 255, 0), 2)
+            cv2.imshow("annotated_image",cv_image)
+            cv2.waitKey(1)
 
             
             return cuboid_pose
-        
-    
+            
     def low_pass_filter_pose(self, new_pose: PoseStamped) -> PoseStamped:
         alpha = self.linear_infinite_impulse_response_coefficient
 
