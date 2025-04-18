@@ -175,7 +175,6 @@ class pose_estimation():
                     transformation_center_cuboid = np.eye(4)
                     transformation_center_cuboid[:4, 3] = [self.marker_size / 2, self.marker_size / 2, self.DEPTH / 2,1]
                     aruco_detections["21"] = {"frame":R_21,"transformation":transformation_center_cuboid}
-                    # print("R_21 : ",R_21)
 
             if 3 in ids :
                 id_3 = ids.index(3)
@@ -196,7 +195,6 @@ class pose_estimation():
                     T = [[1,0,0,self.marker_size/2],[0,0,1,self.marker_size/2],[0,-1,0,self.WIDTH/2],[0,0,0,1]]
                     transformation_center_cuboid = np.array(T)
                     aruco_detections["3"] = {"frame":R_3,"transformation":transformation_center_cuboid}
-                    # print("R_3: ",R_3)
 
             if 1 in ids:
                 id_1 = ids.index(1)
@@ -217,7 +215,6 @@ class pose_estimation():
                     T = [[0,0,1,self.marker_size/2],[0,1,0,self.marker_size/2],[-1,0,0,self.LENGTH/2],[0,0,0,1]]
                     transformation_center_cuboid = np.array(T)
                     aruco_detections["1"] = {"frame":R_1,"transformation":transformation_center_cuboid}
-                    # print("R_1: ",R_1)
             
             if 2 in ids : 
                 id_2 = ids.index(2)
@@ -239,13 +236,11 @@ class pose_estimation():
                     T = [[1,0,0,self.marker_size/2],[0,0,-1,self.marker_size/2],[0,1,0,self.WIDTH/2],[0,0,0,1]]
                     transformation_center_cuboid = np.array(T)
                     aruco_detections["2"] = {"frame":R_2,"transformation":transformation_center_cuboid}
-                    # print("R_2: ",R_2)
             if not any(elem in ids for elem in [1,2,3,21]):
                 return None
 
             cuboid_pose = PoseStamped()
             cuboid_pose.header.frame_id = self.camera_info.header.frame_id
-            # print(aruco_detections)
 
             # this has to be computed for all 4 posese
             center_cuboids = []
@@ -254,7 +249,6 @@ class pose_estimation():
             
             center_cuboids = np.array(center_cuboids)
             average_center_cuboid = self.average_transformations_batch(center_cuboids)
-            # print(average_center_cuboid)
 
             center_rvec, _ = cv2.Rodrigues(average_center_cuboid[:3, :3])
             center_tvec = average_center_cuboid[:3, 3].reshape(-1, 1)
@@ -287,7 +281,6 @@ class pose_estimation():
             for i, corner in enumerate(corners_wrt_camera):
                 corner_2d, _ = cv2.projectPoints(corner.reshape(-1, 3), np.zeros((3, 1)), np.zeros((3, 1)), self.camera_matrix, self.dist_coeffs)
                 corners_wrt_camera_pxpy[i] = corner_2d.reshape(-1, 2)
-            # cv2.aruco.drawDetectedMarkers(cv_image, [corners_21], np.array([21]))
             edges = [[0,1],[1,2],[2,3],[0,3], #front face
                      [4,5],[5,6],[6,7],[4,7],# back face
                      [2,6],[1,5],[0,4],[3,7]# parallel edges

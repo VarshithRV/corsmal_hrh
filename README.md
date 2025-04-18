@@ -13,18 +13,24 @@ Non dependency repositories include :
 8. robot_setup_sim_bringup
 9. robot_setup_sim_description
 
+
+
 ## Package descriptions
 ### 1. aruco_proxy_pose_estimation
-**Description**: Package to simulate the 6Dof perception using aruco tags on boxes with hardcoded dimensions. Currently interfaced only with the realsense type cameras.
+**Description**: Package to simulate the 6Dof perception using aruco tags on boxes with hardcoded dimensions. configurable input rgb image, depth image and camera info topic which can be used to easily interface it with different cameras. Performs infinite impulse repose linear filtering to smoothen the estimated pose. Uses spherical linear interpolation for filtering the pose. Supports multiple patterns and pattern transform, but this is not configurable yet. 
+
+**Todo lists**
+- [ ] This needs to be more accurate by having patterns on opposite sides with april tags instead of aruco tags, should be interfaced with two cameras with time synchronization. So that the pose is detected without any interruptions.
+- [ ] The pattern on each side should be 2x2 ideally.
 
 **Important Scripts**: 
 1. `./scripts/create_marker.py` : creates a series of markers on an A4 sheet.
-2. `./scripts/estimate_cube_pose_3d_bb.py` : Subscribes to the realsense topics, detects aruco pose, determines object pose and 3d BBox. Standalone script, does not depends on any other parameters, important interface parameters include the Image and CameraInfo topics, marker_size and tf_frame_id.
+2. `./scripts/aruco_proxy_pose_extimation_filtered.py` This is the latest aruco proxy pose estimation script, uses a few on the fly config along with the the config file in `./config/aruco_proxy_pose_estimation.yaml`.
+3. `pose_evaluation.py` : this just gets the mean, mode, median, std_dev and variance of a measured pose.
 
-**Issues**:
-1. The pose has high variance, needs to be filtered using EKF filters.
-2. Need to put more aruco tags on sides and use it to calculate pose and vertices.
-
+**Launch process**:
+1. `./launch/aruco_proxy_pose_estimation_realsense.launch` : launches the node for realsense based cameras, this launches the realsense node too.
+2. `./launch/aruco_proxy_pose_estimation.launch` : launches the node for azure kinect based cameras, uses only the right camera.
 ---
 
 ### 2. calibration_targets
@@ -33,10 +39,33 @@ Non dependency repositories include :
 ---
 
 ### 3. corsmal_setup_bringup
-**Description**: Package that launches the hardware setup containgin 1xUR16e and 2xAzureKinects. This control layer uses the `twist_controller` to perform servoing. The calibration for the setup right now is being done by detecting a common target from both the cameras. The common frame is the world frame. To calibrate the robot, we looks at the target through a collocated and calibrated camera. Need to change the calibration method to something easy to do and can be done very fast every time we turn on the setup. The launch process should be scalable to multiple devices, so the main driver and process must be  grouped by its functionality. The groups should be 1.Robotic Arm and its calibration, 2.CameraL and its extrinsic calibration, 3.CameraR and its extrinsic calibration, 4. Perception, 5. Robot Behaviour and control.
+**Description**: Package that launches the hardware setup containgin 1xUR16e and 2xAzureKinects. This control layer uses the `twist_controller` to perform servoing. The `twist_controller` is speculated to be more efficient than the moveit servo route. Note that the `twist_controller` controllers the configured end effector with respect to the `base` frame of the robot.
+
+To use moveit servo, use the `joint_group_vel_controller` with the moveit servo node. This seems to have the best performance over using the `joint_group_pos_controller`. But its still suboptimal compared to the `twist_controller`, this is the best option for servo options for UR robots.
+
+The calibration for the setup right now is being done by detecting a common target from both the cameras. The common frame is the world frame. To calibrate the robot, we looks at the target through a collocated and calibrated camera.
+
+**Control Integration**:
+The parent frame of the whole system is `world` but the planning frame must be `base_link` for ease of configuration. The positions of the object pose must be with respect to `base_link` due to moveit constraints.
+
+**TODO list**
+- [ ] Need to change the calibration method to something easy to do and can be done very fast every time we turn on the setup.
+- [ ] The launch process should be scalable to multiple devices, so the main driver and process must be  grouped by its functionality. The groups should be 
+  1. Robotic Arm and its calibration, 
+  2. CameraL and its extrinsic calibration 
+  3. CameraR and its extrinsic calibration
+  4. Perception
+  5. Robot Behaviour and control
+
+**Current Calibration Procedure**
+Use the `moveit_calibration` package to detect the target, the target will be called `handeye_target` once it is detected by the camera. The tf of the `handeye_target` will be published to the camera_info's topic?? need to check how moveit_calibration is done.
+
+Once the target is detected by the camera, run the `scripts/extrinsic_calibration_azure_left.py` or `scripts/extrinsic_calibration_azure_right.py` depending on the camera that needs to be calibrated.
+
+To calibrate the robot, attach a camera onto the end effector, do that cameras calibration using the static target, once the calibration is done, run the `scripts/get_transformation.py` to get the calibration of handeye_target to base_link and save it in the config folder in a file called `config/calibration_robot.json`. The `scripts/calibration_publisher_robot.py` gets the calibration from this file and publishes a static transform.
 
 **Launch process**:
-1. `rosmaster_ws` : command that sets the master to be the PC.
+1. `rosmaster_ws` : command that sets the master to be the PC, this should be done in every new terminal.
 2. `launch/azuredk_left.launch` : Launch this on the ws, because the left azure kinect is connected to the ws.
 3. `launch/azuredk_right.launch` : Launch this on whichever node is connected to the right camera.
 4. `launch/ur16e.launch` : Launch this on the ws, driver for robot.
@@ -50,29 +79,31 @@ Non dependency repositories include :
 2. `./scripts/extrinsic_calibration_azure_right.py` : a pretty crude way to calibration the right camera and save it to a config file. This uses the "handeye_target" frame detected by the moveit_calibtration method of an aruco grid.
 3. `./scripts/get_transformation.py` :get the transformation between any two connected frames.
 
-**Issues**:
-1. Calibration must be improved.
-2. Too many processes.
-
 ---
 
 ### 4. grasp_control_actions
-**Description**: This hosts the Action server for all the robot control actions that is intended to be used with the final behaviour. The list of actions would be yoink, rest, radial tracking and place. Interruption should be supported for the behaviour to be integrated properly. Currently this is tested in the pose_controller simulatin provided in the grasp_controller_simulator package. The output of the servo type actions like radial tracking and yoink, only interface change with the actual robot should be the velocity topic.
+**Description**: This hosts the Action server for all the robot control actions that is intended to be used with the final behaviour. The list of actions would be yoink, rest, radial tracking and place.</br>
+Supported Features(Tentative):</br>
+- [x] Interruptible actions.
+- [x] Configurable.
+- [x] No source code change between real and sim.
+- [ ] On the fly configuration.
+- [ ] Error handling in case of loss of pose.
+- [ ] Modularity and reusability, not true since the control and policy are tightly coupled in the context of actions, and the velocity filter is tightly coupled to the context of using the `twist_controller` because of the transformation.
 
 **Actions servers**:
 1. `scripts/rest_as.py` : This should infer the rest joint states as a ros parameter, plan a safe path to that joint state and stay there. Action type is infinite execution and motion planning type. Config for this is in the `/config/rest.yaml`.
 2. `scripts/place_as.py` : This should place the object in its end effector safely at the right place inferred by an input parameter, default place position must be configured as a ros parameter  if no parameter is provided in the action goal. The Action type is finite execution and motion planning type.Config for this is in the `/config/place.yaml`.
-3. `scripts/radial_track_as.py` : This tracks the object provided certain conditions come true like if the object is predefined area of operation and feasible to grasp.  Action type is infinite execution and servo type. Config for this is in the `/config/radial_tracking.yaml`.
-4. `scripts/yoink_as.py` : This yoinks the object from the users hand. Action type is finite execution and servo type. Config for this is in the `/config/yoink.yaml`.
+3. `scripts/place_vel_as.py` : The configuration follows the same rules as classic place, but the control is done using PID with servoing instead of trajectory planning and execution. The Action type is finite execution and motion planning type.Config for this is in the `/config/place.yaml`.
+4. `scripts/radial_track_as.py` : This tracks the object provided certain conditions come true like if the object is predefined area of operation and feasible to grasp.  Action type is infinite execution and servo type. Config for this is in the `/config/radial_tracking.yaml`.
+5. `scripts/yoink_as.py` : This yoinks the object from the users hand. Action type is finite execution and servo type. Config for this is in the `/config/yoink.yaml`.
+6. `scripts/client.py` : Client/ high level behaviour. 
 
-These are simulated using the pose_controller type plant.
+These are tested with the real robot setup.
 
 **Launch Process**:
-1. `roscore`
-2. `python3 $(rospack find grasp_controller_simulator)/scripts/pose_controller.py`
-3. `rosrun tf static_publisher 0 0 0 0 0 0 map world 50`
-4. `rostopic pub /filtered_grasp_pose geometry_msgs/PoseStamped <required_target_pose> -r 30`
-5. The servo type node that needs to be tested.
+1. Sim/Real Launch process.
+2. for simulation `launch/action_server_sim.launch` loads the configuration files meant for simulation. for real `launch/action_servers.launch`.
 
 ### 5. grasp_controller_simulator
 **Description**: A very simple physics model to simulate 3d Pose control using velocity. All components are in the "world" frame.
@@ -101,11 +132,14 @@ The `/arduino/controller/controller.ino` is the file to be loaded into an **ardu
 
 ### robot_setup_sim_bringup
 
-**Description**: Launches a simulation in gazebo of a ur5e, 2 realsense d435i with controllers and moveit move_group. Launches moveit_servo for velocity control of the end effector.
+**Description**: Launches a simulation in gazebo of a ur5e, 2 realsense d435i with controllers and moveit move_group. Launches moveit_servo for velocity control of the end effector. 
 This loads the following controllers : 
-- joint_group_pos_controller : used by moveit servo for servo control of the end effector. In stopped state, need to start it using command `/contoller_manager/switch_controller` to start `/joint_group_pos_controller` and stop `pos_joint_traj_controller`.
-- joint_state_controller : joint state broadcast
-- pos_joint_traj_controller : joint trajectory control for moveit planning, need to switch back to this for moveit planning layer to take control. The simulation starts with a paused physics, to unpause it, we need to use the services : `/gazebo/pause_physics` and `/gazebo/unpause_physics`.
+- `joint_group_pos_controller` : used by moveit servo for servo control of the end effector. In stopped state, need to start it using command `/contoller_manager/switch_controller` to start `/joint_group_pos_controller` and stop `pos_joint_traj_controller`.
+- `joint_state_controller` : joint state broadcast
+- `pos_joint_traj_controller` : joint trajectory control for moveit planning, need to switch back to this for moveit planning layer to take control. 
+ 
+
+The simulation starts with a paused physics, to unpause it, we need to use the services : `/gazebo/pause_physics` and `/gazebo/unpause_physics`.
 
 
 **Launch Process**:

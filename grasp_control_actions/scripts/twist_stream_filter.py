@@ -12,7 +12,6 @@ import time
 
 class TwistStreamFilter:
     def __init__(self):
-        # ROS Parameters
         self.input_topic = rospy.get_param("~input_topic", "/cmd_vel_in")
         self.output_topic = rospy.get_param("~output_topic", "/cmd_vel")
         self.timeout = rospy.get_param("~timeout", 0.05)
@@ -34,7 +33,8 @@ class TwistStreamFilter:
 
         self._wait_for_static_rotation()
 
-        self.timer = rospy.Timer(rospy.Duration(0.01), self.timer_cb)
+        self.publisher_timer = rospy.Timer(rospy.Duration(0.01), self.output_publisher)
+        self.stream_active_checker_timer = rospy.Timer(rospy.Duration(0.01), self.stream_active_checker)
 
         # Diagnostics
         self.updater = Updater()
@@ -44,6 +44,19 @@ class TwistStreamFilter:
 
         rospy.loginfo(f"TwistStreamFilter initialized. Subscribing to {self.input_topic}, publishing to {self.output_topic}")
         rospy.loginfo(f"Transforming Twist from '{self.source_frame}' to '{self.target_frame}'")
+
+    def stream_active_checker(self, event):
+        if self.prev_msg_time is not None: # check if atleast two messages have been received
+            if rospy.get_time() - self.last_msg_time <=0.05: # check if the last message received is within time out
+                if self.last_msg_time - self.prev_msg_time <= self.timeout: # the messages have greater frequency
+                    self.stream_active=True
+                else :
+                    self.stream_active=False
+            else:
+                self.stream_active=False
+        else:
+            self.stream_active=False
+
 
     def _wait_for_static_rotation(self):
         rospy.loginfo(f"Waiting for static transform from {self.source_frame} to {self.target_frame}...")
@@ -72,12 +85,9 @@ class TwistStreamFilter:
             self.last_msg_time = now
             self.proxy_input_message = msg
 
-            if self.prev_msg_time is not None and (self.last_msg_time - self.prev_msg_time) <= self.timeout:
-                self.stream_active = True
-
     def transform_twist(self, twist_stamped: TwistStamped) -> Twist:
         if self.rotation_matrix is None:
-            return Twist()  # Should not happen since we block until available
+            return Twist()
 
         lin = twist_stamped.twist.linear
         ang = twist_stamped.twist.angular
@@ -94,20 +104,15 @@ class TwistStreamFilter:
 
         return twist_out
 
-    def timer_cb(self, event):
+    def output_publisher(self, event):
         with self.lock:
             now = time.time()
             if self.rotation_matrix is None:
-                # Don't publish anything if transform is not ready
                 return
-
-            if self.last_msg_time is None or not self.stream_active:
-                twist = Twist()
-            elif now - self.last_msg_time > self.timeout:
-                twist = Twist()
-                self.stream_active = False
-            else:
+            if self.stream_active:
                 twist = self.transform_twist(self.proxy_input_message)
+            else:
+                twist = Twist()
 
         self.pub.publish(twist)
 
