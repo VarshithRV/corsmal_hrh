@@ -14,9 +14,11 @@ class TwistStreamFilter:
     def __init__(self):
         self.input_topic = rospy.get_param("~input_topic", "/cmd_vel_in")
         self.output_topic = rospy.get_param("~output_topic", "/cmd_vel")
+        self.output_topic_type = rospy.get_param("~output_topic_type", "Twist")
         self.timeout = rospy.get_param("~timeout", 0.05)
         self.source_frame = rospy.get_param("~source_frame", "world")
         self.target_frame = rospy.get_param("~target_frame", "base")
+        self.twist_out = None
 
         self.lock = threading.Lock()
         self.last_msg_time = None
@@ -24,7 +26,11 @@ class TwistStreamFilter:
         self.proxy_input_message = None
         self.stream_active = False
 
-        self.pub = rospy.Publisher(self.output_topic, Twist, queue_size=10)
+        self.pub = None
+        if self.output_topic_type == "Twist":
+            self.pub = rospy.Publisher(self.output_topic, Twist, queue_size=10)
+        if self.output_topic_type == "TwistStamped":
+            self.pub = rospy.Publisher(self.output_topic, TwistStamped, queue_size=10)
         self.sub = rospy.Subscriber(self.input_topic, TwistStamped, self.input_cb)
 
         self.rotation_matrix = None
@@ -57,7 +63,6 @@ class TwistStreamFilter:
         else:
             self.stream_active=False
 
-
     def _wait_for_static_rotation(self):
         rospy.loginfo(f"Waiting for static transform from {self.source_frame} to {self.target_frame}...")
 
@@ -85,10 +90,13 @@ class TwistStreamFilter:
             self.last_msg_time = now
             self.proxy_input_message = msg
 
-    def transform_twist(self, twist_stamped: TwistStamped) -> Twist:
+    def transform_twist(self, twist_stamped: TwistStamped):
         if self.rotation_matrix is None:
-            return Twist()
-
+            if self.output_topic_type == "Twist":
+                return Twist()
+            if self.output_topic_type == "TwistStamped":
+                return TwistStamped()
+        
         lin = twist_stamped.twist.linear
         ang = twist_stamped.twist.angular
 
@@ -98,11 +106,18 @@ class TwistStreamFilter:
         lin_transformed = self.rotation_matrix @ lin_vec
         ang_transformed = self.rotation_matrix @ ang_vec
 
-        twist_out = Twist()
-        twist_out.linear.x, twist_out.linear.y, twist_out.linear.z = lin_transformed
-        twist_out.angular.x, twist_out.angular.y, twist_out.angular.z = ang_transformed
-
-        return twist_out
+        if self.output_topic_type == "Twist":
+            twist_out = Twist()
+            twist_out.linear.x, twist_out.linear.y, twist_out.linear.z = lin_transformed
+            twist_out.angular.x, twist_out.angular.y, twist_out.angular.z = ang_transformed
+            self.twist_out = twist_out
+        if self.output_topic_type == "TwistStamped":
+            twist_out = TwistStamped()
+            twist_out.header.frame_id = "base_link"
+            twist_out.twist.linear.x, twist_out.twist.linear.y, twist_out.twist.linear.z = lin_transformed
+            twist_out.twist.angular.x, twist_out.twist.angular.y, twist_out.twist.angular.z = ang_transformed
+            self.twist_out = twist_out
+        return self.twist_out
 
     def output_publisher(self, event):
         with self.lock:
@@ -112,7 +127,10 @@ class TwistStreamFilter:
             if self.stream_active:
                 twist = self.transform_twist(self.proxy_input_message)
             else:
-                twist = Twist()
+                if self.output_topic_type == "Twist":
+                    return Twist()
+                if self.output_topic_type == "TwistStamped":
+                    return TwistStamped()
 
         self.pub.publish(twist)
 
