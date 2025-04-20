@@ -1,0 +1,33 @@
+max_linear_acceleration : 10 #m/s^2
+max_linear_velocity : 1 #m/s
+max_angular_acceleration : 17.45 # rad/s^2
+max_angular_velocity : 3.14 # rad/s
+
+pose_setpoint_frequency_cuttoff : 20 #hz
+cmd_publish_frequency : 100 #hz
+
+linear_stop_threshold : 0.007 # having a higher threshold means faster stop because of how PID works
+angular_stop_threshold : 0.01
+
+gains :
+  linear : 
+    p : 1000
+    i : 0
+    d : 0
+    k : 0.01
+  angular : 
+    p : 300
+    i : 0
+    d : 0
+    k : 0.01
+
+pre_grasp_transform : # transformation from grasp -> pregrasp
+  position :
+    x : 0.0
+    y : 0.0
+    z : -0.1
+  orientation :
+    w : 1 
+    x : 0
+    y : 0
+    z : 0

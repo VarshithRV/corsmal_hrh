@@ -54,8 +54,6 @@
     </include>
 
     <include file="$(find ur16e_moveit_config)/launch/move_group.launch"/>
-
-    <!-- Moveit Servo Shit -->
     <node name="spacenav_node" pkg="spacenav_node" type="spacenav_node" output="screen" />
     <node name="spacenav_to_twist" pkg="moveit_servo" type="spacenav_to_twist" output="screen" />
     <arg name="moveit_servo_config" default="$(find corsmal_setup_bringup)/config/moveit_servo.yaml"/>
