@@ -1,40 +1,35 @@
-from reportlab.lib.pagesizes import A3, A4
 from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
 
-# Function to draw concentric circles
-def draw_concentric_circles(pdf_canvas, center_x, center_y, num_circles, max_radius):
-    for i in range(1, num_circles + 1):
-        radius = max_radius * i / num_circles
-        pdf_canvas.circle(center_x, center_y, radius, stroke=1, fill=0)
+def draw_concentric_circles_pdf(filename="concentric_circles.pdf"):
+    # Define page size
+    width, height = A4  # A4 size in points
 
-# Create an A3 PDF
-def create_a3_pdf(filename):
-    pdf_canvas = canvas.Canvas(filename, pagesize=A3)
-    width, height = A3
-
-    # Define parameters for A3
+    # Set center of the page
     center_x = width / 2
     center_y = height / 2
-    max_radius = min(width, height) / 2 - 10  # Margin of 10 units
-    num_circles = 50  # Adjust for A3
 
-    draw_concentric_circles(pdf_canvas, center_x, center_y, num_circles, max_radius)
-    pdf_canvas.save()
+    # Determine maximum radius in mm (smallest distance from center to any edge)
+    max_radius_mm = min(center_x, center_y) / mm
 
-# Create an A4 PDF
-def create_a4_pdf(filename):
-    pdf_canvas = canvas.Canvas(filename, pagesize=A4)
-    width, height = A4
+    # Create a canvas
+    c = canvas.Canvas(filename, pagesize=A4)
 
-    # Define parameters for A4
-    center_x = width / 2
-    center_y = height / 2
-    max_radius = min(width, height) / 2 - 10  # Margin of 10 units
-    num_circles = 40  # Adjust for A4
+    # Draw circles with radius from 1mm to max_radius_mm
+    for r_mm in range(1, int(max_radius_mm) + 1):
+        r_pt = r_mm * mm
+        # Set line width: thicker every 10 mm (i.e., every 1 cm)
+        if r_mm % 10 == 0:
+            c.setLineWidth(1.2)  # Thicker line
+        else:
+            c.setLineWidth(0.3)  # Thin line
 
-    draw_concentric_circles(pdf_canvas, center_x, center_y, num_circles, max_radius)
-    pdf_canvas.save()
+        c.circle(center_x, center_y, r_pt)
 
-# Generate the PDFs
-create_a3_pdf("concentric_circles_a3.pdf")
-create_a4_pdf("concentric_circles_a4.pdf")
+    # Save the canvas
+    c.save()
+    print(f"PDF saved as: {filename}")
+
+if __name__ == "__main__":
+    draw_concentric_circles_pdf()
