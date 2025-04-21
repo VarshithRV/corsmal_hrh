@@ -1,2 +1,3 @@
 .vscode/
 build/
+grasp_control_actions/scripts/client_demo.py
