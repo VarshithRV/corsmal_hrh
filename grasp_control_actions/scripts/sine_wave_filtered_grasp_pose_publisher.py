@@ -18,7 +18,7 @@ filtered_grasp_pose.pose.orientation.w = 0.6443
 
 filtered_grasp_pose_publisher = rospy.Publisher("/filtered_grasp_pose",PoseStamped,queue_size=10)
 
-amplitude = 0.2 #m
+amplitude = 0.05 #m
 timer = 0.0
 rate = rospy.Rate(50)
 timer_multiplier = 0.000001
@@ -30,8 +30,8 @@ while not rospy.is_shutdown():
     x = 0.8 + (amplitude/2)*(math.sin(timer))
     y = 0.1241 + (amplitude/2)*(math.cos(timer))
     
-    # filtered_grasp_pose.pose.position.x = x
-    filtered_grasp_pose.pose.position.y = y
+    filtered_grasp_pose.pose.position.x = x
+    # filtered_grasp_pose.pose.position.y = y
     
     filtered_grasp_pose_publisher.publish(filtered_grasp_pose)
     rate.sleep()
