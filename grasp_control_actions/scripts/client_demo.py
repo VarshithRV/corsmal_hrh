@@ -37,19 +37,19 @@ if __name__ == "__main__":
     # radial track for a few seconds
     rospy.loginfo("%s : radial tracking",rospy.get_name())
     radial_trackGoal = RadialTrackingGoal()
-    radial_trackGoal.timeout.data = 60.00
+    radial_trackGoal.timeout.data = 0.8
     mp.radial_tracking_client.send_goal(radial_trackGoal)
     mp.radial_tracking_client.wait_for_result()
     result = mp.radial_tracking_client.get_result()
     rospy.loginfo("%s : radial tracking result : %s",rospy.get_name(), result)
 
-    # # yoink
-    # rospy.loginfo("%s : yoink",rospy.get_name())
-    # yoinkGoal = YoinkActionGoal()
-    # mp.yoink_client.send_goal(yoinkGoal)
-    # mp.yoink_client.wait_for_result()
-    # result = mp.yoink_client.get_result()
-    # rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
+    # yoink
+    rospy.loginfo("%s : yoink",rospy.get_name())
+    yoinkGoal = YoinkActionGoal()
+    mp.yoink_client.send_goal(yoinkGoal)
+    mp.yoink_client.wait_for_result()
+    result = mp.yoink_client.get_result()
+    rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
 
     # # place
     # rospy.loginfo("%s : place",rospy.get_name())

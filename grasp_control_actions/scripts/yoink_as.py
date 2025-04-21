@@ -52,6 +52,7 @@ class Yoink:
         self.linear_stop_threshold = self.params["linear_stop_threshold"]
         self.angular_stop_threshold = self.params["angular_stop_threshold"]
         self.pre_grasp_transform = self.params["pre_grasp_transform"]
+        self.input_stream_timeout = self.params["input_stream_timeout"]
 
         self.dt = 1/self.cmd_publish_frequency
         self.errorL = np.zeros((3,),dtype=float)
@@ -74,14 +75,15 @@ class Yoink:
         self.setpoint_velocity = None
         self.filtered_grasp_pose = None
         self.proxy_filtered_grasp_pose = None
-        self.pose_message_timestamp_queue = []
+        self.input_stream_status = False
+        self.last_message_time = None
+        self.prev_last_message_time = None
         self.linear_velocity = 0.0
         self.angular_velocity  = 0.0
         self.linear_error = 0.0
         self.angular_error = 0.0
 
         self.mutex = Lock()
-        self._now = None
         self.optimal_pose = None
 
         # moveit stuff
@@ -112,6 +114,9 @@ class Yoink:
         # Timer to update current_pose
         current_pose_update_timer = rospy.Timer(rospy.Duration(0.01),callback=self.update_current_pose)
 
+        # Timer to update input stream status
+        input_stream_status_update_timer = rospy.Timer(rospy.Duration(0.01),callback=self.is_input_stream_active)
+
         # Timer to update the filtered grasp pose
         filtered_grasp_pose_update_timer = rospy.Timer(rospy.Duration(0.01),callback=self.update_grasp_pose)
 
@@ -121,6 +126,9 @@ class Yoink:
         # Timer to publish the error velocity
         error_velocity_publisher_timer = rospy.Timer(rospy.Duration(0.01),callback=self.publish_error_velocity)
 
+        # Timer to log input stream diagnostics
+        input_stream_diagnostics_timer = rospy.Timer(rospy.Duration(1), callback=self.filtered_grasp_pose_diagnostics)
+        
         self._qsum  = np.zeros((4,1),dtype=float)
 
         # create action server for Yoink
@@ -191,8 +199,8 @@ class Yoink:
 
     # This commands the robot to go to pre grasp
     def goto_pre_grasp(self):
-        if self.filtered_grasp_pose is None :
-            rospy.logerr("%s : No filtered grasp pose received",rospy.get_name())
+        if not self.input_stream_status:
+            rospy.logerr("%s : Input Stream is not active"%rospy.get_name())
             return False
 
         self.errorLprev = np.zeros((3,),dtype=float)
@@ -205,7 +213,11 @@ class Yoink:
         while not rospy.is_shutdown() :
             
             if not self.yoink_action_server.is_preempt_requested():
-                optimal_poseL, optimal_poseO, optimal_poseQ = self.compute_pre_grasp_setpoint()
+                if self.input_stream_status :
+                    optimal_poseL, optimal_poseO, optimal_poseQ = self.compute_pre_grasp_setpoint()
+                else : 
+                    rospy.logerr("%s : input stream is inactive"%rospy.get_name())
+                    return False
 
                 current_poseL = np.array([self.current_pose.pose.position.x,self.current_pose.pose.position.y,self.current_pose.pose.position.z])
                 current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
@@ -224,8 +236,7 @@ class Yoink:
                 self.linear_error = np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)
                 self.angular_error = np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)
 
-                if self.filtered_grasp_pose is not None :
-                    cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ)
+                cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ)
 
                 self.setpoint_velocity = cmd_vel  
                 self.setpoint_velocity_pub.publish(cmd_vel)
@@ -244,8 +255,8 @@ class Yoink:
     
     # Grasp
     def grasp(self):
-        if self.filtered_grasp_pose is None :
-            rospy.logerr("%s : No filtered grasp pose received",rospy.get_name())
+        if not self.input_stream_status:
+            rospy.logerr("%s : Input Stream is not active"%rospy.get_name())
             return False
         
         self.errorLprev = np.zeros((3,),dtype=float)
@@ -253,7 +264,11 @@ class Yoink:
         self.errorOprev = np.zeros((4,),dtype=float)
         self.errorOsum = np.zeros((4,),dtype=float)
 
-        pose_setpoint = self.filtered_grasp_pose
+        if self.filtered_grasp_pose is not None :
+            pose_setpoint = self.filtered_grasp_pose
+        else : 
+            rospy.logerr("%s : No filtered grasp pose received"%rospy.get_name())
+            return False
 
         if self.filtered_grasp_pose is not None:
             rate = rospy.Rate(self.cmd_publish_frequency)
@@ -407,22 +422,35 @@ class Yoink:
         velocityO = self.ANGULAR_K* ((self.ANGULAR_P_GAIN*errorO) + (self.ANGULAR_I_GAIN*errorOsum*self.dt) + (self.ANGULAR_D_GAIN*(errorOdiff/self.dt)))
         return velocityL, velocityO
 
-    
-
     def filtered_grasp_pose_cb(self,msg: PoseStamped):
-        with self.mutex : 
-            self._now = time.time()
-            self.pose_message_timestamp_queue.append(self._now)
+        with self.mutex :
+            self.prev_last_message_time = self.last_message_time
+            self.last_message_time = rospy.get_time()
             self.proxy_filtered_grasp_pose = msg
-            
-    # update grasp pose if message frequency is greater than the threshold
+    
+    def is_input_stream_active(self, event):
+        if self.prev_last_message_time is not None: # check if atleast two messages have been received
+            if rospy.get_time() - self.last_message_time <=0.1: # check if the last message received is with a small amount of time > 0.01s
+                if self.last_message_time - self.prev_last_message_time <= self.input_stream_timeout: # the messages have greater frequency
+                    self.input_stream_status=True
+                else :
+                    self.input_stream_status=False
+            else:
+                self.input_stream_status=False
+        else:
+            self.input_stream_status=False
+        # print(self.input_stream_status)
+        
+    def filtered_grasp_pose_diagnostics(self, event):
+        if not self.input_stream_status:
+            rospy.logwarn("%s : Input Stream error, message not received within timeout"%rospy.get_name())
+    
+    # update grasp pose if stream is active
     def update_grasp_pose(self,event):
-        with self.mutex : 
-            self.pose_message_timestamp_queue = [t for t in self.pose_message_timestamp_queue if time.time() - t <= 1]
-            if len(self.pose_message_timestamp_queue) < self.pose_setpoint_frequency_cutoff:
-                self.filtered_grasp_pose = None
-            else :
-                self.filtered_grasp_pose = self.proxy_filtered_grasp_pose 
+        if self.input_stream_timeout : 
+            self.filtered_grasp_pose = self.proxy_filtered_grasp_pose
+        else : 
+            self.filtered_grasp_pose = None
 
 
 if __name__ == "__main__":

@@ -87,8 +87,8 @@ class RadialTracker:
         self.current_pose = None
         self.setpoint_velocity = None
         self.filtered_grasp_pose = None
-        self.input_stream_status = False
         self.proxy_filtered_grasp_pose = None
+        self.input_stream_status = False
         self.last_message_time = None
         self.prev_last_message_time = None
         self.linear_velocity = 0.0
@@ -524,7 +524,7 @@ class RadialTracker:
     
     def is_input_stream_active(self, event):
         if self.prev_last_message_time is not None: # check if atleast two messages have been received
-            if rospy.get_time() - self.last_message_time <=0.03: # check if the last message received is with a small amount of time > 0.01s
+            if rospy.get_time() - self.last_message_time <=0.1: # check if the last message received is with a small amount of time > 0.01s
                 if self.last_message_time - self.prev_last_message_time <= self.input_stream_timeout: # the messages have greater frequency
                     self.input_stream_status=True
                 else :
