@@ -48,7 +48,6 @@ class Yoink:
         self.max_angular_velocity = self.params["max_angular_velocity"]
         self.max_angular_acceleration = self.params["max_angular_acceleration"]
 
-        self.pose_setpoint_frequency_cutoff = self.params["pose_setpoint_frequency_cuttoff"]
         self.linear_stop_threshold = self.params["linear_stop_threshold"]
         self.angular_stop_threshold = self.params["angular_stop_threshold"]
         self.pre_grasp_transform = self.params["pre_grasp_transform"]

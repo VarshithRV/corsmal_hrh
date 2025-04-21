@@ -402,7 +402,7 @@ class RadialTracker:
         
 
         old_z = np.array([0,0,1])
-        new_x = -np.cross(old_z,new_z)
+        new_x = np.cross(old_z,new_z)
         new_y = np.cross(new_z,new_x).reshape((3,1))
         new_z = new_z.reshape((3,1))
         new_x = new_x.reshape((3,1))
