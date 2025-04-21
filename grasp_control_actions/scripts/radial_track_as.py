@@ -537,7 +537,8 @@ class RadialTracker:
         
     def filtered_grasp_pose_diagnostics(self, event):
         if not self.input_stream_status:
-            rospy.logwarn("%s : Input Stream error, message not received within timeout"%rospy.get_name())
+            # rospy.logwarn("%s : Input Stream error, message not received within timeout"%rospy.get_name())
+            pass
     
     # update grasp pose if stream is active
     def update_grasp_pose(self,event):
