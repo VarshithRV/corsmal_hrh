@@ -37,19 +37,19 @@ if __name__ == "__main__":
     # radial track for a few seconds
     rospy.loginfo("%s : radial tracking",rospy.get_name())
     radial_trackGoal = RadialTrackingGoal()
-    radial_trackGoal.timeout.data = 0.75
+    radial_trackGoal.timeout.data = 60.00
     mp.radial_tracking_client.send_goal(radial_trackGoal)
     mp.radial_tracking_client.wait_for_result()
     result = mp.radial_tracking_client.get_result()
     rospy.loginfo("%s : radial tracking result : %s",rospy.get_name(), result)
 
-    # yoink
-    rospy.loginfo("%s : yoink",rospy.get_name())
-    yoinkGoal = YoinkActionGoal()
-    mp.yoink_client.send_goal(yoinkGoal)
-    mp.yoink_client.wait_for_result()
-    result = mp.yoink_client.get_result()
-    rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
+    # # yoink
+    # rospy.loginfo("%s : yoink",rospy.get_name())
+    # yoinkGoal = YoinkActionGoal()
+    # mp.yoink_client.send_goal(yoinkGoal)
+    # mp.yoink_client.wait_for_result()
+    # result = mp.yoink_client.get_result()
+    # rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
 
     # # place
     # rospy.loginfo("%s : place",rospy.get_name())
@@ -60,14 +60,14 @@ if __name__ == "__main__":
     # result = mp.place_client.get_result()
     # rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
     
-    # place vel
-    rospy.loginfo("%s : place",rospy.get_name())
-    placeGoal = PlaceVelGoal()
-    mp.place_vel_client.send_goal(placeGoal)
-    # mp.place_client.cancel_goal()
-    mp.place_vel_client.wait_for_result()
-    result = mp.place_vel_client.get_result()
-    rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
+    # # place vel
+    # rospy.loginfo("%s : place",rospy.get_name())
+    # placeGoal = PlaceVelGoal()
+    # mp.place_vel_client.send_goal(placeGoal)
+    # # mp.place_client.cancel_goal()
+    # mp.place_vel_client.wait_for_result()
+    # result = mp.place_vel_client.get_result()
+    # rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
 
     finish = rospy.get_time()
     # report

@@ -50,11 +50,11 @@ class RadialTracker:
         self.max_angular_velocity = self.params["max_angular_velocity"]
         self.max_angular_acceleration = self.params["max_angular_acceleration"]
 
-        self.pose_setpoint_frequency_cutoff = self.params["pose_setpoint_frequency_cuttoff"]
         self.linear_stop_threshold = self.params["linear_stop_threshold"]
         self.angular_stop_threshold = self.params["angular_stop_threshold"]
         self.pre_grasp_transform = self.params["pre_grasp_transform"]
         self.linear_track_interpolation_factor = self.params["linear_track_interpolation_factor"]
+        self.input_stream_timeout = self.params["input_stream_timeout"]
 
         self.track_duration = self.params["track_duration"]
         self.ready_ee_pose = PoseStamped()
@@ -87,15 +87,16 @@ class RadialTracker:
         self.current_pose = None
         self.setpoint_velocity = None
         self.filtered_grasp_pose = None
+        self.input_stream_status = False
         self.proxy_filtered_grasp_pose = None
-        self.pose_message_timestamp_queue = []
+        self.last_message_time = None
+        self.prev_last_message_time = None
         self.linear_velocity = 0.0
         self.angular_velocity  = 0.0
         self.linear_error = 0.0
         self.angular_error = 0.0
 
         self.mutex = Lock()
-        self._now = None
         self.optimal_pose = None
 
         # moveit stuff
@@ -113,9 +114,10 @@ class RadialTracker:
         # service proxy for switch controllers
         self.switch_controller = rospy.ServiceProxy("/controller_manager/switch_controller",SwitchController)
         
-        # simulation interface format
+        # driver command connection
         self.setpoint_velocity_pub = rospy.Publisher(self.servo_topic,TwistStamped,queue_size=1)
         self.optimal_pose_pub =  rospy.Publisher("/optimal_pose",PoseStamped,queue_size=1)
+        
         # publish error and velocity magnitude for debug
         self.linear_error_publisher =  rospy.Publisher("/linear_error",Float32,queue_size=1)
         self.angular_error_publisher = rospy.Publisher("/angular_error",Float32,queue_size=1)
@@ -128,6 +130,9 @@ class RadialTracker:
         # Timer to update current_pose
         current_pose_update_timer = rospy.Timer(rospy.Duration(0.01),callback=self.update_current_pose)
 
+        # Timer to update input stream status
+        input_stream_status_update_timer = rospy.Timer(rospy.Duration(0.01),callback=self.is_input_stream_active)
+
         # Timer to update the filtered grasp pose
         filtered_grasp_pose_update_timer = rospy.Timer(rospy.Duration(0.01),callback=self.update_grasp_pose)
 
@@ -136,6 +141,9 @@ class RadialTracker:
 
         # Timer to publish the error velocity
         error_velocity_publisher_timer = rospy.Timer(rospy.Duration(0.01),callback=self.publish_error_velocity)
+    
+        # Timer to log input stream diagnostics
+        input_stream_diagnostics_timer = rospy.Timer(rospy.Duration(1), callback=self.filtered_grasp_pose_diagnostics)
 
         self._qsum  = np.zeros((4,1),dtype=float)
 
@@ -209,7 +217,6 @@ class RadialTracker:
 
     def update_current_pose(self,event):
         self.current_pose = self.move_group.get_current_pose() # as a PoseStamped
-
 
     def publish_error_velocity(self,event):
         self.linear_error_publisher.publish(Float32(self.linear_error))
@@ -320,8 +327,8 @@ class RadialTracker:
             return False
 
     def radial_track(self,timeout=None):
-        if self.filtered_grasp_pose is None :
-            rospy.logerr("No filtered grasp pose received")
+        if not self.input_stream_status:
+            rospy.logerr("%s : Input Stream is not active"%rospy.get_name())
             return False
 
         self.errorLprev = np.zeros((3,),dtype=float)
@@ -335,7 +342,11 @@ class RadialTracker:
         while not rospy.is_shutdown() :
             
             if not self.radial_tracking_server.is_preempt_requested():
-                optimal_poseL, optimal_poseO, optimal_poseQ = self.compute_radial_track_setpoint()
+                if self.input_stream_status :
+                    optimal_poseL, optimal_poseO, optimal_poseQ = self.compute_radial_track_setpoint()
+                else : 
+                    rospy.logerr("%s : input stream is inactive"%rospy.get_name())
+                    return False
 
                 current_poseL = np.array([self.current_pose.pose.position.x,self.current_pose.pose.position.y,self.current_pose.pose.position.z])
                 current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
@@ -355,8 +366,7 @@ class RadialTracker:
                 self.linear_error = np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)
                 self.angular_error = np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)  
 
-                if self.filtered_grasp_pose is not None :
-                    cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ) 
+                cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ) 
 
                 self.setpoint_velocity = cmd_vel  
                 self.setpoint_velocity_pub.publish(cmd_vel) 
@@ -507,19 +517,34 @@ class RadialTracker:
         return velocityL, velocityO
 
     def filtered_grasp_pose_cb(self,msg: PoseStamped):
-        with self.mutex : 
-            self._now = time.time()
-            self.pose_message_timestamp_queue.append(self._now)
-            self.proxy_filtered_grasp_pose = msg
-            
-    # update grasp pose if message frequency is greater than the threshold
-    def update_grasp_pose(self,event):
         with self.mutex :
-            self.pose_message_timestamp_queue = [t for t in self.pose_message_timestamp_queue if time.time() - t <= 1]
-            if len(self.pose_message_timestamp_queue) < self.pose_setpoint_frequency_cutoff:
-                self.filtered_grasp_pose = None
-            else :
-                self.filtered_grasp_pose = self.proxy_filtered_grasp_pose 
+            self.prev_last_message_time = self.last_message_time
+            self.last_message_time = rospy.get_time()
+            self.proxy_filtered_grasp_pose = msg
+    
+    def is_input_stream_active(self, event):
+        if self.prev_last_message_time is not None: # check if atleast two messages have been received
+            if rospy.get_time() - self.last_message_time <=0.03: # check if the last message received is with a small amount of time > 0.01s
+                if self.last_message_time - self.prev_last_message_time <= self.input_stream_timeout: # the messages have greater frequency
+                    self.input_stream_status=True
+                else :
+                    self.input_stream_status=False
+            else:
+                self.input_stream_status=False
+        else:
+            self.input_stream_status=False
+        # print(self.input_stream_status)
+        
+    def filtered_grasp_pose_diagnostics(self, event):
+        if not self.input_stream_status:
+            rospy.logwarn("%s : Input Stream error, message not received within timeout"%rospy.get_name())
+    
+    # update grasp pose if stream is active
+    def update_grasp_pose(self,event):
+        if self.input_stream_timeout : 
+            self.filtered_grasp_pose = self.proxy_filtered_grasp_pose
+        else : 
+            self.filtered_grasp_pose = None
 
 
 if __name__ == "__main__":
