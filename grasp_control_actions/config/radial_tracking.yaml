@@ -15,7 +15,7 @@ max_linear_velocity : 1 #m/s
 max_angular_acceleration : 17.45 # rad/s^2
 max_angular_velocity : 3.14 # rad/s
 
-pose_setpoint_frequency_cuttoff : 20 #hz
+input_stream_timeout : 0.2 #s
 cmd_publish_frequency : 100 #hz
 
 linear_stop_threshold : 0.002 # having a higher threshold means faster stop because of how PID works
