@@ -6,6 +6,8 @@ import numpy as np
 from image_geometry import PinholeCameraModel
 import apriltag
 import copy
+import threading
+
 
 class Deprojection:
     def __init__(self) -> None:
@@ -14,12 +16,17 @@ class Deprojection:
         self.grayscale_image = None
         self.cv_bridge = cv_bridge.CvBridge()
         self.camera_model = PinholeCameraModel()
-        self.detector_options = apriltag.DetectorOptions()
-        self.detector = apriltag.Detector(self.detector_options)
+        self.apriltag_detector_options = apriltag.DetectorOptions()
+        self.apriltag_detector = apriltag.Detector(self.apriltag_detector_options)
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
+        self.aruco_parameters = cv2.aruco.DetectorParameters()
+        self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict,self.aruco_parameters)
         self.detection_rate = 30
         self.marker_size = 40/1000 # from mm to m
         self.marker_distance = 15/1000 # from mm to m
         self.marker_id = 4
+        self.mutex = threading.Lock()
+        self.detected_image = None
         
         # Camera topics
         camera_color_topic = f"/camera/color/image_raw"
@@ -32,8 +39,10 @@ class Deprojection:
         self.color_image_sub = rospy.Subscriber(camera_color_topic, Image, self.color_image_callback)
 
         # Timers
-        self.apriltag_detector_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.apriltag_detector)
-        
+        self.apriltag_detector_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.apriltag_detector_cb)        
+        # self.aruco_detector_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.aruco_detector_cb)
+
+
     def __del__(self):
         del self.camera_model
 
@@ -64,44 +73,25 @@ class Deprojection:
 
         return image
 
-    def apriltag_detector(self,event):
+    def apriltag_detector_cb(self,event):
         if self.grayscale_image is None:
             return
-        time = rospy.get_time()
-        detections = self.detector.detect(self.grayscale_image)
+        detections = self.apriltag_detector.detect(self.grayscale_image)
         detected_image = cv2.cvtColor(copy.deepcopy(self.grayscale_image),cv2.COLOR_GRAY2RGB)
 
 
         if len(detections):
             for i in range(len(detections)):
-                
-                # print("########################################")
-                # print("Detection duration : ",rospy.get_time()-time)
-                # print("Tag family : ",detections[i].tag_family)
-                # print("Tag id : ",detections[i].tag_id)
-                # print("Center : ",detections[i].center)
-                # print("Corners : ",detections[i].corners)
-                # draw the detection boxes
 
                 x1y1 = detections[i].corners[0] # top left
                 x1y2 = detections[i].corners[3] # bottom left
                 x2y1 = detections[i].corners[1] # top right
                 x2y2 = detections[i].corners[2] # bottom right
                 
-                # detected_image = cv2.circle(detected_image,center=(int(x1y1[0]),int(x1y1[1])),radius=2,color=(0,255,0),thickness=2)
-                # detected_image = cv2.circle(detected_image,center=(int(x1y2[0]),int(x1y2[1])),radius=2,color=(0,255,0),thickness=2)
-                # detected_image = cv2.circle(detected_image,center=(int(x2y1[0]),int(x2y1[1])),radius=2,color=(0,255,0),thickness=2)
-                # detected_image = cv2.circle(detected_image,center=(int(x2y2[0]),int(x2y2[1])),radius=2,color=(0,255,0),thickness=2)
-
-                # # sovelpnp for each id
-                # print(self.camera_model.K)
-                # print(self.camera_model.full_K)
-                # print(self.camera_model.R)
-                # print(self.camera_model.D)
-                # print(self.camera_model.P)
-                # print(self.camera_model.tf_frame)
-                # print(self.camera_model.width)
-                # print(self.camera_model.height)
+                detected_image = cv2.circle(detected_image,center=(int(x1y1[0]),int(x1y1[1])),radius=1,color=(0,255,0),thickness=2)
+                detected_image = cv2.circle(detected_image,center=(int(x1y2[0]),int(x1y2[1])),radius=1,color=(0,255,0),thickness=2)
+                detected_image = cv2.circle(detected_image,center=(int(x2y1[0]),int(x2y1[1])),radius=1,color=(0,255,0),thickness=2)
+                detected_image = cv2.circle(detected_image,center=(int(x2y2[0]),int(x2y2[1])),radius=1,color=(0,255,0),thickness=2)
                 
                 # origin at the bottom left
                 if detections[i].tag_id == 4:
@@ -128,10 +118,53 @@ class Deprojection:
                     )
 
                     if success:
-                        detected_image = self.draw_axes(detected_image,rvec,tvec,intrinsics,distortion_coefficients)
+                        detected_image = self.draw_axes(detected_image,rvec,tvec,intrinsics,distortion_coefficients) 
+        cv2.imshow("apriltag_detector",detected_image)
+        cv2.waitKey(1)
 
+    def aruco_detector_cb(self, event):
+        if self.grayscale_image is None:
+            return
+        corners, ids, _ = self.aruco_detector.detectMarkers(self.grayscale_image)
+        detected_image = cv2.cvtColor(copy.deepcopy(self.grayscale_image),cv2.COLOR_GRAY2RGB)
         
-        cv2.imshow("detected_image",detected_image)
+        if ids is not None : 
+            ids = ids.reshape((ids.shape[0],)).tolist()
+            if 4 in ids:
+                x1y1 = (corners)[ids.index(4)][0][2] # top left
+                x1y2 = (corners)[ids.index(4)][0][1] # bottom left
+                x2y1 = (corners)[ids.index(4)][0][3] # top right
+                x2y2 = (corners)[ids.index(4)][0][0] # bottom right
+
+                detected_image = cv2.circle(detected_image,(int(x1y1[0]),int(x1y1[1])),1,(0,0,255),2)
+                detected_image = cv2.circle(detected_image,(int(x1y2[0]),int(x1y2[1])),1,(0,0,255),2)
+                detected_image = cv2.circle(detected_image,(int(x2y1[0]),int(x2y1[1])),1,(0,0,255),2)
+                detected_image = cv2.circle(detected_image,(int(x2y2[0]),int(x2y2[1])),1,(0,0,255),2)
+
+                # origin at the bottom left
+                object_points = np.array(
+                                    [
+                                        [0,self.marker_size,0], #top left
+                                        [self.marker_size,self.marker_size,0], #top right
+                                        [0,0,0], #bottom left
+                                        [self.marker_size,0,0] #bottom right
+                                     ], dtype=float
+                    )
+
+                image_points = np.stack((x1y1.reshape((1,2)),x2y1.reshape((1,2)),x1y2.reshape((1,2)),x2y2.reshape((1,2))),axis=1)[0]
+                intrinsics = self.camera_model.K
+                distortion_coefficients = self.camera_model.D
+                success, rvec, tvec = cv2.solvePnP(
+                    objectPoints=object_points,
+                    imagePoints=image_points,
+                    cameraMatrix=intrinsics,
+                    distCoeffs=distortion_coefficients,
+                    flags=cv2.SOLVEPNP_IPPE
+                )
+                if success:
+                    detected_image = self.draw_axes(detected_image,rvec,tvec,intrinsics,distortion_coefficients)                
+
+        cv2.imshow("aruco_detections",detected_image)
         cv2.waitKey(1)
 
     def display_color_image(self, event):
