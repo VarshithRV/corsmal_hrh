@@ -1,4 +1,4 @@
-# sample code for realsense type camera
+# apriltag detection for realsense type camera 
 import rospy
 from sensor_msgs.msg import CameraInfo, Image
 import cv_bridge, cv2

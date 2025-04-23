@@ -1,4 +1,4 @@
-# apriltag grid detection
+# apriltag grid detection for realsense type camera
 import rospy
 from sensor_msgs.msg import CameraInfo, Image
 import cv_bridge, cv2
@@ -7,6 +7,9 @@ from image_geometry import PinholeCameraModel
 import apriltag
 import copy
 import threading
+from geometry_msgs.msg import PoseStamped, Pose
+import quaternion
+import tf.transformations as tft
 
 
 class Deprojection:
@@ -22,10 +25,23 @@ class Deprojection:
         self.aruco_parameters = cv2.aruco.DetectorParameters()
         self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict,self.aruco_parameters)
         self.detection_rate = 30
+        self.estimated_pose = None
+        self.filtered_pose = None
+        self.rvec = None
+        self.tvec = None
+        self.tvec_impulse = None
+        self.filtered_tvec = np.zeros(shape=(3,),dtype=float)
+        self.qvec = None
+        self.qvec_impulse = None
+        self.filtered_qvec = np.array([0,0,0,1],dtype=float)
+        self.mutex = threading.Lock()
+        self.detected_image = None
+
+        # linear infinite impulse response filter parameters
+        self.alpha = 0.25 # between 0 and 1, more means trust the filtered data more
 
         # grid configuration: marker_size, marker_separation and grid matrix
         # grid origin is at grid[n-1][0] which the the bottom left grid
-
         self.marker_size = (31.83)/1000
         self.marker_separation = 15/1000
         self.grid = np.array([ # grid description, grid and id, grid origin is at grid[n-1][0]
@@ -34,22 +50,30 @@ class Deprojection:
             ],
             dtype=int)
 
-        self.mutex = threading.Lock()
-        self.detected_image = None
-        
         # Camera topics
         camera_color_topic = f"/camera/color/image_raw"
         camera_info_topic = f"/camera/aligned_depth_to_color/camera_info"
         camera_depth_topic = f"/camera/aligned_depth_to_color/image_raw"
+        detected_image_topic = f"/detected_image_raw"
+
+        # Pose topics
+        pose_topic = f"/pose"
+        filtered_pose_topic = f"/filtered_pose"
         
         # Subscribers
         self.depth_image_sub = rospy.Subscriber(camera_depth_topic, Image, self.depth_image_callback)
         self.camera_info_sub = rospy.Subscriber(camera_info_topic, CameraInfo, self.camera_info_callback)
         self.color_image_sub = rospy.Subscriber(camera_color_topic, Image, self.color_image_callback)
 
+        # Publishers
+        self.detected_image_pub = rospy.Publisher(detected_image_topic, Image, queue_size=10)
+        self.pose_pub = rospy.Publisher(pose_topic,PoseStamped,queue_size=10)
+        self.filtered_pose_pub = rospy.Publisher(filtered_pose_topic,PoseStamped,queue_size=10)
+
         # Timers
         self.apriltag_detector_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.apriltag_detector_cb)
-
+        self.filtered_pose_publisher_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.filtered_pose_publisher_cb)
+        self.pose_publisher_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.pose_publisher_cb)
 
     def __del__(self):
         del self.camera_model
@@ -82,12 +106,85 @@ class Deprojection:
         return image
 
     def apriltag_detector_cb(self,event):
-        if self.grayscale_image is None:
+        if self.grayscale_image is None : 
+            return
+        image_detected,rvec,tvec = self.detect_apriltags(self.grayscale_image)
+        image = self.cv_bridge.cv2_to_imgmsg(cvim=image_detected,encoding="bgr8")
+        self.detected_image_pub.publish(image)
+        
+        if tvec is not None or rvec is not None:
+            self.tvec = tvec
+            self.qvec = tft.quaternion_from_euler(ai=rvec[0],aj=rvec[1],ak=rvec[2])
+        else :
+            self.tvec = None
+            self.qvec = None
+
+    def pose_publisher_cb(self,event):
+        if self.qvec is None or self.tvec is None : 
+            return
+
+        msg = PoseStamped()
+        msg.header.frame_id = self.camera_info.header.frame_id
+        msg.header.stamp = rospy.Time.now()
+        msg.pose.position.x = self.tvec[0]
+        msg.pose.position.y = self.tvec[1]
+        msg.pose.position.z = self.tvec[2]
+        msg.pose.orientation.x = self.qvec[0]
+        msg.pose.orientation.y = self.qvec[1]
+        msg.pose.orientation.z = self.qvec[2]
+        msg.pose.orientation.w = self.qvec[3]
+
+        self.pose_pub.publish(msg)        
+
+    def filter_pose(self):
+        # filter self.tvec and self.qvec with some alpha and update self.filtered_tvec and self.filtered_qvec
+        q1 = self.filtered_qvec
+        q2 = self.qvec
+
+        dot = np.dot(q1,q2)
+        if dot < 0.0:
+            q2 = -q2
+            dot = -dot
+        if dot > 0.9995:
+            # Linear interpolation
+            filtered_quat = (self.alpha)*q1 + (1-self.alpha)*q2
+        else : 
+            theta_0 = np.arccos(dot)
+            sin_theta_0 = np.sin(theta_0)
+            theta = theta_0*(1-self.alpha)
+            sin_theta = np.sin(theta)
+
+            s1 = np.sin(theta_0 - theta) / sin_theta_0
+            s2 = sin_theta / sin_theta_0
+
+            filtered_quat = s1 * q1 + s2 * q2
+        filtered_quat = filtered_quat / np.linalg.norm(filtered_quat)
+        #SLERP for qvec
+        self.filtered_qvec = filtered_quat
+        #LERP for tvec
+        self.filtered_tvec = self.alpha*self.filtered_tvec + (1-self.alpha)*self.tvec
+
+    def filtered_pose_publisher_cb(self,event):
+        if self.tvec is None or self.qvec is None :
             return
         
-        detections = self.apriltag_detector.detect(self.grayscale_image)
-        detected_image = cv2.cvtColor(copy.deepcopy(self.grayscale_image),cv2.COLOR_GRAY2RGB)
-    
+        self.filter_pose()
+        msg = PoseStamped()
+        msg.header.frame_id = self.camera_info.header.frame_id
+        msg.header.stamp = rospy.Time.now()
+        msg.pose.position.x = self.tvec[0]
+        msg.pose.position.y = self.tvec[1]
+        msg.pose.position.z = self.tvec[2]
+        msg.pose.orientation.x = self.qvec[0]
+        msg.pose.orientation.y = self.qvec[1]
+        msg.pose.orientation.z = self.qvec[2]
+        msg.pose.orientation.w = self.qvec[3]
+        self.filtered_pose_pub.publish(msg)
+
+
+    def detect_apriltags(self,grayscale_image):
+        detections = self.apriltag_detector.detect(grayscale_image)
+        detected_image = cv2.cvtColor(copy.deepcopy(grayscale_image),cv2.COLOR_GRAY2RGB)
         if len(detections):
             image_points_grid_list = []
             object_points_grid_list = []
@@ -143,9 +240,11 @@ class Deprojection:
                 )
                 if success:
                     detected_image = self.draw_axes(detected_image,rvec,tvec,intrinsics,distortion_coefficients)
-        
-        cv2.imshow("apriltag_detector",detected_image)
-        cv2.waitKey(1)
+                    return detected_image,rvec,tvec.reshape((3,))
+                else :
+                    return detected_image, None, None
+            return detected_image, None, None
+        return detected_image, None, None
 
     def display_color_image(self, event):
         if self.grayscale_image is not None :
@@ -163,7 +262,7 @@ class Deprojection:
         self.camera_model.fromCameraInfo(msg)
 
 if __name__ == "__main__":
-    rospy.init_node("april_detector")
+    rospy.init_node("apriltag_grid_detector")
     rospy.sleep(0.15) # some time to initialize stuff
     deproject = Deprojection()
     rospy.loginfo("Detector running")
