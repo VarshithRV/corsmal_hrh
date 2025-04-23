@@ -39,8 +39,8 @@ class Deprojection:
         self.color_image_sub = rospy.Subscriber(camera_color_topic, Image, self.color_image_callback)
 
         # Timers
-        # self.apriltag_detector_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.apriltag_detector_cb)        
-        self.aruco_detector_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.aruco_detector_cb)
+        self.apriltag_detector_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.apriltag_detector_cb)        
+        # self.aruco_detector_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.aruco_detector_cb)
 
 
     def __del__(self):
