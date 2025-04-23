@@ -1,0 +1,12 @@
+# Linear filter parameters
+alpha : 0.25 # range = [0,1], more means trust the filtered data more
+
+marker_size : 31.83 # in mm, measure with the 1 unit black padding
+marker_separation : 15 # in mm
+
+# grid configuration
+object:
+  name: "world" # the published pose and filtered pose will be preappended with this value
+  grid:
+    - [3, 5]
+    - [4, 6]

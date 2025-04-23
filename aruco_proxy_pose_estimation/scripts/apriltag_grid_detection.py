@@ -10,6 +10,7 @@ import threading
 from geometry_msgs.msg import PoseStamped, Pose
 import quaternion
 import tf.transformations as tft
+import sys
 
 
 class Deprojection:
@@ -38,17 +39,21 @@ class Deprojection:
         self.detected_image = None
 
         # linear infinite impulse response filter parameters
-        self.alpha = 0.25 # between 0 and 1, more means trust the filtered data more
-
+        self.alpha = rospy.get_param("~alpha",0.25)
+        
         # grid configuration: marker_size, marker_separation and grid matrix
         # grid origin is at grid[n-1][0] which the the bottom left grid
-        self.marker_size = (31.83)/1000
-        self.marker_separation = 15/1000
-        self.grid = np.array([ # grid description, grid and id, grid origin is at grid[n-1][0]
-                [3,5],
-                [4,6]
-            ],
-            dtype=int)
+        self.marker_separation = rospy.get_param("~marker_separation",15)/1000
+        self.marker_size = rospy.get_param("~marker_size",40)/1000
+        self.grid = np.array(rospy.get_param("~object/grid"),dtype=int)
+        self.object_name = rospy.get_param("~object/name","object0")
+        
+        rospy.loginfo("Apriltag grid detector node started with params : ")
+        rospy.loginfo("Alpha : %s"%self.alpha)
+        rospy.loginfo("Marker Separation : %s"%self.marker_separation)
+        rospy.loginfo("Marker Size : %s"%self.marker_size)
+        rospy.loginfo("Object Name : %s"%self.object_name)
+        rospy.loginfo("Grid : %s"%self.grid)
 
         # Camera topics
         camera_color_topic = f"/camera/color/image_raw"
@@ -57,8 +62,8 @@ class Deprojection:
         detected_image_topic = f"/detected_image_raw"
 
         # Pose topics
-        pose_topic = f"/pose"
-        filtered_pose_topic = f"/filtered_pose"
+        pose_topic = f"/{self.object_name}_pose"
+        filtered_pose_topic = f"/{self.object_name}_filtered_pose"
         
         # Subscribers
         self.depth_image_sub = rospy.Subscriber(camera_depth_topic, Image, self.depth_image_callback)
@@ -262,7 +267,7 @@ class Deprojection:
         self.camera_model.fromCameraInfo(msg)
 
 if __name__ == "__main__":
-    rospy.init_node("apriltag_grid_detector")
+    rospy.init_node("apriltag_grid_detector",argv=sys.argv,anonymous=False)
     rospy.sleep(0.15) # some time to initialize stuff
     deproject = Deprojection()
     rospy.loginfo("Detector running")

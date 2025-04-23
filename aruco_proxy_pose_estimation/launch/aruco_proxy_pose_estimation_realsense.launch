@@ -13,6 +13,5 @@
         <param name="depth_image_topic" value="/camera/aligned_depth_to_color/image_raw" />
         <param name="target_frame" value="camera_color_optical_frame" />
         <remap from="/cuboid_pose_filtered" to="/filtered_grasp_pose"/>
-        
     </node>
 </launch>

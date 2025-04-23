@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+
+    <node pkg="aruco_proxy_pose_estimation" type="apriltag_grid_detection.py" name="apriltag_grid_detector" output="screen">
+         <rosparam command="load" file="$(find aruco_proxy_pose_estimation)/config/apriltag_grid_detector_config.yaml"/>
+    </node>/
+
+</launch>
