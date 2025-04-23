@@ -22,13 +22,18 @@ class Deprojection:
         self.aruco_parameters = cv2.aruco.DetectorParameters()
         self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict,self.aruco_parameters)
         self.detection_rate = 30
-        self.marker_size = (50*0.8)/1000 # from mm to m
-        self.marker_separation = 15/1000 # from mm to m
+
+        # grid configuration: marker_size, marker_separation and grid matrix
+        # grid origin is at grid[n-1][0] which the the bottom left grid
+
+        self.marker_size = (31.83)/1000
+        self.marker_separation = 15/1000
         self.grid = np.array([ # grid description, grid and id, grid origin is at grid[n-1][0]
-                [1,2],
-                [3,4]
+                [3,5],
+                [4,6]
             ],
             dtype=int)
+
         self.mutex = threading.Lock()
         self.detected_image = None
         
@@ -84,14 +89,10 @@ class Deprojection:
         detected_image = cv2.cvtColor(copy.deepcopy(self.grayscale_image),cv2.COLOR_GRAY2RGB)
     
         if len(detections):
-            
-            # print(detections)
-            # print(type(detections[0]))
-            # print(detections[0].corners)
-            # print(detections[0].tag_id)
+            image_points_grid_list = []
+            object_points_grid_list = []
 
             for i in range(len(detections)):
-                
                 tag_id = detections[i].tag_id
                 x1y1 = detections[i].corners[0] # top left
                 x1y2 = detections[i].corners[3] # bottom left
@@ -110,7 +111,7 @@ class Deprojection:
                 if_tag_exists_in_grid = np.any(self.grid == tag_id)
 
                 if if_tag_exists_in_grid : 
-                    grid_positiony,grid_positionx = np.where(self.grid == tag_id)
+                    grid_positionx,grid_positiony = np.where(self.grid == tag_id)
                     grid_position = np.concatenate((grid_positionx,grid_positiony),axis=0)
                     grid_origin = np.array(([self.grid.shape[0]-1,0])) # bottom left marker as origin
 
@@ -124,49 +125,24 @@ class Deprojection:
                         ], dtype=float
                     )
 
-                    print("###############################")
-                    print("Tag ID : ")
-                    print(tag_id)
-                    print("Image points : ")
-                    print(image_points)
-                    print("Object points :")
-                    print(object_points)
+                    image_points_grid_list.append(image_points)
+                    object_points_grid_list.append(object_points)
 
-                # if detections[i].tag_id == self.marker_id:    
-                #     x1y1 = detections[i].corners[0] # top left
-                #     x1y2 = detections[i].corners[3] # bottom left
-                #     x2y1 = detections[i].corners[1] # top right
-                #     x2y2 = detections[i].corners[2] # bottom right
-                #     detected_image = cv2.circle(detected_image,center=(int(x1y2[0]),int(x1y2[1])),radius=1,color=(0,255,0),thickness=2)
-                #     detected_image = cv2.circle(detected_image,center=(int(x1y1[0]),int(x1y1[1])),radius=1,color=(0,255,0),thickness=2)
-                #     detected_image = cv2.circle(detected_image,center=(int(x2y2[0]),int(x2y2[1])),radius=1,color=(0,255,0),thickness=2)
-                #     detected_image = cv2.circle(detected_image,center=(int(x2y1[0]),int(x2y1[1])),radius=1,color=(0,255,0),thickness=2)
-
-                #     # origin at the bottom left
-                #     object_points = np.array(
-                #                     [
-                #                         [0,self.marker_size,0], #top left
-                #                         [self.marker_size,self.marker_size,0], #top right
-                #                         [0,0,0], #bottom left
-                #                         [self.marker_size,0,0] #bottom right
-                #                      ], dtype=float
-                #     )
-
-                #     image_points = np.stack((x1y1.reshape((1,2)),x2y1.reshape((1,2)),x1y2.reshape((1,2)),x2y2.reshape((1,2))),axis=1)[0]
-
-                #     intrinsics = self.camera_model.K
-                #     distortion_coefficients = self.camera_model.D
-
-                #     success, rvec, tvec = cv2.solvePnP(
-                #         objectPoints=object_points,
-                #         imagePoints=image_points,
-                #         cameraMatrix=intrinsics,
-                #         distCoeffs=distortion_coefficients,
-                #         flags=cv2.SOLVEPNP_IPPE
-                #     )
-
-                #     if success:
-                #         detected_image = self.draw_axes(detected_image,rvec,tvec,intrinsics,distortion_coefficients) 
+            if len(image_points_grid_list) and len(object_points_grid_list):
+                
+                image_points_grid = np.concatenate(image_points_grid_list,axis=0)
+                object_points_grid = np.concatenate(object_points_grid_list,axis=0)
+                intrinsics = self.camera_model.K
+                distortion_coefficients = self.camera_model.D
+                success, rvec, tvec = cv2.solvePnP(
+                    objectPoints=object_points_grid,
+                    imagePoints=image_points_grid,
+                    cameraMatrix=intrinsics,
+                    distCoeffs=distortion_coefficients,
+                    flags=cv2.SOLVEPNP_IPPE
+                )
+                if success:
+                    detected_image = self.draw_axes(detected_image,rvec,tvec,intrinsics,distortion_coefficients)
         
         cv2.imshow("apriltag_detector",detected_image)
         cv2.waitKey(1)
