@@ -1,0 +1,3 @@
+traj_controller: "scaled_pos_joint_traj_controller"
+servo_controller: "twist_controller"
+servo_topic: "/end_effector_cmd_vel"

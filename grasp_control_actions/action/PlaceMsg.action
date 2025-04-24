@@ -1,0 +1,5 @@
+geometry_msgs/PoseStamped place_position
+---
+bool result
+---
+std_msgs/Float32 progress

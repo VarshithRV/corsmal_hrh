@@ -1,0 +1,33 @@
+duration : 0.5
+
+ready_pose :
+  position :
+    x : 0 #m
+    y : 0
+    z : 0
+  orientation : # Quaternion
+    w : 1 
+    x : 0
+    y : 0
+    z : 0
+
+max_linear_acceleration : 10 #m/s^2
+max_linear_velocity : 1 #m/s
+max_angular_acceleration : 17.45 # rad/s^2
+max_angular_velocity : 3.14 # rad/s
+
+pose_setpoint_frequency_cuttoff : 2 #hz
+
+transformation_interpolation_coefficient : 0.3 #translates to m from the ready pose
+
+cmd_publish_frequency : 1000 #hz
+
+LINEAR_P_GAIN : 2000
+LINEAR_I_GAIN : 0
+LINEAR_D_GAIN : 0
+LINEAR_K_GAIN : 0.01
+
+ANGULAR_P_GAIN : 8
+ANGULAR_I_GAIN : 0
+ANGULAR_D_GAIN : 0
+ANGULAR_K_GAIN : 1

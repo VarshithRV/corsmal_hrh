@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+    <rosparam command="load" file="$(find aruco_proxy_pose_estimation)/config/aruco_proxy_pose_estimation.yaml" ns="aruco_proxy_pose_estimation"/>
+    <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch">
+        <arg name="color_width" value="640" />
+        <arg name="color_height" value="480" />
+        <arg name="enable_pointcloud" value="true" />
+        <arg name="filters" value="pointcloud,decimation,spatial,temporal,hole_filling"/>
+    </include>
+    <node pkg="aruco_proxy_pose_estimation" type="aruco_proxy_pose_estimation_filtered.py" name="aruco_proxy_pose_estimation_filtered" output="screen">
+        <param name="rgb_image_topic" value="/camera/color/image_raw" />
+        <param name="rgb_camera_info_topic" value="/camera/color/camera_info" />
+        <param name="depth_image_topic" value="/camera/aligned_depth_to_color/image_raw" />
+        <param name="target_frame" value="camera_color_optical_frame" />
+        <remap from="/cuboid_pose_filtered" to="/filtered_grasp_pose"/>
+    </node>
+</launch>

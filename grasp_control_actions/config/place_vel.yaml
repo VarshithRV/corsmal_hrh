@@ -1,0 +1,58 @@
+default_position :
+  position: 
+    x: 0.5061662666465643
+    y: -0.358515316658081
+    z: 0.12444533115562544
+  orientation: 
+    x: 0.5257966482852593
+    y: 0.5223434799416994
+    z: 0.4895647041687844
+    w: 0.4593708458821843
+
+use_default_position : True
+
+preplace_transformation :
+  position:
+    x: 0.0
+    y: 0.0
+    z: 0.05
+  orientation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+
+max_linear_acceleration : 10 #m/s^2
+max_linear_velocity : 1 #m/s
+max_angular_acceleration : 17.45 # rad/s^2
+max_angular_velocity : 3.14 # rad/s
+
+pose_setpoint_frequency_cuttoff : 20 #hz
+cmd_publish_frequency : 100 #hz
+
+linear_stop_threshold : 0.007 # having a higher threshold means faster stop because of how PID works
+angular_stop_threshold : 0.01
+
+gains :
+  linear : 
+    p : 500
+    i : 0
+    d : 0
+    k : 0.005
+  angular : 
+    p : 150
+    i : 0
+    d : 0
+    k : 0.005
+
+
+pre_grasp_transform : # transformation from grasp -> pregrasp
+  position :
+    x : 0.0
+    y : 0.0
+    z : -0.1
+  orientation :
+    w : 1 
+    x : 0
+    y : 0
+    z : 0

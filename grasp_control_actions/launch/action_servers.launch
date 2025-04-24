@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<launch>
+
+    <rosparam command="load" file="$(find grasp_control_actions)/config/yoink.yaml" ns="yoink_as"/>
+    <rosparam command="load" file="$(find grasp_control_actions)/config/radial_tracking.yaml" ns="radial_track_as"/>
+    <rosparam command="load" file="$(find grasp_control_actions)/config/rest.yaml" ns="rest_as"/>
+    <rosparam command="load" file="$(find grasp_control_actions)/config/place.yaml" ns="place_as"/>
+    <rosparam command="load" file="$(find grasp_control_actions)/config/place_vel.yaml" ns="place_vel_as"/>
+    <rosparam command="load" file="$(find grasp_control_actions)/config/common_parameters_ur16e.yaml" ns="common_parameters"/>
+
+    <node pkg="grasp_control_actions" type="radial_track_as.py" name="radial_track_server" output="screen">
+        <remap from="/linear_error" to="/radial_track/linear_error"/>
+        <remap from="/angular_error" to="/radial_track/angular_error"/>
+        <remap from="/linear_velocity" to="/radial_track/linear_velocity"/>
+        <remap from="/angular_velocity" to="/radial_track/angular_velocity"/>
+        <remap from="/optimal_pose" to="/radial_track/optimal_pose"/>
+    </node>
+    <node pkg="grasp_control_actions" type="yoink_as.py" name="yoink_server" output="screen">
+        <remap from="/linear_error" to="/yoink/linear_error"/>
+        <remap from="/angular_error" to="/yoink/angular_error"/>
+        <remap from="/linear_velocity" to="/yoink/linear_velocity"/>
+        <remap from="/angular_velocity" to="/yoink/angular_velocity"/>
+        <remap from="/optimal_pose" to="/yoink/optimal_pose"/>
+    </node>
+    <node pkg="grasp_control_actions" type="place_vel_as.py" name="place_vel_server" output="screen">
+        <remap from="/linear_error" to="/place_vel/linear_error"/>
+        <remap from="/angular_error" to="/place_vel/angular_error"/>
+        <remap from="/linear_velocity" to="/place_vel/linear_velocity"/>
+        <remap from="/angular_velocity" to="/place_vel/angular_velocity"/>
+        <remap from="/optimal_pose" to="/place_vel/optimal_pose"/>
+    </node>
+    <node pkg="grasp_control_actions" type="rest_as.py" name="rest_server" output="screen"/>
+    <node pkg="grasp_control_actions" type="place_as.py" name="place_object_server" output="screen"/>
+    
+    <!-- timeout based stream to command filter for velocity command -->
+    <node name="twist_stream_filter" pkg="grasp_control_actions" type="twist_stream_filter.py" output="screen">
+        <param name="input_topic" value="/end_effector_cmd_vel" />
+        <param name="output_topic" value="/twist_controller/command" />
+        <param name="output_topic_type" value="Twist" />
+        <param name="timeout" value="0.05" />
+        <param name="source_frame" value="base_link" /> <!-- this is the planning frame -->
+        <param name="target_frame" value="base" /> <!-- this is always base -->
+    </node>
+</launch>
