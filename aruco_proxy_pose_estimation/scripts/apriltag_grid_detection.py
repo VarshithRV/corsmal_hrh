@@ -48,18 +48,22 @@ class Deprojection:
         self.grid = np.array(rospy.get_param("~object/grid"),dtype=int)
         self.object_name = rospy.get_param("~object/name","object0")
         
+        # Camera topics
+        camera_color_topic = rospy.get_param("~color_image_topic","/camera/color/image_raw")
+        camera_info_topic = rospy.get_param("~camera_info_topic","/camera/color/image_raw")
+        camera_depth_topic = rospy.get_param("~depth_image_topic","/camera/color/image_raw")
+        detected_image_topic = f"/detected_image_raw"
+        
         rospy.loginfo("Apriltag grid detector node started with params : ")
         rospy.loginfo("Alpha : %s"%self.alpha)
         rospy.loginfo("Marker Separation : %s"%self.marker_separation)
         rospy.loginfo("Marker Size : %s"%self.marker_size)
         rospy.loginfo("Object Name : %s"%self.object_name)
         rospy.loginfo("Grid : %s"%self.grid)
+        rospy.loginfo("Color image topic : %s"%camera_color_topic)
+        rospy.loginfo("Camera info topic : %s"%camera_info_topic)
+        rospy.loginfo("Depth image topic : %s"%camera_depth_topic)
 
-        # Camera topics
-        camera_color_topic = f"/camera/color/image_raw"
-        camera_info_topic = f"/camera/aligned_depth_to_color/camera_info"
-        camera_depth_topic = f"/camera/aligned_depth_to_color/image_raw"
-        detected_image_topic = f"/detected_image_raw"
 
         # Pose topics
         pose_topic = f"/{self.object_name}_pose"

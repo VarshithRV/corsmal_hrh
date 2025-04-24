@@ -2,9 +2,9 @@
 <launch>
     <rosparam command="load" file="$(find aruco_proxy_pose_estimation)/config/aruco_proxy_pose_estimation.yaml" ns="aruco_proxy_pose_estimation"/>
     <node pkg="aruco_proxy_pose_estimation" type="aruco_proxy_pose_estimation_filtered.py" name="aruco_proxy_pose_estimation_filtered" output="screen">
-        <param name="rgb_image_topic" value="/right_camera/rgb/image_raw" />
-        <param name="rgb_camera_info_topic" value="/right_camera/rgb/camera_info" />
-        <param name="depth_image_topic" value="/right_camera/depth_to_rgb/image_raw" />
+        <param name="rgb_image_topic" value="/left_camera/rgb/image_raw" />
+        <param name="rgb_camera_info_topic" value="/left_camera/rgb/camera_info" />
+        <param name="depth_image_topic" value="/left_camera/depth_to_rgb/image_raw" />
         <param name="target_frame" value="base_link" />
         <remap from="/cuboid_pose_filtered" to="/filtered_grasp_pose"/>
         
