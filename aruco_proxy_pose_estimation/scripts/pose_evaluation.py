@@ -1,60 +1,67 @@
 #!/usr/bin/env python3
 
 import rospy
-from geometry_msgs.msg import PoseStamped
-from collections import defaultdict
+import argparse
 import numpy as np
-from scipy import stats
+from geometry_msgs.msg import PoseStamped
+from scipy.spatial.transform import Rotation as R
+import threading
 
-class PoseStatsCollector:
-    def __init__(self):
-        rospy.init_node("pose_statistics_collector", anonymous=True)
+class PoseStatsTracker:
+    def __init__(self, topic_name):
+        self.topic_name = topic_name
+        self.lock = threading.Lock()
+        self.positions = []
+        self.quaternions = []
 
-        self.topic_name = "/pose_statistics_input_topic"
-        self.log_interval = 1.0  # in seconds
+        rospy.Subscriber(self.topic_name, PoseStamped, self.pose_callback)
+        rospy.Timer(rospy.Duration(3.0), self.timer_callback)
 
-        self.data = defaultdict(list)
-
-        self.sub = rospy.Subscriber(self.topic_name, PoseStamped, self.pose_callback)
-        self.timer = rospy.Timer(rospy.Duration(self.log_interval), self.log_statistics)
-
-        rospy.loginfo(f"Subscribed to {self.topic_name}, logging every {self.log_interval} seconds.")
+        rospy.loginfo(f"Subscribed to topic: {self.topic_name}")
 
     def pose_callback(self, msg):
-        # Linear
-        self.data["position_x"].append(msg.pose.position.x)
-        self.data["position_y"].append(msg.pose.position.y)
-        self.data["position_z"].append(msg.pose.position.z)
+        pos = msg.pose.position
+        ori = msg.pose.orientation
 
-        # Orientation
-        self.data["orientation_w"].append(msg.pose.orientation.w)
-        self.data["orientation_x"].append(msg.pose.orientation.x)
-        self.data["orientation_y"].append(msg.pose.orientation.y)
-        self.data["orientation_z"].append(msg.pose.orientation.z)
+        with self.lock:
+            self.positions.append([pos.x, pos.y, pos.z])
+            self.quaternions.append([ori.x, ori.y, ori.z, ori.w])
 
-    def log_statistics(self, event):
-        if not self.data["position_x"]:
-            rospy.logwarn("No data received yet.")
-            return
+    def timer_callback(self, event):
+        with self.lock:
+            if len(self.positions) < 2:
+                rospy.loginfo("Waiting for more pose data...")
+                return
 
-        for key, values in self.data.items():
-            array = np.array(values)
-            mean = np.mean(array)
-            median = np.median(array)
-            try:
-                mode = stats.mode(array, keepdims=False).mode
-            except:
-                mode = "N/A"
-            std_dev = np.std(array)
-            variance = np.var(array)
+            positions_np = np.array(self.positions)
+            pos_std = np.std(positions_np, axis=0)
 
-            rospy.loginfo(f"{key}: mean={mean:.4f}, median={median:.4f}, mode={mode}, std_dev={std_dev:.4f}, variance={variance:.4f}")
+            # Compute angular deviation from first pose
+            q_ref = R.from_quat(self.quaternions[0])
+            angle_diffs = []
 
-    def run(self):
-        rospy.spin()
+            for q in self.quaternions:
+                q_rel = q_ref.inv() * R.from_quat(q)
+                angle_diffs.append(q_rel.magnitude())
 
-if __name__ == "__main__":
-    try:
-        PoseStatsCollector().run()
-    except rospy.ROSInterruptException:
-        pass
+            rot_std = np.std(angle_diffs)
+
+        rospy.loginfo("\n--- Pose Standard Deviations ---")
+        rospy.loginfo(f"Linear STD (m):  x={pos_std[0]:.4f}, y={pos_std[1]:.4f}, z={pos_std[2]:.4f}")
+        rospy.loginfo(f"Angular STD (rad):  {rot_std:.4f}")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="ROS node to compute running standard deviation of PoseStamped topic.\n"
+                    "Example: rosrun your_package pose_std_tracker.py /your/pose_topic",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument('topic', type=str, help='PoseStamped topic to subscribe to (e.g. /robot_pose)')
+    args, unknown = parser.parse_known_args()  # To ignore ROS-specific args
+
+    rospy.init_node('pose_std_tracker', anonymous=True)
+    PoseStatsTracker(args.topic)
+    rospy.spin()
+
+if __name__ == '__main__':
+    main()
