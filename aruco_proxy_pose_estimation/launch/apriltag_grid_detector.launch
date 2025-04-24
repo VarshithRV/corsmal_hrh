@@ -3,6 +3,16 @@
 
     <node pkg="aruco_proxy_pose_estimation" type="apriltag_grid_detection.py" name="apriltag_grid_detector" output="screen">
          <rosparam command="load" file="$(find aruco_proxy_pose_estimation)/config/apriltag_grid_detector_config.yaml"/>
-    </node>/
+    </node>
+
+    <node pkg="aruco_proxy_pose_estimation" type="pose_post_processing.py" name="pose_post_processor" output="screen">
+        <param name="parent_frame" value="base_link" />
+        <param name="X" value="42.0" />
+        <param name="Y" value="42.0" />
+        <param name="D" value="42.0" />
+        <param name="P" value="50.0" />
+        <param name="input_pose_topic" value="/object_filtered_pose" />
+        <param name="output_pose_topic" value="/filtered_grasp_pose" />
+    </node>
 
 </launch>
