@@ -9,8 +9,8 @@
         <param name="parent_frame" value="base_link" />
         <param name="X" value="42.0" />
         <param name="Y" value="42.0" />
-        <param name="D" value="42.0" />
-        <param name="P" value="50.0" />
+        <param name="D" value="55.0" />
+        <param name="P" value="100.0" />
         <param name="input_pose_topic" value="/object_filtered_pose" />
         <param name="output_pose_topic" value="/filtered_grasp_pose" />
     </node>
