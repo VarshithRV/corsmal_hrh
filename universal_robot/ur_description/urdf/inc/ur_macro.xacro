@@ -63,7 +63,10 @@
     transmission_hw_interface:=hardware_interface/PositionJointInterface
     safety_limits:=false
     safety_pos_margin:=0.15
-    safety_k_position:=20"
+    safety_k_position:=20
+    tool0_tcp_x:=0.0
+    tool0_tcp_y=0.0
+    tool0_tcp_z=0.0"
   >
     <!-- Load configuration data from the provided .yaml files -->
     <xacro:read_model_data
@@ -328,7 +331,7 @@
     <link name="${prefix}tool0"/>
     <joint name="${prefix}flange-tool0" type="fixed">
       <!-- default toolframe: X+ left, Y+ up, Z+ front -->
-      <origin xyz="0 0 0" rpy="${pi/2.0} 0 ${pi/2.0}"/>
+      <origin xyz="${tool0_tcp_x} ${tool0_tcp_y} ${tool0_tcp_z}" rpy="${pi/2.0} 0 ${pi/2.0}"/>
       <parent link="${prefix}flange"/>
       <child link="${prefix}tool0"/>
     </joint>

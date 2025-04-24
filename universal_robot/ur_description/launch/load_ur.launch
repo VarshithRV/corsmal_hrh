@@ -10,6 +10,10 @@
   <arg name="safety_limits" default="false" doc="If True, enable the safety limits controller"/>
   <arg name="safety_pos_margin" default="0.15" doc="The lower/upper limits in the safety controller" />
   <arg name="safety_k_position" default="20" doc="Used to set k position in the safety controller" />
+  <!-- tool0 tcp translation -->
+  <arg name="tool0_tcp_x" default="0.0"/>
+  <arg name="tool0_tcp_y" default="0.0"/>
+  <arg name="tool0_tcp_z" default="0.0"/>
 
   <arg name="robot_model" />
 
@@ -39,6 +43,9 @@
     transmission_hw_interface:=$(arg transmission_hw_interface)
     safety_limits:=$(arg safety_limits)
     safety_pos_margin:=$(arg safety_pos_margin)
-    safety_k_position:=$(arg safety_k_position)"
+    safety_k_position:=$(arg safety_k_position)
+    tool0_tcp_x=$(arg tool0_tcp_x)
+    tool0_tcp_y=$(arg tool0_tcp_y)
+    tool0_tcp_z=$(arg tool0_tcp_z)"
     />
 </launch>
