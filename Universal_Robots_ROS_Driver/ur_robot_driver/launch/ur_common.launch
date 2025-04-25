@@ -10,6 +10,9 @@
   <arg name="trajectory_port" default="50003" doc="Port that will be opened by the driver to allow trajectory forwarding."/>
   <arg name="script_command_port" default="50004" doc="Port that will be opened by the driver to allow forwarding script commands to the robot."/>
   <arg name="kinematics_config" doc="Kinematics config file used for calibration correction. This will be used to verify the robot's calibration is matching the robot_description."/>
+  <arg name="tool0_tcp_x" default="0.0"/>
+  <arg name="tool0_tcp_y" default="0.0"/>
+  <arg name="tool0_tcp_z" default="0.0"/>
   <arg name="tf_prefix" default="" doc="tf_prefix used for the robot."/>
   <arg name="controllers" default="joint_state_controller scaled_pos_joint_traj_controller speed_scaling_state_controller force_torque_sensor_controller robot_status_controller" doc="Controllers that are activated by default."/>
   <arg name="stopped_controllers" default="pos_joint_traj_controller joint_group_vel_controller" doc="Controllers that are initally loaded, but not started."/>
@@ -26,9 +29,13 @@
   <arg name="ur_hardware_interface_node_required" default="true" doc="Shut down ros environment if ur_hardware_interface-node dies."/>
   <arg name="use_spline_interpolation" default="true" doc="True if splines should be used as interpolation on the robot controller when forwarding trajectory, if false movej or movel commands are used"/>
 
+
   <!-- robot model -->
   <include file="$(arg robot_description_file)">
     <arg name="kinematics_params" value="$(arg kinematics_config)"/>
+    <arg name="tool0_tcp_x" value="$(arg tool0_tcp_x)"/>
+    <arg name="tool0_tcp_y" value="$(arg tool0_tcp_y)"/>
+    <arg name="tool0_tcp_z" value="$(arg tool0_tcp_z)"/>
   </include>
 
   <!-- Convert joint states to /tf tranforms -->

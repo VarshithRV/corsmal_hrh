@@ -182,19 +182,18 @@ twist_controller:
   joints: *robot_joints
 
 pose_based_cartesian_traj_controller:
-    type: pose_controllers/CartesianTrajectoryController
+    type: "pose_controllers/CartesianTrajectoryController"
 
     # UR driver convention
-    base: base_link
-    tip: tool0_controller
+    base: "base_link"
+    tip: "tool0_controller"
     joints: *robot_joints
 
 joint_based_cartesian_traj_controller:
-    type: position_controllers/CartesianTrajectoryController
-
+    type: "position_controllers/CartesianTrajectoryController"
     # UR driver convention
-    base: base_link
-    tip: tool0_controller
+    base: "base_link"
+    tip: "tool0_controller"
     joints: *robot_joints
 
 robot_status_controller:
