@@ -35,15 +35,15 @@ angular_stop_threshold : 0.01
 
 gains :
   linear : 
-    p : 100
+    p : 750
     i : 0
     d : 0
-    k : 0.005
+    k : 0.01
   angular : 
     p : 150
     i : 0
     d : 0
-    k : 0.005
+    k : 0.01
 
 
 pre_grasp_transform : # transformation from grasp -> pregrasp

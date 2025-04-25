@@ -21,15 +21,15 @@ filtered_grasp_pose_publisher = rospy.Publisher("/filtered_grasp_pose",PoseStamp
 amplitude = 0.2 #m
 timer = 0.0
 rate = rospy.Rate(50)
-timer_multiplier = 0.0000000000005
-alpha = 50 # range from 1 to 100
+timer_multiplier = 1
+alpha = 1 # range from 1 to 100
 
 while not rospy.is_shutdown():
-    timer+=rospy.get_time()*timer_multiplier*alpha
-    
+    timer=rospy.get_time()*timer_multiplier*alpha
+    current_time = rospy.get_time()
     x = 0.8 + (amplitude/2)*(math.sin(timer))
     y = 0.1241 + (amplitude/2)*(math.cos(timer))
-    
+
     # filtered_grasp_pose.pose.position.x = x
     filtered_grasp_pose.pose.position.y = y
     

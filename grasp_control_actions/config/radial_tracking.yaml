@@ -1,6 +1,6 @@
 ready_ee_pose :
   position: 
-    x: 0.34689240597036586
+    x: 0.56689240597036586
     y: 0.16521468801661618
     z: 0.4273289638464657
   orientation: 
@@ -25,12 +25,12 @@ linear_track_interpolation_factor : 0.0 # m in the direction of the target from 
 
 gains :
   linear : 
-    p : 100
+    p : 750
     i : 0
     d : 0
     k : 0.01
   angular : 
-    p : 300
+    p : 500
     i : 0
     d : 0
     k : 0.01
