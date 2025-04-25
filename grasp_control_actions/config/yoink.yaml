@@ -11,12 +11,12 @@ angular_stop_threshold : 0.008
 
 gains :
   linear :
-    p : 750
+    p : 250
     i : 0
     d : 0
     k : 0.01
   angular :
-    p : 500
+    p : 250
     i : 0
     d : 0
     k : 0.01
