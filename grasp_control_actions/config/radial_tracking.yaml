@@ -1,13 +1,13 @@
 ready_ee_pose :
   position: 
-    x: 0.3355766747364395
-    y: -0.0424380434405246
-    z: 0.4055120934938331
+    x: 0.34689240597036586
+    y: 0.16521468801661618
+    z: 0.4273289638464657
   orientation: 
-    x: 0.49623493604833974
-    y: 0.49828892579242867
-    z: 0.5156155942280831
-    w: 0.48948911496227226
+    x: 0.5171104213832658
+    y: 0.47691956803915747
+    z: 0.48050721707395144
+    w: 0.5236958583548388
 
 track_duration : 1 # duration for tracking in seconds
 max_linear_acceleration : 10 #m/s^2
@@ -21,11 +21,11 @@ cmd_publish_frequency : 100 #hz
 linear_stop_threshold : 0.002 # having a higher threshold means faster stop because of how PID works
 angular_stop_threshold : 0.005
 
-linear_track_interpolation_factor : 0.1 # m in the direction of the target from the ready_ee_pose
+linear_track_interpolation_factor : 0.0 # m in the direction of the target from the ready_ee_pose
 
 gains :
   linear : 
-    p : 1000
+    p : 100
     i : 0
     d : 0
     k : 0.01

@@ -6,17 +6,17 @@ max_angular_velocity : 3.14 # rad/s
 input_stream_timeout : 0.2 #s
 cmd_publish_frequency : 100 #hz
 
-linear_stop_threshold : 0.007 # having a higher threshold means faster stop because of how PID works
-angular_stop_threshold : 0.01
+linear_stop_threshold : 0.001 # having a higher threshold means faster stop because of how PID works
+angular_stop_threshold : 0.0005
 
 gains :
   linear : 
-    p : 1000
+    p : 50
     i : 0
     d : 0
     k : 0.01
   angular : 
-    p : 300
+    p : 50
     i : 0
     d : 0
     k : 0.01

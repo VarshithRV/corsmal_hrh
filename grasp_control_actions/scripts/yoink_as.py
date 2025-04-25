@@ -221,10 +221,10 @@ class Yoink:
                 current_poseL = np.array([self.current_pose.pose.position.x,self.current_pose.pose.position.y,self.current_pose.pose.position.z])
                 current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
                                           self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
-
-                if abs(np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ))<self.angular_stop_threshold : 
+                
+                if (abs(np.linalg.norm(optimal_poseL - current_poseL)) < self.linear_stop_threshold) and (abs(np.linalg.norm(optimal_poseQ  - current_poseQ))<self.angular_stop_threshold ): 
                     cmd_vel = TwistStamped()
-                    cmd_vel.header.frame_id = "world"
+                    cmd_vel.header.frame_id = "base_link"
                     rospy.loginfo("%s : Reached pre grasp",rospy.get_name())
                     self.errorLprev = np.zeros((3,),dtype=float)
                     self.errorLsum = np.zeros((3,),dtype=float)
@@ -273,16 +273,16 @@ class Yoink:
             rate = rospy.Rate(self.cmd_publish_frequency)
             while True:
                 if not self.yoink_action_server.is_preempt_requested():
-                    pose_setpointL = [pose_setpoint.pose.position.x,pose_setpoint.pose.position.y,pose_setpoint.pose.position.z]
-                    pose_setpointQ = [pose_setpoint.pose.orientation.x,pose_setpoint.pose.orientation.y,pose_setpoint.pose.orientation.z,pose_setpoint.pose.orientation.w]
+                    pose_setpointL = np.array([pose_setpoint.pose.position.x,pose_setpoint.pose.position.y,pose_setpoint.pose.position.z],dtype=float)
+                    pose_setpointQ = np.array([pose_setpoint.pose.orientation.x,pose_setpoint.pose.orientation.y,pose_setpoint.pose.orientation.z,pose_setpoint.pose.orientation.w],dtype=float)
 
                     current_pose = self.current_pose
-                    current_poseL = [current_pose.pose.position.x,current_pose.pose.position.y,current_pose.pose.position.z]
-                    current_poseQ = [current_pose.pose.orientation.x,current_pose.pose.orientation.y,current_pose.pose.orientation.z,current_pose.pose.orientation.w]
+                    current_poseL = np.array([current_pose.pose.position.x,current_pose.pose.position.y,current_pose.pose.position.z],dtype=float)
+                    current_poseQ = np.array([current_pose.pose.orientation.x,current_pose.pose.orientation.y,current_pose.pose.orientation.z,current_pose.pose.orientation.w],dtype=float)
 
-                    if abs(np.linalg.norm(pose_setpointL) - np.linalg.norm(current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(pose_setpointQ) - np.linalg.norm(current_poseQ))<self.angular_stop_threshold : 
+                    if (abs(np.linalg.norm(pose_setpointL - current_poseL)) < self.linear_stop_threshold) and (abs(np.linalg.norm(pose_setpointQ  - current_poseQ))<self.angular_stop_threshold ): 
                         cmd_vel = TwistStamped()
-                        cmd_vel.header.frame_id = "world"
+                        cmd_vel.header.frame_id = "base_link"
                         rospy.loginfo("%s : Reached Grasp Position",rospy.get_name())
                         # command the gripper so that it closes here
                         self.errorLprev = np.zeros((3,),dtype=float)
@@ -334,7 +334,7 @@ class Yoink:
 
         # Create PoseStamped message
         pose_optimal_setpoint = PoseStamped()
-        pose_optimal_setpoint.header.frame_id = "world"
+        pose_optimal_setpoint.header.frame_id = "base_link"
         pose_optimal_setpoint.pose.position.x = pose_optimal_setpointL[0]
         pose_optimal_setpoint.pose.position.y = pose_optimal_setpointL[1]
         pose_optimal_setpoint.pose.position.z = pose_optimal_setpointL[2]
@@ -351,7 +351,7 @@ class Yoink:
         if self.current_pose is None:
             # rospy.logerr("Current pose or velociy is not received")
             vel= TwistStamped()
-            vel.header.frame_id = "world"
+            vel.header.frame_id = "base_link"
             return vel
         
         pose_current = self.current_pose
@@ -362,7 +362,7 @@ class Yoink:
                                     pose_current.pose.orientation.z,pose_current.pose.orientation.w])
 
         self.optimal_pose = PoseStamped()
-        self.optimal_pose.header.frame_id = "world"
+        self.optimal_pose.header.frame_id = "base_link"
         self.optimal_pose.pose.position.x = optimal_setpointL[0]
         self.optimal_pose.pose.position.y = optimal_setpointL[1]
         self.optimal_pose.pose.position.z = optimal_setpointL[2]
@@ -401,7 +401,7 @@ class Yoink:
         self.angular_velocity = np.linalg.norm(velocityO)
         # form cmd_vel message
         cmd_vel = TwistStamped()
-        cmd_vel.header.frame_id = "world"
+        cmd_vel.header.frame_id = "base_link"
         cmd_vel.twist.linear.x = velocityL[0]
         cmd_vel.twist.linear.y = velocityL[1]
         cmd_vel.twist.linear.z = velocityL[2]
@@ -438,7 +438,6 @@ class Yoink:
                 self.input_stream_status=False
         else:
             self.input_stream_status=False
-        # print(self.input_stream_status)
         
     def filtered_grasp_pose_diagnostics(self, event):
         if not self.input_stream_status:

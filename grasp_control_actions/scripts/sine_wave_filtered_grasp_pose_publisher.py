@@ -6,22 +6,22 @@ from geometry_msgs.msg import PoseStamped
 rospy.init_node("sine_wave_setpoint_publisher")
 
 filtered_grasp_pose = PoseStamped()
-filtered_grasp_pose.header.frame_id = "world"
+filtered_grasp_pose.header.frame_id = "base_link"
 
-filtered_grasp_pose.pose.position.x = 0.8
-filtered_grasp_pose.pose.position.y = 0.1241
-filtered_grasp_pose.pose.position.z = 1.3621
-filtered_grasp_pose.pose.orientation.x = 0.3298
-filtered_grasp_pose.pose.orientation.y = 0.3192
-filtered_grasp_pose.pose.orientation.z = 0.6116
-filtered_grasp_pose.pose.orientation.w = 0.6443
+filtered_grasp_pose.pose.position.x = 0.8629
+filtered_grasp_pose.pose.position.y = 0.0626
+filtered_grasp_pose.pose.position.z = 0.3785
+filtered_grasp_pose.pose.orientation.x= 0.3315
+filtered_grasp_pose.pose.orientation.y= 0.4819
+filtered_grasp_pose.pose.orientation.z= 0.5236
+filtered_grasp_pose.pose.orientation.w= 0.6193
 
 filtered_grasp_pose_publisher = rospy.Publisher("/filtered_grasp_pose",PoseStamped,queue_size=10)
 
-amplitude = 0.05 #m
+amplitude = 0.2 #m
 timer = 0.0
 rate = rospy.Rate(50)
-timer_multiplier = 0.000001
+timer_multiplier = 0.0000000000005
 alpha = 50 # range from 1 to 100
 
 while not rospy.is_shutdown():
@@ -30,8 +30,8 @@ while not rospy.is_shutdown():
     x = 0.8 + (amplitude/2)*(math.sin(timer))
     y = 0.1241 + (amplitude/2)*(math.cos(timer))
     
-    filtered_grasp_pose.pose.position.x = x
-    # filtered_grasp_pose.pose.position.y = y
+    # filtered_grasp_pose.pose.position.x = x
+    filtered_grasp_pose.pose.position.y = y
     
     filtered_grasp_pose_publisher.publish(filtered_grasp_pose)
     rate.sleep()
