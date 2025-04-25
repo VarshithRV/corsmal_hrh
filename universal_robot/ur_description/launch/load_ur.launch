@@ -44,8 +44,8 @@
     safety_limits:=$(arg safety_limits)
     safety_pos_margin:=$(arg safety_pos_margin)
     safety_k_position:=$(arg safety_k_position)
-    tool0_tcp_x=$(arg tool0_tcp_x)
-    tool0_tcp_y=$(arg tool0_tcp_y)
-    tool0_tcp_z=$(arg tool0_tcp_z)"
+    tool0_tcp_x:=$(arg tool0_tcp_x)
+    tool0_tcp_y:=$(arg tool0_tcp_y)
+    tool0_tcp_z:=$(arg tool0_tcp_z)"
     />
 </launch>

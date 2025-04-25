@@ -331,7 +331,7 @@
     <link name="${prefix}tool0"/>
     <joint name="${prefix}flange-tool0" type="fixed">
       <!-- default toolframe: X+ left, Y+ up, Z+ front -->
-      <origin xyz="${tool0_tcp_x} ${tool0_tcp_y} ${tool0_tcp_z}" rpy="${pi/2.0} 0 ${pi/2.0}"/>
+      <origin xyz="${tool0_tcp_z} ${tool0_tcp_x} ${tool0_tcp_y} " rpy="${pi/2.0} 0 ${pi/2.0}"/>
       <parent link="${prefix}flange"/>
       <child link="${prefix}tool0"/>
     </joint>
