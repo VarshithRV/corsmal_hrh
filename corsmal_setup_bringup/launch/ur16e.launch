@@ -59,11 +59,21 @@
         <arg name="headless_mode" value="$(arg headless_mode)"/>
     </include>
 
-    <include file="$(find ur16e_corsmal_moveit_config)/launch/move_group.launch"/>
+    <include file="$(find ur16e_moveit_config)/launch/move_group.launch"/>
     <node name="spacenav_node" pkg="spacenav_node" type="spacenav_node" output="screen" />
     <node name="spacenav_to_twist" pkg="moveit_servo" type="spacenav_to_twist" output="screen" />
     <arg name="moveit_servo_config" default="$(find corsmal_setup_bringup)/config/moveit_servo.yaml"/>
     <node name="servo_server" pkg="moveit_servo" type="servo_server" output="screen" >
       <rosparam command="load" file="$(arg moveit_servo_config)"/>
+    </node>
+
+    <!-- timeout based stream to command filter for velocity command -->
+    <node name="twist_stream_filter" pkg="grasp_control_actions" type="twist_stream_filter.py" output="screen">
+        <param name="input_topic" value="/end_effector_cmd_vel" />
+        <param name="output_topic" value="/twist_controller/command" />
+        <param name="output_topic_type" value="Twist" />
+        <param name="timeout" value="0.05" />
+        <param name="source_frame" value="base_link" /> <!-- this is the planning frame -->
+        <param name="target_frame" value="base" /> <!-- this is always base -->
     </node>
 </launch>
