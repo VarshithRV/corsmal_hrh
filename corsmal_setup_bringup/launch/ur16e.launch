@@ -75,5 +75,6 @@
         <param name="timeout" value="0.05" />
         <param name="source_frame" value="base_link" /> <!-- this is the planning frame -->
         <param name="target_frame" value="base" /> <!-- this is always base -->
+        <param name="alpha" value="0.25"/>
     </node>
 </launch>
