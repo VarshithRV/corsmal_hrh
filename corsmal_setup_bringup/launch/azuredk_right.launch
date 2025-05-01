@@ -53,4 +53,6 @@
             <arg name="subordinate_delay_off_master_usec" value="$(arg right_subordinate_delay_off_master_usec)"/>
         </include>
     </group>
+
+    <node pkg="corsmal_setup_bringup" type="extrinsic_publisher_azure_right.py" name="extrinsic_publisher_azure_right" />
 </launch>

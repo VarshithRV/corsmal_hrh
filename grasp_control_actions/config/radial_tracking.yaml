@@ -25,9 +25,9 @@ linear_track_interpolation_factor : 0.1 # m in the direction of the target from 
 
 gains :
   linear : 
-    p : 1000
+    p : 500
     i : 0
-    d : 20
+    d : 10
     k : 0.01
   angular : 
     p : 500
