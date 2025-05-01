@@ -254,7 +254,8 @@ class RadialTracker:
                 if self.filtered_grasp_pose is not None :
                     cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ)
 
-                self.setpoint_velocity = cmd_vel  
+                self.setpoint_velocity = cmd_vel
+                self.setpoint_velocity.header.stamp = rospy.Time.now()
                 self.setpoint_velocity_pub.publish(cmd_vel)
 
                 # need to publish feedback here for the action
@@ -307,6 +308,7 @@ class RadialTracker:
                     cmd_vel = self.compute_cmd_vel(optimal_setpointL=pose_setpointL,optimal_setpointQ=pose_setpointQ)
 
                     self.setpoint_velocity = cmd_vel
+                    self.setpoint_velocity.header.stamp = rospy.Time.now()
                     self.setpoint_velocity_pub.publish(cmd_vel)
 
                     # need to publish feedback here for the action
@@ -369,6 +371,7 @@ class RadialTracker:
                 cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ) 
 
                 self.setpoint_velocity = cmd_vel  
+                self.setpoint_velocity.header.stamp = rospy.Time.now()
                 self.setpoint_velocity_pub.publish(cmd_vel) 
 
                 # need to publish feedback here for the action
