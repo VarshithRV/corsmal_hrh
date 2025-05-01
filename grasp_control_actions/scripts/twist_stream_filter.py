@@ -8,6 +8,7 @@ from diagnostic_updater import Updater
 from diagnostic_msgs.msg import DiagnosticStatus
 import threading
 import time
+import copy
 
 
 class TwistStreamFilter:
@@ -22,8 +23,9 @@ class TwistStreamFilter:
         self.twist_out = None
 
         self.lock = threading.Lock()
+        self.output_lock = threading.Lock()
         self.last_msg_time = None
-        self.prev_msg_time = None
+        self.prev_last_msg_time = None
         self.proxy_input_message = None
         self.stream_active = False
 
@@ -64,16 +66,17 @@ class TwistStreamFilter:
         rospy.loginfo(f"Transforming Twist from '{self.source_frame}' to '{self.target_frame}'")
 
     def stream_active_checker(self, event):
-        if self.prev_msg_time is not None: # check if atleast two messages have been received
-            if rospy.get_time() - self.last_msg_time <=0.05: # check if the last message received is within time out
-                if self.last_msg_time - self.prev_msg_time <= self.timeout: # the messages have greater frequency
-                    self.stream_active=True
-                else :
+        with self.lock:
+            if self.prev_last_msg_time is not None: # check if atleast two messages have been received
+                if time.time() - self.last_msg_time <= 0.05: # check if the last message received is within time out
+                    if self.last_msg_time - self.prev_last_msg_time <= self.timeout: # the messages have greater frequency
+                        self.stream_active=True
+                    else :
+                        self.stream_active=False
+                else:
                     self.stream_active=False
             else:
                 self.stream_active=False
-        else:
-            self.stream_active=False
 
     def _wait_for_static_rotation(self):
         rospy.loginfo(f"Waiting for static transform from {self.source_frame} to {self.target_frame}...")
@@ -98,9 +101,9 @@ class TwistStreamFilter:
 
     def input_cb(self, msg: TwistStamped):
         with self.lock:
-            now = time.time()
-            self.prev_msg_time = self.last_msg_time
-            self.last_msg_time = now
+            _now = time.time()
+            self.prev_last_msg_time = copy.deepcopy(self.last_msg_time)
+            self.last_msg_time = copy.deepcopy(_now)
             self.proxy_input_message = msg
 
     def transform_twist(self, twist_stamped: TwistStamped):
@@ -163,21 +166,22 @@ class TwistStreamFilter:
         # lerp linear and slerp angular
         filtered_linear = self.lerp(linear,filtered_linear,self.alpha)
         filtered_angular = self.slerp(angular, filtered_angular, self.alpha)
-
-        if self.output_topic_type == "TwistStamped":
-            self.filtered_command_vel.twist.linear.x = filtered_linear[0]
-            self.filtered_command_vel.twist.linear.y = filtered_linear[1]
-            self.filtered_command_vel.twist.linear.z = filtered_linear[2]
-            self.filtered_command_vel.twist.angular.x = filtered_angular[0]
-            self.filtered_command_vel.twist.angular.y = filtered_angular[1]
-            self.filtered_command_vel.twist.angular.z = filtered_angular[2]
-        if self.output_topic_type == "Twist":
-            self.filtered_command_vel.linear.x = filtered_linear[0]
-            self.filtered_command_vel.linear.y = filtered_linear[1]
-            self.filtered_command_vel.linear.z = filtered_linear[2]
-            self.filtered_command_vel.angular.x = filtered_angular[0]
-            self.filtered_command_vel.angular.y = filtered_angular[1]
-            self.filtered_command_vel.angular.z = filtered_angular[2]
+        with self.output_lock:    
+            if self.output_topic_type == "TwistStamped":
+                self.filtered_command_vel.header.stamp = rospy.Time.now()
+                self.filtered_command_vel.twist.linear.x = filtered_linear[0]
+                self.filtered_command_vel.twist.linear.y = filtered_linear[1]
+                self.filtered_command_vel.twist.linear.z = filtered_linear[2]
+                self.filtered_command_vel.twist.angular.x = filtered_angular[0]
+                self.filtered_command_vel.twist.angular.y = filtered_angular[1]
+                self.filtered_command_vel.twist.angular.z = filtered_angular[2]
+            if self.output_topic_type == "Twist":
+                self.filtered_command_vel.linear.x = filtered_linear[0]
+                self.filtered_command_vel.linear.y = filtered_linear[1]
+                self.filtered_command_vel.linear.z = filtered_linear[2]
+                self.filtered_command_vel.angular.x = filtered_angular[0]
+                self.filtered_command_vel.angular.y = filtered_angular[1]
+                self.filtered_command_vel.angular.z = filtered_angular[2]
     
     def lerp(self,input, impulse, alpha):
         return (1-alpha)*input + alpha*impulse
@@ -186,8 +190,9 @@ class TwistStreamFilter:
         return input#slerp is too long, im sleepy
 
     def output_publisher(self, event):
-        if self.filtered_command_vel is not None : 
-            self.pub.publish(self.filtered_command_vel)
+        with self.output_lock:
+            if self.filtered_command_vel is not None : 
+                self.pub.publish(self.filtered_command_vel)
 
     def diagnostics_cb(self, stat):
         with self.lock:
