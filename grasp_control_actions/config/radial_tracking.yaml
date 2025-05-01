@@ -21,13 +21,13 @@ cmd_publish_frequency : 100 #hz
 linear_stop_threshold : 0.002 # having a higher threshold means faster stop because of how PID works
 angular_stop_threshold : 0.005
 
-linear_track_interpolation_factor : 0.0 # m in the direction of the target from the ready_ee_pose
+linear_track_interpolation_factor : 0.1 # m in the direction of the target from the ready_ee_pose
 
 gains :
   linear : 
-    p : 750
+    p : 1000
     i : 0
-    d : 0
+    d : 20
     k : 0.01
   angular : 
     p : 500

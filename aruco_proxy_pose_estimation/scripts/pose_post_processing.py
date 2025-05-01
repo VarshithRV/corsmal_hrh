@@ -22,9 +22,9 @@ class PosePostProcess:
         # object to grasp pose transformation matrix
         self.object_to_grasp_T = np.array(
             [
-                [0, 0, -1, self.X / 2 - self.P],
+                [1, 0, 0, self.X / 2 - self.P],
                 [0, 1,  0, self.Y / 2],
-                [1, 0,  0, -self.O_d / 2],
+                [0, 0,  1, -self.O_d / 2],
                 [0, 0,  0, 1]
             ], dtype=float
         )
