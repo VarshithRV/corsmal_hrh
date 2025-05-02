@@ -234,7 +234,7 @@ class Yoink:
                     self.errorOsum = np.zeros((4,),dtype=float)
                     return True
 
-                self.linear_error = np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL) + np.linalg.norm(np.array([self.pre_grasp_transform["position"]["x"],self.pre_grasp_transform["position"]["y"],self.pre_grasp_transform["position"]["z"]],dtype=float))
+                self.linear_error = np.linalg.norm(optimal_poseL - current_poseL) + np.linalg.norm(np.array([self.pre_grasp_transform["position"]["x"],self.pre_grasp_transform["position"]["y"],self.pre_grasp_transform["position"]["z"]],dtype=float))
                 self.angular_error = np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)
 
                 cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ)
@@ -294,7 +294,7 @@ class Yoink:
                         self.errorOsum = np.zeros((4,),dtype=float)
                         return True
                     
-                    self.linear_error = np.linalg.norm(pose_setpointL) - np.linalg.norm(current_poseL)
+                    self.linear_error = np.linalg.norm(pose_setpointL - current_poseL)
                     self.angular_error = np.linalg.norm(pose_setpointQ) - np.linalg.norm(current_poseQ)
 
                     self.setpoint_velocity.header.stamp = rospy.Time.now()
