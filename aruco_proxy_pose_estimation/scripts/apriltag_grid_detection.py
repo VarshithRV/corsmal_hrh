@@ -11,6 +11,7 @@ from geometry_msgs.msg import PoseStamped, Pose
 import quaternion
 import tf.transformations as tft
 import sys
+from scipy.spatial.transform import Rotation as R
 
 
 class Deprojection:
@@ -123,7 +124,8 @@ class Deprojection:
         
         if tvec is not None or rvec is not None:
             self.tvec = tvec
-            self.qvec = tft.quaternion_from_euler(ai=rvec[0],aj=rvec[1],ak=rvec[2])
+            r = R.from_euler('xzy', rvec.reshape((3,)))
+            self.qvec = r.as_quat()
         else :
             self.tvec = None
             self.qvec = None
@@ -181,13 +183,13 @@ class Deprojection:
         msg = PoseStamped()
         msg.header.frame_id = self.camera_info.header.frame_id
         msg.header.stamp = rospy.Time.now()
-        msg.pose.position.x = self.tvec[0]
-        msg.pose.position.y = self.tvec[1]
-        msg.pose.position.z = self.tvec[2]
-        msg.pose.orientation.x = self.qvec[0]
-        msg.pose.orientation.y = self.qvec[1]
-        msg.pose.orientation.z = self.qvec[2]
-        msg.pose.orientation.w = self.qvec[3]
+        msg.pose.position.x = self.filtered_tvec[0]
+        msg.pose.position.y = self.filtered_tvec[1]
+        msg.pose.position.z = self.filtered_tvec[2]
+        msg.pose.orientation.x = self.filtered_qvec[0]
+        msg.pose.orientation.y = self.filtered_qvec[1]
+        msg.pose.orientation.z = self.filtered_qvec[2]
+        msg.pose.orientation.w = self.filtered_qvec[3]
         self.filtered_pose_pub.publish(msg)
 
 
