@@ -68,11 +68,11 @@
     <!-- timeout based stream to command filter for velocity command -->
     <node name="twist_stream_filter" pkg="grasp_control_actions" type="twist_stream_filter.py" output="screen">
         <param name="input_topic" value="/end_effector_cmd_vel" />
-        <param name="output_topic" value="/twist_controller/command" />
-        <param name="output_topic_type" value="Twist" />
+        <param name="output_topic" value="/servo_server/delta_twist_cmds" />
+        <param name="output_topic_type" value="TwistStamped" />
         <param name="timeout" value="0.05" />
         <param name="source_frame" value="base_link" /> <!-- this is the planning frame -->
-        <param name="target_frame" value="base" /> <!-- this is always base -->
+        <param name="target_frame" value="base_link" /> <!-- this is always base -->
         <param name="alpha" value="0.25"/>
     </node>
 

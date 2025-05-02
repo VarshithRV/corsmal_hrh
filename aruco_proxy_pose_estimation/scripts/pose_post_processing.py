@@ -22,9 +22,9 @@ class PosePostProcess:
         # object to grasp pose transformation matrix
         self.object_to_grasp_T = np.array(
             [
-                [0, 0, -1, self.X / 2 - self.P],
+                [0, 0, 1, self.X / 2 - self.P],
                 [0, 1,  0, self.Y / 2],
-                [1, 0,  0, -self.O_d / 2],
+                [-1, 0,  0, -self.O_d / 2],
                 [0, 0,  0, 1]
             ], dtype=float
         )
@@ -32,7 +32,6 @@ class PosePostProcess:
         rospy.Subscriber(self.input_pose_topic, PoseStamped, callback=self.input_pose_cb)
         self.pose_publisher = rospy.Publisher(self.output_pose_topic, PoseStamped, queue_size=10)
         
-
 
     def pose_to_matrix(self, pose):
         quat = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
@@ -69,6 +68,7 @@ class PosePostProcess:
         grasp_T = np.dot(input_T, self.object_to_grasp_T)
         grasp_pose_local = self.matrix_to_pose(grasp_T, msg.header.frame_id)
         grasp_pose_world = self.transform_pose(grasp_pose_local, self.parent_frame)
+        grasp_pose_world.header.frame_id = self.parent_frame
         if grasp_pose_world:
             self.pose_publisher.publish(grasp_pose_world)
 

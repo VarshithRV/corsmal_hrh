@@ -124,7 +124,8 @@ class Deprojection:
         
         if tvec is not None or rvec is not None:
             self.tvec = tvec
-            r = R.from_euler('xzy', rvec.reshape((3,)))
+            # rotation_matrix, _ = cv2.Rodrigues(self.rvec)
+            r = R.from_rotvec(rvec)
             self.qvec = r.as_quat()
         else :
             self.tvec = None
@@ -251,7 +252,7 @@ class Deprojection:
                 )
                 if success:
                     detected_image = self.draw_axes(detected_image,rvec,tvec,intrinsics,distortion_coefficients)
-                    return detected_image,rvec,tvec.reshape((3,))
+                    return detected_image,rvec.reshape((3,)),tvec.reshape((3,))
                 else :
                     return detected_image, None, None
             return detected_image, None, None
