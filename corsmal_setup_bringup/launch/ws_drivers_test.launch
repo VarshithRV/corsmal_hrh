@@ -4,5 +4,4 @@
     <include file="$(find corsmal_setup_bringup)/launch/azuredk_left.launch"/>
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find corsmal_setup_bringup)/config/default.rviz" />
     <include file="$(find aruco_proxy_pose_estimation)/launch/apriltag_grid_detector.launch"/>
-    <!-- <include file="$(find grasp_control_actions)/launch/action_servers.launch"/> -->
 </launch>
