@@ -5,6 +5,7 @@
     <rosparam command="load" file="$(find grasp_control_actions)/config/radial_tracking_sim.yaml" ns="radial_track_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/rest_sim.yaml" ns="rest_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place_sim.yaml" ns="place_as"/>
+    <rosparam command="load" file="$(find grasp_control_actions)/config/place_blended_radius_sim.yaml" ns="place_blended_radius_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place_vel_sim.yaml" ns="place_vel_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/common_parameters_ur5e_sim.yaml" ns="common_parameters"/>
 
@@ -31,4 +32,5 @@
     </node>
     <node pkg="grasp_control_actions" type="rest_as.py" name="rest_server" output="screen"/>
     <node pkg="grasp_control_actions" type="place_as.py" name="place_object_server" output="screen"/>
+    <node pkg="grasp_control_actions" type="place_blended_radius_as.py" name="place_br_object_server" output="screen"/>
 </launch>

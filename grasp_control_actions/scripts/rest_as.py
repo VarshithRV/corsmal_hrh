@@ -123,6 +123,9 @@ class Rest:
             return
         rospy.loginfo("%s : Commanding robot to go to joint state : %s",rospy.get_name(),(str(self.rest_joint_state)))
         try : 
+            self.move_group.set_planner_id("LIN")  # "PTP" "LIN" or "CIRC"
+            rospy.sleep(0.5)
+            print("going_now")
             self.move_group.go(self.rest_joint_state, wait=False)
         except Exception as e:
             rospy.loginfo("%s : Reaching joint state failed due to : %s",rospy.get_name(),e)

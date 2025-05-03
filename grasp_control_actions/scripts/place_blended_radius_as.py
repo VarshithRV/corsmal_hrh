@@ -29,7 +29,7 @@ from math import pi, tau, dist, fabs, cos
 class Place:
     def __init__(self):
         
-        self.params = rospy.get_param("/place_as")
+        self.params = rospy.get_param("/place_blended_radius_as")
         self.common_params = rospy.get_param("/common_parameters")
 
         self.servo_topic = self.common_params["servo_topic"]
@@ -71,7 +71,7 @@ class Place:
 
         # create action server for Place
         self.place_action_server = actionlib.SimpleActionServer(
-            "place_server", PlaceMsgAction, self.place_action_callback, auto_start=False
+            "place_blended_radius_server", PlaceMsgAction, self.place_action_callback, auto_start=False
         )
 
         # moveit stuff
@@ -191,6 +191,8 @@ class Place:
         post_place_position.pose.orientation.y = copy.deepcopy(place_position.pose.orientation.y)
         post_place_position.pose.orientation.z = copy.deepcopy(place_position.pose.orientation.z)
 
+        ## need to change from here to 
+
         # preplace_position -> place
         self._waypoints.clear()
         self._waypoints.append(copy.deepcopy(preplace_position.pose))
@@ -202,6 +204,10 @@ class Place:
         else:
             self._waypoints.clear()
         self._waypoints.clear()
+
+        
+        ### here
+        
         finish = rospy.get_time()
 
         rospy.loginfo("%s : Time taken for place : %s",rospy.get_name(),(finish-start))
