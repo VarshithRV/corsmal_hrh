@@ -12,7 +12,7 @@ class PosePostProcess:
         self.X = rospy.get_param("~X", 42.0) / 1000  # marker X in mm
         self.Y = rospy.get_param("~Y", 42.0) / 1000  # marker Y in mm
         self.O_d = rospy.get_param("~D", 42.0) / 1000  # object D in mm
-        self.P = rospy.get_param("~P", 50.0) / 1000  # padding in mm
+        self.P = rospy.get_param("~P", 0.0) / 1000  # padding in mm
         self.input_pose_topic = rospy.get_param("~input_pose_topic", "/object_filtered_pose")
         self.output_pose_topic = rospy.get_param("~output_pose_topic", "/filtered_grasp_pose")
 
