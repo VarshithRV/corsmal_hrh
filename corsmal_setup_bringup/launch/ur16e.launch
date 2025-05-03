@@ -9,8 +9,8 @@
     <arg name="trajectory_port" value="60003" doc="Port that will be opened by the driver to allow trajectory forwarding."/>
     <arg name="script_command_port" value="50004" doc="Port that will be opened by the driver to allow forwarding script commands to the robot."/>
     <arg name="tf_prefix" value="" doc="tf_prefix used for the robot."/>
-    <arg name="controllers" value="joint_state_controller twist_controller speed_scaling_state_controller force_torque_sensor_controller" doc="Controllers that are activated by default."/>
-    <arg name="stopped_controllers" value="joint_group_pos_controller scaled_pos_joint_traj_controller pos_joint_traj_controller  joint_group_vel_controller" doc="Controllers that are initally loaded, but not started."/>
+    <arg name="controllers" value="joint_state_controller joint_group_vel_controller speed_scaling_state_controller force_torque_sensor_controller" doc="Controllers that are activated by default."/>
+    <arg name="stopped_controllers" value="twist_controller joint_group_pos_controller scaled_pos_joint_traj_controller pos_joint_traj_controller" doc="Controllers that are initally loaded, but not started."/>
     <arg name="controller_config_file" value="$(find corsmal_setup_bringup)/config/ur16e_controller_config.yaml" doc="Config file used for defining the ROS-Control controllers."/>
     <arg name="robot_description_file" value="$(find ur_description)/launch/load_ur16e.launch" doc="Robot description launch file."/>
     <arg name="kinematics_config" value="$(find corsmal_setup_bringup)/config/right_ur16e_kinematics_config.yaml" doc="Kinematics config file used for calibration correction. This will be used to verify the robot's calibration is matching the robot_description."/>
@@ -68,12 +68,12 @@
     <!-- timeout based stream to command filter for velocity command -->
     <node name="twist_stream_filter" pkg="grasp_control_actions" type="twist_stream_filter.py" output="screen">
         <param name="input_topic" value="/end_effector_cmd_vel" />
-        <param name="output_topic" value="/twist_controller/command" />
-        <param name="output_topic_type" value="Twist" />
+        <param name="output_topic" value="/servo_server/delta_twist_cmds" />
+        <param name="output_topic_type" value="TwistStamped" />
         <param name="timeout" value="0.05" />
         <param name="source_frame" value="base_link" /> <!-- this is the planning frame -->
-        <param name="target_frame" value="base" /> <!-- this is always base -->
-        <param name="alpha" value="0.25"/>
+        <param name="target_frame" value="base_link" /> <!-- this is always base -->
+        <param name="alpha" value="0.50"/>
     </node>
 
     <node pkg="corsmal_setup_bringup" type="calibration_publisher_robot.py" name="robot_calibration_publisher" />
