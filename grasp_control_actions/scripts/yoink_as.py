@@ -50,8 +50,6 @@ class Yoink:
 
         self.linear_stop_threshold = self.params["linear_stop_threshold"]
         self.angular_stop_threshold = self.params["angular_stop_threshold"]
-        self.linear_pre_grasp_stop_threshold = self.params["linear_pre_grasp_stop_threshold"]
-        self.angular_pre_grasp_stop_threshold = self.params["angular_pre_grasp_stop_threshold"]
         self.pre_grasp_transform = self.params["pre_grasp_transform"]
         self.input_stream_timeout = self.params["input_stream_timeout"]
 
@@ -224,7 +222,7 @@ class Yoink:
                 current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
                                           self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
                 
-                if (abs(np.linalg.norm(optimal_poseL - current_poseL)) < self.linear_pre_grasp_stop_threshold) and (abs(np.linalg.norm(optimal_poseQ  - current_poseQ))<self.angular_pre_grasp_stop_threshold ): 
+                if (abs(np.linalg.norm(optimal_poseL - current_poseL)) < self.linear_stop_threshold) and (abs(np.linalg.norm(optimal_poseQ  - current_poseQ))<self.angular_stop_threshold ): 
                     cmd_vel = TwistStamped()
                     cmd_vel.header.frame_id = "base_link"
                     rospy.loginfo("%s : Reached pre grasp",rospy.get_name())
@@ -234,7 +232,7 @@ class Yoink:
                     self.errorOsum = np.zeros((4,),dtype=float)
                     return True
 
-                self.linear_error = np.linalg.norm(optimal_poseL - current_poseL) + np.linalg.norm(np.array([self.pre_grasp_transform["position"]["x"],self.pre_grasp_transform["position"]["y"],self.pre_grasp_transform["position"]["z"]],dtype=float))
+                self.linear_error = np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)
                 self.angular_error = np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)
 
                 cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ)
@@ -294,18 +292,8 @@ class Yoink:
                         self.errorOsum = np.zeros((4,),dtype=float)
                         return True
                     
-                    self.linear_error = np.linalg.norm(pose_setpointL - current_poseL)
-                    self.angular_error = np.linalg.norm(pose_setpointQ) - np.linalg.norm(current_poseQ)
-
                     self.setpoint_velocity.header.stamp = rospy.Time.now()
                     cmd_vel = self.compute_cmd_vel(optimal_setpointL=pose_setpointL,optimal_setpointQ=pose_setpointQ)
-
-                    # need to publish feedback here for the action
-                    self.feedback.linear_error.data = self.linear_error
-                    self.feedback.linear_velocity.data = self.linear_velocity
-                    self.feedback.angular_velocity.data = self.angular_velocity
-                    self.feedback.angular_error.data = self.angular_error
-                    self.yoink_action_server.publish_feedback(self.feedback)
 
                     self.setpoint_velocity = cmd_vel
                     self.setpoint_velocity_pub.publish(cmd_vel)
