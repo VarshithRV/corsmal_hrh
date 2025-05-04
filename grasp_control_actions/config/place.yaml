@@ -18,6 +18,7 @@ default_position_joint_states :
   - -1.6057263996584847
 
 use_default_position : True
+go_back : 0.1
 
 preplace_transformation :
   position:

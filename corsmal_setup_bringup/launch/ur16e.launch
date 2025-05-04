@@ -73,7 +73,7 @@
         <param name="timeout" value="0.05" />
         <param name="source_frame" value="base_link" /> <!-- this is the planning frame -->
         <param name="target_frame" value="base_link" /> <!-- this is always base -->
-        <param name="alpha" value="0.50"/>
+        <param name="alpha" value="0.65"/>
     </node>
 
     <node pkg="corsmal_setup_bringup" type="calibration_publisher_robot.py" name="robot_calibration_publisher" />
