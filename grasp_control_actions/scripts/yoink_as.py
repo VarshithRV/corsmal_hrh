@@ -50,6 +50,8 @@ class Yoink:
 
         self.linear_stop_threshold = self.params["linear_stop_threshold"]
         self.angular_stop_threshold = self.params["angular_stop_threshold"]
+        self.linear_pre_grasp_stop_threshold = self.params["linear_pre_grasp_stop_threshold"]
+        self.angular_pre_grasp_stop_threshold = self.params["angular_pre_grasp_stop_threshold"]
         self.pre_grasp_transform = self.params["pre_grasp_transform"]
         self.input_stream_timeout = self.params["input_stream_timeout"]
 
@@ -222,7 +224,7 @@ class Yoink:
                 current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
                                           self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
                 
-                if (abs(np.linalg.norm(optimal_poseL - current_poseL)) < self.linear_stop_threshold) and (abs(np.linalg.norm(optimal_poseQ  - current_poseQ))<self.angular_stop_threshold ): 
+                if (abs(np.linalg.norm(optimal_poseL - current_poseL)) < self.linear_pre_grasp_stop_threshold) and (abs(np.linalg.norm(optimal_poseQ  - current_poseQ))<self.angular_pre_grasp_stop_threshold ): 
                     cmd_vel = TwistStamped()
                     cmd_vel.header.frame_id = "base_link"
                     rospy.loginfo("%s : Reached pre grasp",rospy.get_name())
@@ -431,7 +433,7 @@ class Yoink:
     
     def is_input_stream_active(self, event):
         if self.prev_last_message_time is not None: # check if atleast two messages have been received
-            if rospy.get_time() - self.last_message_time <=0.1: # check if the last message received is with a small amount of time > 0.01s
+            if rospy.get_time() - self.last_message_time <=self.input_stream_timeout: # check if the last message received is with a small amount of time > 0.01s
                 if self.last_message_time - self.prev_last_message_time <= self.input_stream_timeout: # the messages have greater frequency
                     self.input_stream_status=True
                 else :
