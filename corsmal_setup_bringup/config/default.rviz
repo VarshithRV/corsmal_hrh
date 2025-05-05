@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 496
@@ -148,6 +149,18 @@ Visualization Manager:
           Value: false
         left_azure_rgb_camera_link:
           Value: false
+        right_azure_camera_base:
+          Value: true
+        right_azure_camera_body:
+          Value: false
+        right_azure_camera_visor:
+          Value: false
+        right_azure_depth_camera_link:
+          Value: false
+        right_azure_imu_link:
+          Value: false
+        right_azure_rgb_camera_link:
+          Value: false
         shoulder_link:
           Value: false
         tool0:
@@ -195,6 +208,16 @@ Visualization Manager:
               left_azure_imu_link:
                 {}
               left_azure_rgb_camera_link:
+                {}
+          right_azure_camera_base:
+            right_azure_camera_body:
+              {}
+            right_azure_camera_visor:
+              {}
+            right_azure_depth_camera_link:
+              right_azure_imu_link:
+                {}
+              right_azure_rgb_camera_link:
                 {}
       Update Interval: 0
       Value: true
@@ -254,7 +277,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.920426368713379
+      Distance: 3.0218281745910645
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -270,9 +293,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.24539846181869507
+      Pitch: 0.2303985208272934
       Target Frame: <Fixed Frame>
-      Yaw: 4.0785746574401855
+      Yaw: 4.2385783195495605
     Saved: ~
 Window Geometry:
   Displays:
