@@ -23,6 +23,7 @@ HANDOVER_VELOCITY_THRESHOLD = 0.07 #ms-1 should increase to make it faster
 class MpClass:
     def __init__(self):
         rospy.init_node("motion_planning_client")
+        rospy.loginfo("%s Started client, connecting to action servers", rospy.get_name())
 
         # other variables
         self.yoink_feedback = None
@@ -61,6 +62,9 @@ class MpClass:
         self.fgp_sub = rospy.Subscriber("/filtered_grasp_pose",PoseStamped,callback=self.fgp_cb)
         self.fgp_linear_velocity_publisher = rospy.Publisher("/filtered_grasp_pose_linear_velocity",Twist,queue_size=1)
         self.start_handover_publisher = rospy.Publisher("/start_handover",Float32,queue_size=1)
+        self.calculate_fgp_linear_velocity_timer = rospy.Timer(rospy.Duration(1/30),self.calculate_fgp_linear_velocity_cb)
+        self.filter_fgp_vel_timer = rospy.Timer(rospy.Duration(1/30),self.filter_fgp_vel_cb)
+
         rospy.loginfo("Waiting for one fgp message")
         rospy.wait_for_message("/filtered_grasp_pose",PoseStamped)
         rospy.loginfo("Message received")
@@ -71,8 +75,6 @@ class MpClass:
         else : 
             rospy.loginfo("%s : All servers connected",rospy.get_name())
 
-        self.calculate_fgp_linear_velocity_timer = rospy.Timer(rospy.Duration(1/30),self.calculate_fgp_linear_velocity_cb)
-        self.filter_fgp_vel_timer = rospy.Timer(rospy.Duration(1/30),self.filter_fgp_vel_cb)
 
     def calculate_fgp_linear_velocity_cb(self,event):
         with self.array_access_lock:
@@ -136,8 +138,12 @@ class MpClass:
         rate = rospy.Rate(30)
         rospy.loginfo(f"{rospy.get_name()} : waiting for grasp")
         rospy.wait_for_message("/yoink/linear_error",Float32,3.0)
-        while self.yoink_feedback > self.yoink_feedback_threshold:
+        start = rospy.get_time()
+        rospy.sleep(0.2)
+        while self.yoink_feedback.data > self.yoink_feedback_threshold:
             rate.sleep()
+        rospy.sleep(0.5)
+        print("Waited for : ",rospy.get_time() - start)
 
     def gripper_on(self):
         self.set_io_client(1,SetIORequest.PIN_CONF_OUT2,1) #positive to reinforce grip
@@ -161,64 +167,74 @@ class MpClass:
 if __name__ == "__main__":
     mp = MpClass()
 
-    mp.wait_for_handover()
-    
-    rospy.spin()
-    
-    # rest
-    rospy.loginfo("%s : rest",rospy.get_name())
-    restGoal = RestActionGoal()
-    mp.rest_client.send_goal(restGoal)
-    result = mp.rest_client.get_result()
-    rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
+    rospy.sleep(0.2)
+    mp.gripper_neutral()
+
+    # This is the wait for handover function
+    # mp.wait_for_handover()
 
     # rest
     rospy.loginfo("%s : rest",rospy.get_name())
     restGoal = RestActionGoal()
     mp.rest_client.send_goal(restGoal)
+    mp.rest_client.wait_for_result()
     result = mp.rest_client.get_result()
     rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
 
+    # # rest
+    # rospy.loginfo("%s : rest",rospy.get_name())
+    # restGoal = RestActionGoal()
+    # mp.rest_client.send_goal(restGoal)
+    # mp.rest_client.wait_for_result()
+    # result = mp.rest_client.get_result()
+    # rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
+
+    mp.gripper_off()
+    rospy.sleep(0.5)
     start = rospy.get_time()
-    print("Gonna start radial tracking now")
-    rospy.sleep(2)
-    # radial track for a few seconds
-    rospy.loginfo("%s : radial tracking",rospy.get_name())
-    radial_trackGoal = RadialTrackingGoal()
-    radial_trackGoal.timeout.data = 0.0
-    mp.radial_tracking_client.send_goal(radial_trackGoal)
-    mp.radial_tracking_client.wait_for_result()
-    result = mp.radial_tracking_client.get_result()
-    rospy.loginfo("%s : radial tracking result : %s",rospy.get_name(), result)
-    rospy.sleep(2)
-    print("Radial tracking stopped")
+
+    # print("Gonna start radial tracking now")
+    # # radial track for a few seconds
+    # rospy.loginfo("%s : radial tracking",rospy.get_name())
+    # radial_trackGoal = RadialTrackingGoal()
+    # radial_trackGoal.timeout.data = 0.0
+    # mp.radial_tracking_client.send_goal(radial_trackGoal)
+    # mp.radial_tracking_client.wait_for_result()
+    # result = mp.radial_tracking_client.get_result()
+    # rospy.loginfo("%s : radial tracking result : %s",rospy.get_name(), result)
+    # rospy.sleep(2)
+    # print("Radial tracking stopped")
     
     # yoink
     rospy.loginfo("%s : yoink",rospy.get_name())
     yoinkGoal = YoinkActionGoal()
     mp.yoink_client.send_goal(yoinkGoal)
+    print("waiting for grasp")
     mp.wait_to_grasp()
     mp.gripper_on()
     mp.yoink_client.wait_for_result()
     result = mp.yoink_client.get_result()
     rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
 
-    # place
-    rospy.loginfo("%s : place",rospy.get_name())
-    placeGoal = PlaceMsgGoal()
-    mp.place_client.send_goal(placeGoal)
-    mp.place_client.wait_for_result()
-    result = mp.place_client.get_result()
-    rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
+    # # place
+    # rospy.loginfo("%s : place",rospy.get_name())
+    # placeGoal = PlaceMsgGoal()
+    # mp.place_client.send_goal(placeGoal)
+    # mp.place_client.wait_for_result()
+    # result = mp.place_client.get_result()
+    # rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
+
+    rospy.sleep(0.5)
+    mp.gripper_off()
     
-    # place vel
-    rospy.loginfo("%s : place",rospy.get_name())
-    placeGoal = PlaceVelGoal()
-    mp.place_vel_client.send_goal(placeGoal)
-    # mp.place_client.cancel_goal()
-    mp.place_vel_client.wait_for_result()
-    result = mp.place_vel_client.get_result()
-    rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
+    # # place vel
+    # rospy.loginfo("%s : place",rospy.get_name())
+    # placeGoal = PlaceVelGoal()
+    # mp.place_vel_client.send_goal(placeGoal)
+    # # mp.place_client.cancel_goal()
+    # mp.place_vel_client.wait_for_result()
+    # result = mp.place_vel_client.get_result()
+    # rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
 
     finish = rospy.get_time()
     # report
@@ -228,6 +244,7 @@ if __name__ == "__main__":
     rospy.loginfo("%s : rest",rospy.get_name())
     restGoal = RestActionGoal()
     mp.rest_client.send_goal(restGoal)
+    mp.rest_client.wait_for_result()
     result = mp.rest_client.get_result()
     rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
 
@@ -235,5 +252,8 @@ if __name__ == "__main__":
     rospy.loginfo("%s : rest",rospy.get_name())
     restGoal = RestActionGoal()
     mp.rest_client.send_goal(restGoal)
+    mp.rest_client.wait_for_result()
     result = mp.rest_client.get_result()
     rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
+
+    mp.gripper_neutral()
