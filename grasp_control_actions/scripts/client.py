@@ -14,6 +14,7 @@ import copy
 from std_msgs.msg import Float32
 
 YOINK_FEEDBACK_THRESHOLD = 0.05
+PLACE_FEEDBACK_THRESHOLD = 0.05
 VELOCITY_AVG_WINDOW_SIZE = 10
 ALPHA = 0.5 # more means trust filtered data more
 Z_DISPLACEMENT = 0.20 #m, should reduce to make it faster
@@ -28,6 +29,8 @@ class MpClass:
         # other variables
         self.yoink_feedback = None
         self.yoink_feedback_threshold = YOINK_FEEDBACK_THRESHOLD
+        self.place_br_feedback = None
+        self.place_br_feedback_threshold = PLACE_FEEDBACK_THRESHOLD
         self.fgp = None
         self.fgp_inital = None
         self.fgp_list = []
@@ -42,6 +45,7 @@ class MpClass:
         rospy.loginfo("%s Started client, connecting to action servers", rospy.get_name())
         self.place_client = actionlib.SimpleActionClient("place_server", PlaceMsgAction)
         self.place_vel_client = actionlib.SimpleActionClient("place_vel", PlaceVelAction)
+        self.place_br_client = actionlib.SimpleActionClient("place_blended_radius_server", PlaceMsgAction)
         self.rest_client = actionlib.SimpleActionClient("rest", RestAction)
         self.radial_tracking_client = actionlib.SimpleActionClient("radial_track", RadialTrackingAction)
         self.yoink_client = actionlib.SimpleActionClient("yoink", YoinkAction)
@@ -53,6 +57,7 @@ class MpClass:
         client_connection3 = self.rest_client.wait_for_server(timeout=rospy.Duration(secs=3))
         client_connection4 = self.place_client.wait_for_server(timeout=rospy.Duration(secs=3))
         client_connection5 = self.place_vel_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection6 = self.place_br_client.wait_for_server(timeout=rospy.Duration(secs=3))
         
         # connect to ur pin service to commands gripper pins
         self.set_io_client = rospy.ServiceProxy("/ur_hardware_interface/set_io", SetIO)
@@ -70,7 +75,7 @@ class MpClass:
         rospy.loginfo("Message received")
         self.fgp_inital = copy.deepcopy(self.fgp)
 
-        if not (client_connection1 and client_connection2 and client_connection3 and client_connection4 and client_connection5):
+        if not (client_connection1 and client_connection2 and client_connection3 and client_connection4 and client_connection5 and client_connection6):
             rospy.logwarn("%s Some clients are not connected!!",rospy.get_name())
         else : 
             rospy.loginfo("%s : All servers connected",rospy.get_name())
@@ -108,6 +113,9 @@ class MpClass:
     def yoink_feedback_cb(self,msg):
         self.yoink_feedback = msg
 
+    def place_br_feedback_cb(self,msg):
+        self.place_br_feedback = msg
+
     def fgp_cb(self,msg):
         self.fgp = msg
         with self.array_access_lock:
@@ -120,10 +128,8 @@ class MpClass:
         start = rospy.get_time()
 
         while not rospy.is_shutdown():
-            # if (self.fgp_linear_velocity_filtered.linear.z < HANDOVER_VELOCITY_THRESHOLD and self._max_vel_z > MAX_VELOCITY_THRESHOLD and 
-            #    self.fgp.pose.position.z - self.fgp_inital.pose.position.z > Z_DISPLACEMENT):
             if (self.fgp.pose.position.z - self.fgp_inital.pose.position.z > Z_DISPLACEMENT and 
-                # self.fgp_linear_velocity_filtered.linear.z < HANDOVER_VELOCITY_THRESHOLD and 
+                self.fgp_linear_velocity_filtered.linear.z < HANDOVER_VELOCITY_THRESHOLD and 
                 self._max_vel_z > MAX_VELOCITY_THRESHOLD):
                 self.start_handover = 0.5
                 break
@@ -141,6 +147,17 @@ class MpClass:
         start = rospy.get_time()
         rospy.sleep(0.2)
         while self.yoink_feedback.data > self.yoink_feedback_threshold:
+            rate.sleep()
+        rospy.sleep(0.5)
+        print("Waited for : ",rospy.get_time() - start)
+    
+    def wait_to_release(self):
+        rate = rospy.Rate(30)
+        rospy.loginfo(f"{rospy.get_name()} : waiting for release")
+        rospy.wait_for_message("/place_br/linear_error",Float32,3.0)
+        start = rospy.get_time()
+        rospy.sleep(0.2)
+        while self.place_br_feedback.data > self.place_br_feedback_threshold:
             rate.sleep()
         rospy.sleep(0.5)
         print("Waited for : ",rospy.get_time() - start)
@@ -216,16 +233,16 @@ if __name__ == "__main__":
     result = mp.yoink_client.get_result()
     rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
 
-    # # place
-    # rospy.loginfo("%s : place",rospy.get_name())
-    # placeGoal = PlaceMsgGoal()
-    # mp.place_client.send_goal(placeGoal)
-    # mp.place_client.wait_for_result()
-    # result = mp.place_client.get_result()
-    # rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
-
-    rospy.sleep(0.5)
+    # place
+    rospy.loginfo("%s : place",rospy.get_name())
+    placeGoal = PlaceMsgGoal()
+    mp.place_br_client.send_goal(placeGoal)
+    mp.wait_to_release()
     mp.gripper_off()
+    finish = rospy.get_time()
+    mp.place_br_client.wait_for_result()
+    result = mp.place_br_client.get_result()
+    rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
     
     # # place vel
     # rospy.loginfo("%s : place",rospy.get_name())
@@ -236,7 +253,6 @@ if __name__ == "__main__":
     # result = mp.place_vel_client.get_result()
     # rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
 
-    finish = rospy.get_time()
     # report
     rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
 

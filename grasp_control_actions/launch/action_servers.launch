@@ -5,6 +5,7 @@
     <rosparam command="load" file="$(find grasp_control_actions)/config/radial_tracking.yaml" ns="radial_track_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/rest.yaml" ns="rest_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place.yaml" ns="place_as"/>
+    <rosparam command="load" file="$(find grasp_control_actions)/config/place_blended_radius_sim.yaml" ns="place_blended_radius_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place_vel.yaml" ns="place_vel_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/common_parameters_ur16e.yaml" ns="common_parameters"/>
 
@@ -30,5 +31,10 @@
         <remap from="/optimal_pose" to="/place_vel/optimal_pose"/>
     </node>
     <node pkg="grasp_control_actions" type="rest_as.py" name="rest_server" output="screen"/>
-    <node pkg="grasp_control_actions" type="place_as.py" name="place_object_server" output="screen"/>
+    <node pkg="grasp_control_actions" type="place_as.py" name="place_object_server" output="screen">
+        <remap from="/linear_error" to="/place/linear_error"/>
+    </node>
+    <node pkg="grasp_control_actions" type="place_blended_radius_as.py" name="place_br_object_server" output="screen">
+        <remap from="/linear_error" to="/place_br/linear_error"/>
+    </node>
 </launch>

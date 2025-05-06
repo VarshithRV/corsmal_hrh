@@ -58,8 +58,21 @@ class Place:
 
         self.use_default_position = self.params["use_default_position"]
         self.go_back = self.params["go_back"]
-
+        self.current_pose = None
+        self.place_position = None
         self._waypoints = []
+        
+        # moveit stuff
+        moveit_commander.roscpp_initialize(sys.argv)
+        self.robot = moveit_commander.RobotCommander()
+        self.scene = moveit_commander.PlanningSceneInterface()
+        self.group_name = "manipulator"
+        self.move_group = moveit_commander.MoveGroupCommander(self.group_name)
+        self.display_trajectory_publisher = rospy.Publisher(
+            "/move_group/display_planned_path",
+            moveit_msgs.msg.DisplayTrajectory,
+            queue_size=20,
+        )
 
         rospy.loginfo("%s : Started the place node with parameters:"%rospy.get_name())
         for item in self.params:
@@ -73,25 +86,24 @@ class Place:
         self.place_action_server = actionlib.SimpleActionServer(
             "place_server", PlaceMsgAction, self.place_action_callback, auto_start=False
         )
-
-        # moveit stuff
-        moveit_commander.roscpp_initialize(sys.argv)
-        self.robot = moveit_commander.RobotCommander()
-        self.scene = moveit_commander.PlanningSceneInterface()
-        self.group_name = "manipulator"
-        self.move_group = moveit_commander.MoveGroupCommander(self.group_name)
-        self.display_trajectory_publisher = rospy.Publisher(
-            "/move_group/display_planned_path",
-            moveit_msgs.msg.DisplayTrajectory,
-            queue_size=20,
-        )
-
+        # Timer to update current_pose
+        current_pose_update_timer = rospy.Timer(rospy.Duration(0.01),callback=self.update_current_pose)
+        # publish error and velocity magnitude for debug
+        self.linear_error_publisher =  rospy.Publisher("/linear_error",Float32,queue_size=1)
+        # error publisher timer
+        error_publisher_timer = rospy.Timer(rospy.Duration(0.01),callback=self.publish_error)
         # service proxy for switch controllers
         self.switch_controller = rospy.ServiceProxy("/controller_manager/switch_controller",SwitchController)
 
         # preempt registration
         self.place_action_server.register_preempt_callback(self.place_preempt_callback)
         self.place_action_server.start()
+
+    def publish_error(self, event):
+        if self.place_position is not None:
+            current_pose = np.array([self.current_pose.pose.position.x,self.current_pose.pose.position.y,self.current_pose.pose.position.z],dtype=float)
+            setpoint_pose = np.array([self.place_position.pose.position.x,self.place_position.pose.position.y,self.place_position.pose.position.z],dtype=float)
+            self.linear_error_publisher.publish(Float32(data = np.linalg.norm(current_pose-setpoint_pose)))
 
     def execute_waypoints(self, waypoints):
         # rospy.loginfo("%s : Executing waypoints : %s", rospy.get_name(),waypoints)
@@ -157,6 +169,9 @@ class Place:
     def is_close(self,array1, array2):
         return True if np.isclose(np.array(array1),np.array(array2), 0.01,0.01,False).all() else False
 
+    def update_current_pose(self,event):
+        self.current_pose = self.move_group.get_current_pose() # as a PoseStamped
+
     def place_action_callback(self,goal:PlaceMsgGoal):
         start = rospy.get_time()
         rospy.loginfo("%s : Action started",rospy.get_name())
@@ -169,6 +184,7 @@ class Place:
         
         rospy.loginfo("%s : Starting place now",rospy.get_name())
         place_position = goal.place_position if not self.use_default_position else self.default_position
+        self.place_position = place_position
         preplace_position = PoseStamped()
         _preplace_position = np.array([place_position.pose.position.x,place_position.pose.position.y,place_position.pose.position.z])
         _preplace_orientation = quaternion.from_float_array([place_position.pose.orientation.w, place_position.pose.orientation.x,place_position.pose.orientation.y,place_position.pose.orientation.z])
@@ -205,11 +221,12 @@ class Place:
         finish = rospy.get_time()
 
         rospy.loginfo("%s : Time taken for place : %s",rospy.get_name(),(finish-start))
+        self.place_position = None
         self.place_action_server.set_succeeded(PlaceMsgActionResult(result=True))
         return
 
 if __name__ == "__main__":
-    rospy.init_node("place")
+    rospy.init_node("place",argv=sys.argv)
     place = Place()
     rospy.sleep(0.5)
     rospy.spin()
