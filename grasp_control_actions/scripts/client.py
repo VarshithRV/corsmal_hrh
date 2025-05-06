@@ -37,26 +37,26 @@ class MpClass:
         self._max_vel_z = 0.0
         self.start_handover = 0.0 # this is just for debugging
         
-        # # connect to action servers
-        # rospy.loginfo("%s Started client, connecting to action servers", rospy.get_name())
-        # self.place_client = actionlib.SimpleActionClient("place_server", PlaceMsgAction)
-        # self.place_vel_client = actionlib.SimpleActionClient("place_vel", PlaceVelAction)
-        # self.rest_client = actionlib.SimpleActionClient("rest", RestAction)
-        # self.radial_tracking_client = actionlib.SimpleActionClient("radial_track", RadialTrackingAction)
-        # self.yoink_client = actionlib.SimpleActionClient("yoink", YoinkAction)
+        # connect to action servers
+        rospy.loginfo("%s Started client, connecting to action servers", rospy.get_name())
+        self.place_client = actionlib.SimpleActionClient("place_server", PlaceMsgAction)
+        self.place_vel_client = actionlib.SimpleActionClient("place_vel", PlaceVelAction)
+        self.rest_client = actionlib.SimpleActionClient("rest", RestAction)
+        self.radial_tracking_client = actionlib.SimpleActionClient("radial_track", RadialTrackingAction)
+        self.yoink_client = actionlib.SimpleActionClient("yoink", YoinkAction)
         
-        # rospy.loginfo("%s Waiting for clients", rospy.get_name())
+        rospy.loginfo("%s Waiting for clients", rospy.get_name())
         
-        # client_connection1 = self.yoink_client.wait_for_server(timeout=rospy.Duration(secs=3))
-        # client_connection2 = self.radial_tracking_client.wait_for_server(timeout=rospy.Duration(secs=3))
-        # client_connection3 = self.rest_client.wait_for_server(timeout=rospy.Duration(secs=3))
-        # client_connection4 = self.place_client.wait_for_server(timeout=rospy.Duration(secs=3))
-        # client_connection5 = self.place_vel_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection1 = self.yoink_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection2 = self.radial_tracking_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection3 = self.rest_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection4 = self.place_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection5 = self.place_vel_client.wait_for_server(timeout=rospy.Duration(secs=3))
         
-        # # connect to ur pin service to commands gripper pins
-        # self.set_io_client = rospy.ServiceProxy("/ur_hardware_interface/set_io", SetIO)
-        # self.set_io_client.wait_for_service(5.0)
-        # self.yoink_feedback_sub = rospy.Subscriber("/yoink/linear_error",Float32,callback=self.yoink_feedback_cb)
+        # connect to ur pin service to commands gripper pins
+        self.set_io_client = rospy.ServiceProxy("/ur_hardware_interface/set_io", SetIO)
+        self.set_io_client.wait_for_service(5.0)
+        self.yoink_feedback_sub = rospy.Subscriber("/yoink/linear_error",Float32,callback=self.yoink_feedback_cb)
 
         self.fgp_sub = rospy.Subscriber("/filtered_grasp_pose",PoseStamped,callback=self.fgp_cb)
         self.fgp_linear_velocity_publisher = rospy.Publisher("/filtered_grasp_pose_linear_velocity",Twist,queue_size=1)
@@ -66,10 +66,10 @@ class MpClass:
         rospy.loginfo("Message received")
         self.fgp_inital = copy.deepcopy(self.fgp)
 
-        # if not (client_connection1 and client_connection2 and client_connection3 and client_connection4 and client_connection5):
-        #     rospy.logwarn("%s Some clients are not connected!!",rospy.get_name())
-        # else : 
-        #     rospy.loginfo("%s : All servers connected",rospy.get_name())
+        if not (client_connection1 and client_connection2 and client_connection3 and client_connection4 and client_connection5):
+            rospy.logwarn("%s Some clients are not connected!!",rospy.get_name())
+        else : 
+            rospy.loginfo("%s : All servers connected",rospy.get_name())
 
         self.calculate_fgp_linear_velocity_timer = rospy.Timer(rospy.Duration(1/30),self.calculate_fgp_linear_velocity_cb)
         self.filter_fgp_vel_timer = rospy.Timer(rospy.Duration(1/30),self.filter_fgp_vel_cb)
@@ -164,75 +164,76 @@ if __name__ == "__main__":
     mp.wait_for_handover()
     
     rospy.spin()
-    # # rest
-    # rospy.loginfo("%s : rest",rospy.get_name())
-    # restGoal = RestActionGoal()
-    # mp.rest_client.send_goal(restGoal)
-    # result = mp.rest_client.get_result()
-    # rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
-
-    # # rest
-    # rospy.loginfo("%s : rest",rospy.get_name())
-    # restGoal = RestActionGoal()
-    # mp.rest_client.send_goal(restGoal)
-    # result = mp.rest_client.get_result()
-    # rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
-
-    # start = rospy.get_time()
-    # print("Gonna start radial tracking now")
-    # rospy.sleep(2)
-    # # radial track for a few seconds
-    # rospy.loginfo("%s : radial tracking",rospy.get_name())
-    # radial_trackGoal = RadialTrackingGoal()
-    # radial_trackGoal.timeout.data = 0.0
-    # mp.radial_tracking_client.send_goal(radial_trackGoal)
-    # mp.radial_tracking_client.wait_for_result()
-    # result = mp.radial_tracking_client.get_result()
-    # rospy.loginfo("%s : radial tracking result : %s",rospy.get_name(), result)
-    # rospy.sleep(2)
-    # print("Radial tracking stopped")
     
-    # # yoink
-    # rospy.loginfo("%s : yoink",rospy.get_name())
-    # yoinkGoal = YoinkActionGoal()
-    # mp.yoink_client.send_goal(yoinkGoal)
-    # mp.wait_to_grasp()
-    # mp.gripper_on()
-    # mp.yoink_client.wait_for_result()
-    # result = mp.yoink_client.get_result()
-    # rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
+    # rest
+    rospy.loginfo("%s : rest",rospy.get_name())
+    restGoal = RestActionGoal()
+    mp.rest_client.send_goal(restGoal)
+    result = mp.rest_client.get_result()
+    rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
 
-    # # place
-    # rospy.loginfo("%s : place",rospy.get_name())
-    # placeGoal = PlaceMsgGoal()
-    # mp.place_client.send_goal(placeGoal)
-    # mp.place_client.wait_for_result()
-    # result = mp.place_client.get_result()
-    # rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
+    # rest
+    rospy.loginfo("%s : rest",rospy.get_name())
+    restGoal = RestActionGoal()
+    mp.rest_client.send_goal(restGoal)
+    result = mp.rest_client.get_result()
+    rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
+
+    start = rospy.get_time()
+    print("Gonna start radial tracking now")
+    rospy.sleep(2)
+    # radial track for a few seconds
+    rospy.loginfo("%s : radial tracking",rospy.get_name())
+    radial_trackGoal = RadialTrackingGoal()
+    radial_trackGoal.timeout.data = 0.0
+    mp.radial_tracking_client.send_goal(radial_trackGoal)
+    mp.radial_tracking_client.wait_for_result()
+    result = mp.radial_tracking_client.get_result()
+    rospy.loginfo("%s : radial tracking result : %s",rospy.get_name(), result)
+    rospy.sleep(2)
+    print("Radial tracking stopped")
     
-    # # place vel
-    # rospy.loginfo("%s : place",rospy.get_name())
-    # placeGoal = PlaceVelGoal()
-    # mp.place_vel_client.send_goal(placeGoal)
-    # # mp.place_client.cancel_goal()
-    # mp.place_vel_client.wait_for_result()
-    # result = mp.place_vel_client.get_result()
-    # rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
+    # yoink
+    rospy.loginfo("%s : yoink",rospy.get_name())
+    yoinkGoal = YoinkActionGoal()
+    mp.yoink_client.send_goal(yoinkGoal)
+    mp.wait_to_grasp()
+    mp.gripper_on()
+    mp.yoink_client.wait_for_result()
+    result = mp.yoink_client.get_result()
+    rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
 
-    # finish = rospy.get_time()
-    # # report
-    # rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
+    # place
+    rospy.loginfo("%s : place",rospy.get_name())
+    placeGoal = PlaceMsgGoal()
+    mp.place_client.send_goal(placeGoal)
+    mp.place_client.wait_for_result()
+    result = mp.place_client.get_result()
+    rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
+    
+    # place vel
+    rospy.loginfo("%s : place",rospy.get_name())
+    placeGoal = PlaceVelGoal()
+    mp.place_vel_client.send_goal(placeGoal)
+    # mp.place_client.cancel_goal()
+    mp.place_vel_client.wait_for_result()
+    result = mp.place_vel_client.get_result()
+    rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
 
-    # # rest
-    # rospy.loginfo("%s : rest",rospy.get_name())
-    # restGoal = RestActionGoal()
-    # mp.rest_client.send_goal(restGoal)
-    # result = mp.rest_client.get_result()
-    # rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
+    finish = rospy.get_time()
+    # report
+    rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
 
-    # # rest
-    # rospy.loginfo("%s : rest",rospy.get_name())
-    # restGoal = RestActionGoal()
-    # mp.rest_client.send_goal(restGoal)
-    # result = mp.rest_client.get_result()
-    # rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
+    # rest
+    rospy.loginfo("%s : rest",rospy.get_name())
+    restGoal = RestActionGoal()
+    mp.rest_client.send_goal(restGoal)
+    result = mp.rest_client.get_result()
+    rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
+
+    # rest
+    rospy.loginfo("%s : rest",rospy.get_name())
+    restGoal = RestActionGoal()
+    mp.rest_client.send_goal(restGoal)
+    result = mp.rest_client.get_result()
+    rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
