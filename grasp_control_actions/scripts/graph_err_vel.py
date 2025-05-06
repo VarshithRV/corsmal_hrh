@@ -9,6 +9,7 @@ data1 = []
 data2 = []
 data3 = []
 data4 = []
+data5 = []
 
 def callback1(msg:PoseStamped):
     data1.append(msg.pose.position.x)
@@ -20,6 +21,9 @@ def callback2(msg:Twist):
     # Append data from topic2
     data4.append(msg.linear.z)
 
+def callback3(msg:Float32):
+    data5.append(msg.data)
+
 def plot_data(i):
     # Clear the current plot
     plt.cla()
@@ -28,6 +32,7 @@ def plot_data(i):
     plt.plot(data2, label='y')
     plt.plot(data3, label='z')
     plt.plot(data4, label='vz')
+    plt.plot(data5, label='start')
     plt.legend(loc='upper left')
     plt.xlabel('Time')
     plt.ylabel('Value')
@@ -38,10 +43,13 @@ def listener():
     rospy.init_node('plotter_node', anonymous=True)
     rospy.Subscriber('/filtered_grasp_pose', PoseStamped, callback1)
     rospy.Subscriber('/filtered_grasp_pose_linear_velocity', Twist, callback2)
+    rospy.Subscriber('/start_handover', Float32, callback3)
     print("Started subscriber")
     
     rospy.wait_for_message("/filtered_grasp_pose",PoseStamped)
     rospy.wait_for_message("/filtered_grasp_pose_linear_velocity",PoseStamped)
+    rospy.wait_for_message("/start_handover",Float32)
+    
     ani = FuncAnimation(plt.gcf(), plot_data, interval=50)
 
     plt.tight_layout()
