@@ -5,7 +5,7 @@
     <rosparam command="load" file="$(find grasp_control_actions)/config/radial_tracking.yaml" ns="radial_track_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/rest.yaml" ns="rest_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place.yaml" ns="place_as"/>
-    <rosparam command="load" file="$(find grasp_control_actions)/config/place_blended_radius_sim.yaml" ns="place_blended_radius_as"/>
+    <rosparam command="load" file="$(find grasp_control_actions)/config/place_blended_radius.yaml" ns="place_blended_radius_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place_vel.yaml" ns="place_vel_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/common_parameters_ur16e.yaml" ns="common_parameters"/>
 

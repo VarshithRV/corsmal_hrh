@@ -14,7 +14,7 @@ import copy
 from std_msgs.msg import Float32
 
 YOINK_FEEDBACK_THRESHOLD = 0.05
-PLACE_FEEDBACK_THRESHOLD = 0.05
+PLACE_FEEDBACK_THRESHOLD = 0.15 # made it super high to test
 VELOCITY_AVG_WINDOW_SIZE = 10
 ALPHA = 0.5 # more means trust filtered data more
 Z_DISPLACEMENT = 0.20 #m, should reduce to make it faster
@@ -63,7 +63,7 @@ class MpClass:
         self.set_io_client = rospy.ServiceProxy("/ur_hardware_interface/set_io", SetIO)
         self.set_io_client.wait_for_service(5.0)
         self.yoink_feedback_sub = rospy.Subscriber("/yoink/linear_error",Float32,callback=self.yoink_feedback_cb)
-
+        self.yoink_feedback_sub = rospy.Subscriber("/place_br/linear_error",Float32,callback=self.place_br_feedback_cb)
         self.fgp_sub = rospy.Subscriber("/filtered_grasp_pose",PoseStamped,callback=self.fgp_cb)
         self.fgp_linear_velocity_publisher = rospy.Publisher("/filtered_grasp_pose_linear_velocity",Twist,queue_size=1)
         self.start_handover_publisher = rospy.Publisher("/start_handover",Float32,queue_size=1)
@@ -154,12 +154,10 @@ class MpClass:
     def wait_to_release(self):
         rate = rospy.Rate(30)
         rospy.loginfo(f"{rospy.get_name()} : waiting for release")
-        rospy.wait_for_message("/place_br/linear_error",Float32,3.0)
+        rospy.wait_for_message("/place_br/linear_error",Float32)
         start = rospy.get_time()
-        rospy.sleep(0.2)
         while self.place_br_feedback.data > self.place_br_feedback_threshold:
             rate.sleep()
-        rospy.sleep(0.5)
         print("Waited for : ",rospy.get_time() - start)
 
     def gripper_on(self):
@@ -183,7 +181,6 @@ class MpClass:
 
 if __name__ == "__main__":
     mp = MpClass()
-
     rospy.sleep(0.2)
     mp.gripper_neutral()
 
@@ -198,51 +195,55 @@ if __name__ == "__main__":
     result = mp.rest_client.get_result()
     rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
 
-    # # rest
-    # rospy.loginfo("%s : rest",rospy.get_name())
-    # restGoal = RestActionGoal()
-    # mp.rest_client.send_goal(restGoal)
-    # mp.rest_client.wait_for_result()
-    # result = mp.rest_client.get_result()
-    # rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
+    # rest
+    rospy.loginfo("%s : rest",rospy.get_name())
+    restGoal = RestActionGoal()
+    mp.rest_client.send_goal(restGoal)
+    mp.rest_client.wait_for_result()
+    result = mp.rest_client.get_result()
+    rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
 
     mp.gripper_off()
-    rospy.sleep(0.5)
     start = rospy.get_time()
 
-    # print("Gonna start radial tracking now")
     # # radial track for a few seconds
+    # print("Gonna start radial tracking now")
     # rospy.loginfo("%s : radial tracking",rospy.get_name())
     # radial_trackGoal = RadialTrackingGoal()
     # radial_trackGoal.timeout.data = 0.0
     # mp.radial_tracking_client.send_goal(radial_trackGoal)
     # mp.radial_tracking_client.wait_for_result()
+    
+    # mp.wait_for_handover()
+    # print("Stopping radial tracking starting handover")
+
+    # mp.radial_tracking_client.cancel_goal()
     # result = mp.radial_tracking_client.get_result()
     # rospy.loginfo("%s : radial tracking result : %s",rospy.get_name(), result)
-    # rospy.sleep(2)
     # print("Radial tracking stopped")
     
-    # yoink
-    rospy.loginfo("%s : yoink",rospy.get_name())
-    yoinkGoal = YoinkActionGoal()
-    mp.yoink_client.send_goal(yoinkGoal)
-    print("waiting for grasp")
-    mp.wait_to_grasp()
-    mp.gripper_on()
-    mp.yoink_client.wait_for_result()
-    result = mp.yoink_client.get_result()
-    rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
+    # # yoink
+    # rospy.loginfo("%s : yoink",rospy.get_name())
+    # yoinkGoal = YoinkActionGoal()
+    # mp.yoink_client.send_goal(yoinkGoal)
+    # print("waiting for grasp")
+    # mp.wait_to_grasp()
+    # mp.gripper_on()
+    # mp.yoink_client.wait_for_result()
+    # result = mp.yoink_client.get_result()
+    # rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
 
     # place
     rospy.loginfo("%s : place",rospy.get_name())
     placeGoal = PlaceMsgGoal()
     mp.place_br_client.send_goal(placeGoal)
     mp.wait_to_release()
+    print("done waiting to release")
     mp.gripper_off()
-    finish = rospy.get_time()
     mp.place_br_client.wait_for_result()
     result = mp.place_br_client.get_result()
     rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
+    finish = rospy.get_time()
     
     # # place vel
     # rospy.loginfo("%s : place",rospy.get_name())

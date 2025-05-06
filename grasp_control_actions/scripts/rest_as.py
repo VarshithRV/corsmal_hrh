@@ -122,16 +122,20 @@ class Rest:
             self.rest_action_server.set_aborted(RestActionResult(result=False))
             return
         rospy.loginfo("%s : Commanding robot to go to joint state : %s",rospy.get_name(),(str(self.rest_joint_state)))
-        try : 
-            self.move_group.set_planner_id("LIN")  # "PTP" "LIN" or "CIRC"
+        try:
+            self.move_group.set_start_state_to_current_state()
+            self.move_group.set_planner_id("LIN")
             rospy.sleep(0.5)
-            print("going_now")
-            self.move_group.go(self.rest_joint_state, wait=False)
+            rospy.loginfo("Going to rest joint state...")
+            self.move_group.go(self.rest_joint_state, wait=True)
+            self.move_group.stop()
         except Exception as e:
-            rospy.loginfo("%s : Reaching joint state failed due to : %s",rospy.get_name(),e)
-            self.rest_action_server.set_succeeded(RestActionResult(result=False))
+            rospy.logerr("%s : Reaching joint state failed: %s", rospy.get_name(), e)
+            self.rest_action_server.set_aborted(RestActionResult(result=False))
+            return
+        
         rate = rospy.Rate(30)
-        while not self.is_close(self.rest_joint_state,self.move_group.get_current_joint_values()) and not self.rest_action_server.is_preempt_requested():
+        while not self.is_close(self.rest_joint_state, self.move_group.get_current_joint_values(), 0.01) and not self.rest_action_server.is_preempt_requested():
             rate.sleep()
         try :
             self.move_group.stop()
