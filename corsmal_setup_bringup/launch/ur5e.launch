@@ -11,9 +11,9 @@
     <arg name="tf_prefix" value="" doc="tf_prefix used for the robot."/>
     <arg name="controllers" value="joint_state_controller joint_group_vel_controller speed_scaling_state_controller force_torque_sensor_controller" doc="Controllers that are activated by default."/>
     <arg name="stopped_controllers" value="twist_controller joint_group_pos_controller scaled_pos_joint_traj_controller pos_joint_traj_controller" doc="Controllers that are initally loaded, but not started."/>
-    <arg name="controller_config_file" value="$(find corsmal_setup_bringup)/config/ur16e_controller_config.yaml" doc="Config file used for defining the ROS-Control controllers."/>
-    <arg name="robot_description_file" value="$(find ur_description)/launch/load_ur16e.launch" doc="Robot description launch file."/>
-    <arg name="kinematics_config" value="$(find corsmal_setup_bringup)/config/right_ur16e_kinematics_config.yaml" doc="Kinematics config file used for calibration correction. This will be used to verify the robot's calibration is matching the robot_description."/>
+    <arg name="controller_config_file" value="$(find corsmal_setup_bringup)/config/ur15e_controller_config.yaml" doc="Config file used for defining the ROS-Control controllers."/>
+    <arg name="robot_description_file" value="$(find ur_description)/launch/load_ur5e.launch" doc="Robot description launch file."/>
+    <arg name="kinematics_config" value="$(find corsmal_setup_bringup)/config/ur5e_kinematics_config.yaml" doc="Kinematics config file used for calibration correction. This will be used to verify the robot's calibration is matching the robot_description."/>
     <arg name="tool0_tcp_x" default="0.0"/>
     <arg name="tool0_tcp_y" default="0.0"/>
     <arg name="tool0_tcp_z" default="0.15"/>
@@ -59,8 +59,8 @@
         <arg name="headless_mode" value="$(arg headless_mode)"/>
     </include>
 
-    <include file="$(find ur16e_moveit_config)/launch/move_group.launch"/>
-    <arg name="moveit_servo_config" default="$(find corsmal_setup_bringup)/config/moveit_servo_ur16e.yaml"/>
+    <include file="$(find ur5e_moveit_config)/launch/move_group.launch"/>
+    <arg name="moveit_servo_config" default="$(find corsmal_setup_bringup)/config/moveit_servo_ur5e.yaml"/>
     <node name="servo_server" pkg="moveit_servo" type="servo_server" output="screen" >
       <rosparam command="load" file="$(arg moveit_servo_config)"/>
     </node>
@@ -73,7 +73,7 @@
         <param name="timeout" value="0.05" />
         <param name="source_frame" value="base_link" /> <!-- this is the planning frame -->
         <param name="target_frame" value="base_link" /> <!-- this is always base -->
-        <param name="alpha" value="0.65"/>
+        <param name="alpha" value="0.65"/> <!-- increase this to make it smoother -->
     </node>
 
     <node pkg="corsmal_setup_bringup" type="calibration_publisher_robot.py" name="robot_calibration_publisher" />
