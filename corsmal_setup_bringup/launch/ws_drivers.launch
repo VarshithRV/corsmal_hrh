@@ -3,6 +3,7 @@
     <arg name="is_calibrated" default="true"/> <!--set true to calibrate the system-->
 
     <include file="$(find corsmal_setup_bringup)/launch/ur5e.launch"/>
+    <!-- <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch"/> -->
     <include file="$(find corsmal_setup_bringup)/launch/azuredk_left.launch"/>
     
     <group if="$(arg is_calibrated)">
@@ -24,6 +25,9 @@
         <param name="output_pose_topic" value="/filtered_grasp_pose"/>
     </node>
 
-    <node pkg="tf" type="static_transform_publisher" name="wrist3_to_camera_tf" args="0.02 0.099 0.016 0.5 0.5 0.5 -0.5 wrist_3_link collocated_camera_link 50" /> 
+    <!--Dont use this, this is really bad-->
+    <!-- <node pkg="tf" type="static_transform_publisher" name="wrist3_to_camera_tf" args="0.02 0.099 0.016 0.5 0.5 0.5 -0.5 wrist_3_link camera_link 50" />  -->
+    <!-- Use this, measured calibration is way better -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="camera_link_broadcaster" args="0.0185635 0.105947 0.0261574   0.517961 0.519725 0.492962 -0.467538 wrist_3_link camera_link" />
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find corsmal_setup_bringup)/config/default.rviz" />
 </launch>
