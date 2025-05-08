@@ -75,6 +75,4 @@
         <param name="target_frame" value="base_link" /> <!-- this is always base -->
         <param name="alpha" value="0.65"/> <!-- increase this to make it smoother -->
     </node>
-
-    <node pkg="corsmal_setup_bringup" type="calibration_publisher_robot.py" name="robot_calibration_publisher" />
 </launch>

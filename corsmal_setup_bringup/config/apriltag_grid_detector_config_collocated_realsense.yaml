@@ -1,0 +1,16 @@
+# Linear filter parameters
+alpha : 0.25 # range = [0,1], more means trust the filtered data more
+
+marker_size : 40.0 # in mm, measure with the 1 unit black padding
+marker_separation : 4.0 # in mm
+
+# grid configuration
+object:
+  name: "collocated_camera_object" # the published pose and filtered pose will be preappended with this value
+  grid:
+    - [9, 10]
+    - [11, 12]
+# Camera topics
+color_image_topic : "/collocated_camera/color/image_raw"
+depth_image_topic : "/collocated_camera/aligned_depth_to_color/image_raw" # of aligned depth to rgb
+camera_info_topic : "/collocated_camera/color/camera_info"
