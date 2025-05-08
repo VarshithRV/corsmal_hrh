@@ -1,0 +1,16 @@
+# Linear filter parameters
+alpha : 0.25 # range = [0,1], more means trust the filtered data more
+
+marker_size : 40.0 # in mm, measure with the 1 unit black padding
+marker_separation : 4.0 # in mm
+
+# grid configuration
+object:
+  name: "left_camera_object" # the published pose and filtered pose will be preappended with this value
+  grid:
+    - [9, 10]
+    - [11, 12]
+# Camera topics
+color_image_topic : "/left_camera/rgb/image_raw"
+depth_image_topic : "/left_camera/depth_to_rgb/image_raw" # of aligned depth to rgb
+camera_info_topic : "/left_camera/rgb/camera_info"

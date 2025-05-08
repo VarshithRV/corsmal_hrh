@@ -27,7 +27,7 @@ def get_transformation(frame_a, frame_b):
 
             return trans, rot
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
-            continue
+            pass
 
         rate.sleep()
 
