@@ -3,23 +3,23 @@ max_linear_velocity : 1 #m/s
 max_angular_acceleration : 17.45 # rad/s^2
 max_angular_velocity : 3.14 # rad/s
 
-input_stream_timeout : 0.5 #s
+input_stream_timeout : 0.75 #s
 cmd_publish_frequency : 100 #hz
 
 linear_stop_threshold : 0.015 # having a higher threshold means faster stop because of how PID works
 angular_stop_threshold : 0.009
 
-linear_pre_grasp_stop_threshold : 0.05
+linear_pre_grasp_stop_threshold : 0.02
 angular_pre_grasp_stop_threshold : 0.01
 
 gains :
   linear :
-    p : 300
+    p : 75
     i : 0
     d : 0
     k : 0.01
   angular :
-    p : 300
+    p : 75
     i : 0
     d : 0
     k : 0.01

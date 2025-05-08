@@ -211,7 +211,7 @@ class Place:
 
         # preplace_position -> place
         self._waypoints.clear()
-        self._waypoints.append(copy.deepcopy(preplace_position.pose))
+        # self._waypoints.append(copy.deepcopy(preplace_position.pose))
         self._waypoints.append(copy.deepcopy(place_position.pose))
         self._waypoints.append(copy.deepcopy(post_place_position.pose))
         

@@ -135,7 +135,7 @@ class Rest:
             return
         
         rate = rospy.Rate(30)
-        while not self.is_close(self.rest_joint_state, self.move_group.get_current_joint_values(), 0.01) and not self.rest_action_server.is_preempt_requested():
+        while not self.is_close(self.rest_joint_state, self.move_group.get_current_joint_values()) and not self.rest_action_server.is_preempt_requested():
             rate.sleep()
         try :
             self.move_group.stop()
