@@ -4,17 +4,4 @@
         <arg name="config_file" value="$(find corsmal_setup_bringup)/config/apriltag_grid_detector_config_right_azure.yaml"/>
     </include>
     <node pkg="corsmal_setup_bringup" type="calibrate_right_camera.py" name="calibrate_right_camera" />
-    
-    <!-- <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch">
-        <arg name="camera" value="collocated_camera"/>
-    </include> -->
-    
-    <!-- <group if="$(arg calibrate_system)"> -->
-        <!-- <group ns="collocated_camera">
-            <include file="$(find aruco_proxy_pose_estimation)/launch/apriltag_grid_detector.launch">
-                <arg name="config_file" value="$(find corsmal_setup_bringup)/config/apriltag_grid_detector_config_collocated_realsense.yaml"/>
-            </include>
-        </group> -->
-    <!-- </group> -->
-    <!-- <node pkg="tf" type="static_transform_publisher" name="wrist3_to_camera_tf" args="0.02 0.099 0.016 0.5 0.5 0.5 -0.5 wrist_3_link collocated_camera_link 50" />  -->
 </launch>

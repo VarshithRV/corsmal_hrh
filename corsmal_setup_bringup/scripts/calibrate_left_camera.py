@@ -186,3 +186,4 @@ if __name__ == "__main__":
     rospy.wait_for_message("/left_camera_object_filtered_pose",PoseStamped)
     calibrate_left_camera()
     print("################################################################")
+    rospy.spin()
