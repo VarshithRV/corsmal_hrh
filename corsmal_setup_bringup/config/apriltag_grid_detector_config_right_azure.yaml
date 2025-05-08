@@ -8,8 +8,10 @@ marker_separation : 4.0 # in mm
 object:
   name: "right_camera_object" # the published pose and filtered pose will be preappended with this value
   grid:
-    - [9, 10]
-    - [11, 12]
+    - [0, 1, 2, 3]
+    - [4, 5, 6, 7]
+    - [8, 9, 10, 11]
+    - [12, 13, 14, 15]
 # Camera topics
 color_image_topic : "/right_camera/rgb/image_raw"
 depth_image_topic : "/right_camera/depth_to_rgb/image_raw" # of aligned depth to rgb

@@ -1,38 +1,29 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="calibrate_system" default="false"/> <!--set true to calibrate the system-->
-    
-    <!--substitute with ur5e.launch if using ur5e-->
-    <include file="$(find corsmal_setup_bringup)/launch/ur16e.launch"/>
-    <include file="$(find corsmal_setup_bringup)/launch/azuredk_left.launch"/>
-    <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch">
-        <arg name="camera" value="collocated_camera"/>
-    </include>
-    
-    <group if="$(arg calibrate_system)">
-        <group ns="left_camera">
-            <include file="$(find aruco_proxy_pose_estimation)/launch/apriltag_grid_detector.launch">
-                <arg name="config_file" value="$(find corsmal_setup_bringup)/config/apriltag_grid_detector_config_left_azure.yaml"/>
-            </include>
-        </group>
-        <group ns="collocated_camera">
-            <include file="$(find aruco_proxy_pose_estimation)/launch/apriltag_grid_detector.launch">
-                <arg name="config_file" value="$(find corsmal_setup_bringup)/config/apriltag_grid_detector_config_collocated_realsense.yaml"/>
-            </include>
-        </group>
-        <group ns="right_camera">
-            <include file="$(find aruco_proxy_pose_estimation)/launch/apriltag_grid_detector.launch">
-                <arg name="config_file" value="$(find corsmal_setup_bringup)/config/apriltag_grid_detector_config_right_azure.yaml"/>
-            </include>
-        </group>
-        <node pkg="corsmal_setup_bringup" type="calibrate_systems.py" name="calibrate_systems" />
-    </group>
+    <arg name="is_calibrated" default="true"/> <!--set true to calibrate the system-->
 
-    <group unless="$(arg calibrate_system)">
+    <include file="$(find corsmal_setup_bringup)/launch/ur5e.launch"/>
+    <include file="$(find corsmal_setup_bringup)/launch/azuredk_left.launch"/>
+    
+    <group if="$(arg is_calibrated)">
         <node pkg="corsmal_setup_bringup" type="calibration_publisher_robot.py" name="robot_calibration_publisher" /> 
         <node pkg="corsmal_setup_bringup" type="extrinsic_publisher_azure_left.py" name="extrinsic_publisher_azure_left" /> 
         <node pkg="corsmal_setup_bringup" type="extrinsic_publisher_azure_right.py" name="extrinsic_publisher_azure_right" /> 
     </group>
+
+    <include file="$(find aruco_proxy_pose_estimation)/launch/apriltag_grid_detector.launch">
+        <arg name="config_file" value="$(find aruco_proxy_pose_estimation)/config/apriltag_grid_detector_config.yaml"/>
+    </include>
+    <node pkg="aruco_proxy_pose_estimation" type="pose_post_processing.py" name="pose_post_processor">
+        <param name="parent_frame" value="base_link"/>
+        <param name="X" value="40"/>
+        <param name="Y" value="40"/>
+        <param name="D" value="50"/>
+        <param name="P" value="0"/>
+        <param name="input_pose_topic" value="/left_side_filtered_pose"/>
+        <param name="output_pose_topic" value="/filtered_grasp_pose"/>
+    </node>
+
     <node pkg="tf" type="static_transform_publisher" name="wrist3_to_camera_tf" args="0.02 0.099 0.016 0.5 0.5 0.5 -0.5 wrist_3_link collocated_camera_link 50" /> 
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find corsmal_setup_bringup)/config/default.rviz" />
 </launch>

@@ -163,6 +163,7 @@ include_directories(
 catkin_install_python(PROGRAMS
   scripts/calibration_publisher_robot.py scripts/extrinsic_publisher_azure_left.py scripts/extrinsic_publisher_azure_right.py
   scripts/extrinsic_calibration_azure_left.py scripts/extrinsic_calibration_azure_right.py scripts/calibrate_system.py
+  scripts/calibrate_robot.py scripts/calibrate_left_camera.py scripts/calibrate_right_camera.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
