@@ -162,7 +162,7 @@ include_directories(
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
   scripts/calibration_publisher_robot.py scripts/extrinsic_publisher_azure_left.py scripts/extrinsic_publisher_azure_right.py
-  scripts/extrinsic_calibration_azure_left.py scripts/extrinsic_calibration_azure_right.py
+  scripts/extrinsic_calibration_azure_left.py scripts/extrinsic_calibration_azure_right.py scripts/calibrate_system.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
