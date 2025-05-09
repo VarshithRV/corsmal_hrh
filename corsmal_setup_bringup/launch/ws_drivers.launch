@@ -22,7 +22,7 @@
         <param name="D" value="50"/>
         <param name="P" value="0"/>
         <param name="input_pose_topic" value="/left_side_filtered_pose"/>
-        <param name="output_pose_topic" value="/filtered_grasp_pose2"/>
+        <param name="output_pose_topic" value="/filtered_grasp_pose"/>
     </node>
 
     <!--Dont use this, this is really bad-->
