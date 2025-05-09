@@ -207,6 +207,9 @@ class Place:
         post_place_position.pose.orientation.y = copy.deepcopy(place_position.pose.orientation.y)
         post_place_position.pose.orientation.z = copy.deepcopy(place_position.pose.orientation.z)
 
+        post_place_position2 = copy.deepcopy(post_place_position)
+        post_place_position2.pose.position.z += 0.1
+
         ## need to change from here to 
 
         # preplace_position -> place
@@ -214,6 +217,8 @@ class Place:
         # self._waypoints.append(copy.deepcopy(preplace_position.pose))
         self._waypoints.append(copy.deepcopy(place_position.pose))
         self._waypoints.append(copy.deepcopy(post_place_position.pose))
+        self._waypoints.append(copy.deepcopy(post_place_position2.pose))
+
         
         if self.execute_waypoints(waypoints = self._waypoints):
             pass
