@@ -55,6 +55,7 @@ class TwistStreamFilter:
         self.stream_active_checker_timer = rospy.Timer(rospy.Duration(0.01), self.stream_active_checker)
         self.compute_command_vel_timer = rospy.Timer(rospy.Duration(0.01), self.compute_command_vel)
         self.filter_command_vel_timer = rospy.Timer(rospy.Duration(0.01),self.filter_command_vel)
+        self.update_params_timer = rospy.Timer(rospy.Duration(2),self.update_params_cb)
 
         # Diagnostics
         self.updater = Updater()
@@ -64,6 +65,15 @@ class TwistStreamFilter:
 
         rospy.loginfo(f"TwistStreamFilter initialized. Subscribing to {self.input_topic}, publishing to {self.output_topic}")
         rospy.loginfo(f"Transforming Twist from '{self.source_frame}' to '{self.target_frame}'")
+
+    def update_params_cb(self,event):
+        self.input_topic = rospy.get_param("~input_topic", "/cmd_vel_in")
+        self.output_topic = rospy.get_param("~output_topic", "/cmd_vel")
+        self.output_topic_type = rospy.get_param("~output_topic_type", "Twist")
+        self.timeout = rospy.get_param("~timeout", 0.05)
+        self.source_frame = rospy.get_param("~source_frame", "world")
+        self.target_frame = rospy.get_param("~target_frame", "base")
+        self.alpha = rospy.get_param("~alpha", 0.25)
 
     def stream_active_checker(self, event):
         with self.lock:

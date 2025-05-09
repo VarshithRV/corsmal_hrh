@@ -14,10 +14,17 @@ angular_pre_grasp_stop_threshold : 0.01
 
 gains :
   linear : 
-    p : 1000
+    p : 150
     i : 0
     d : 0
     k : 0.01
+    X : 
+      k : 0.1
+    Y :
+      k : 0.005
+    Z : 
+      k : 0.1
+    
   angular : 
     p : 1000
     i : 0
