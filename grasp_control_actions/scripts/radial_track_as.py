@@ -158,6 +158,9 @@ class RadialTracker:
         # calculate pid error gradient timer
         calc_pid_error_gradient_timer = rospy.Timer(rospy.Duration(0.01),callback=self.calc_pid_error_gradient)
 
+        # reset integral coeff timer
+        reset_integral_coeff_timer = rospy.Timer(rospy.Duration(1/15),callback=self.reset_integral_coeff)
+
         self._qsum  = np.zeros((4,1),dtype=float)
 
         # create action server for Yoink
@@ -166,6 +169,10 @@ class RadialTracker:
         )
         self.radial_tracking_server.register_preempt_callback(self.radial_track_preempt_callback)
         self.radial_tracking_server.start()
+    
+    def reset_integral_coeff(self,event):
+        if self.linear_error < 0.01:
+            self.errorLsum = np.zeros((3,),dtype=float)
 
     def calc_pid_error_gradient(self,event):
         # modify self.pid_error_gradient here(sliding window + IIR filter)
