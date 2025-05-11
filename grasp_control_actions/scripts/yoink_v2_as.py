@@ -20,7 +20,7 @@ from controller_manager_msgs.srv import SwitchController,SwitchControllerRequest
 import moveit_commander, moveit_msgs.msg
 from moveit_commander.conversions import pose_to_list
 import sys
-from scipy.spatial.transform import Rotation
+
 
 class Yoink:
     def __init__(self):
@@ -35,9 +35,7 @@ class Yoink:
         self.LINEAR_P_GAIN = self.params["gains"]["linear"]["p"]
         self.LINEAR_I_GAIN = self.params["gains"]["linear"]["i"]
         self.LINEAR_D_GAIN = self.params["gains"]["linear"]["d"]
-        self.LINEAR_X_K = self.params["gains"]["linear"]["X"]["k"]
-        self.LINEAR_Y_K = self.params["gains"]["linear"]["Y"]["k"]
-        self.LINEAR_Z_K = self.params["gains"]["linear"]["Z"]["k"]
+        self.LINEAR_K = self.params["gains"]["linear"]["k"]
         self.ANGULAR_P_GAIN = self.params["gains"]["angular"]["p"]
         self.ANGULAR_I_GAIN = self.params["gains"]["angular"]["i"]
         self.ANGULAR_D_GAIN = self.params["gains"]["angular"]["d"]
@@ -132,6 +130,9 @@ class Yoink:
         # Timer to log input stream diagnostics
         input_stream_diagnostics_timer = rospy.Timer(rospy.Duration(1), callback=self.filtered_grasp_pose_diagnostics)
         
+        # update parameters timer
+        update_parameters_timer = rospy.Timer(rospy.Duration(3),callback=self.update_parameters)
+
         self._qsum  = np.zeros((4,1),dtype=float)
 
         # create action server for Yoink
@@ -140,6 +141,37 @@ class Yoink:
         )
         self.yoink_action_server.register_preempt_callback(self.yoink_preempt_callback)
         self.yoink_action_server.start()
+
+    def update_parameters(self,event):
+        self.params = rospy.get_param("/yoink_as")
+        self.common_params = rospy.get_param("/common_parameters")
+
+        self.servo_topic = self.common_params["servo_topic"]
+        self.servo_controller = self.common_params["servo_controller"]
+        self.traj_controller = self.common_params["traj_controller"]
+        
+        self.LINEAR_P_GAIN = self.params["gains"]["linear"]["p"]
+        self.LINEAR_I_GAIN = self.params["gains"]["linear"]["i"]
+        self.LINEAR_D_GAIN = self.params["gains"]["linear"]["d"]
+        self.LINEAR_K = self.params["gains"]["linear"]["k"]
+        self.ANGULAR_P_GAIN = self.params["gains"]["angular"]["p"]
+        self.ANGULAR_I_GAIN = self.params["gains"]["angular"]["i"]
+        self.ANGULAR_D_GAIN = self.params["gains"]["angular"]["d"]
+        self.ANGULAR_K = self.params["gains"]["angular"]["k"]
+
+        self.cmd_publish_frequency = self.params["cmd_publish_frequency"]
+
+        self.max_linear_velocity = self.params["max_linear_velocity"]
+        self.max_linear_acceleration = self.params["max_linear_acceleration"]
+        self.max_angular_velocity = self.params["max_angular_velocity"]
+        self.max_angular_acceleration = self.params["max_angular_acceleration"]
+
+        self.linear_stop_threshold = self.params["linear_stop_threshold"]
+        self.angular_stop_threshold = self.params["angular_stop_threshold"]
+        self.linear_pre_grasp_stop_threshold = self.params["linear_pre_grasp_stop_threshold"]
+        self.angular_pre_grasp_stop_threshold = self.params["angular_pre_grasp_stop_threshold"]
+        self.pre_grasp_transform = self.params["pre_grasp_transform"]
+        self.input_stream_timeout = self.params["input_stream_timeout"]
 
     def update_current_pose(self,event):
         self.current_pose = self.move_group.get_current_pose() # as a PoseStamped
@@ -185,11 +217,10 @@ class Yoink:
             rospy.logerr("%s : Controller not switched from pos_joint_traj_controller to joint_group_pos_controller , aborting",rospy.get_name())
             self.yoink_action_server.set_aborted(YoinkActionResult(result=False))
             return
-        # grasp_result1 = self.goto_pre_grasp()
+        grasp_result1 = self.goto_pre_grasp()
         grasp_result2 = self.grasp()
         result = YoinkActionResult()
-        # result.result = grasp_result1 and grasp_result2
-        result.result = grasp_result2
+        result.result = grasp_result1 and grasp_result2
         finish = rospy.get_time()
         rospy.loginfo("%s : Time taken for yoink : %s",rospy.get_name(),(finish-start))
         self.yoink_action_server.set_succeeded(result=result)
@@ -297,9 +328,10 @@ class Yoink:
                         self.errorOsum = np.zeros((4,),dtype=float)
                         return True
                     
-                    cmd_vel = self.compute_cmd_vel(optimal_setpointL=pose_setpointL,optimal_setpointQ=pose_setpointQ)
-                    self.setpoint_velocity = cmd_vel
                     self.setpoint_velocity.header.stamp = rospy.Time.now()
+                    cmd_vel = self.compute_cmd_vel(optimal_setpointL=pose_setpointL,optimal_setpointQ=pose_setpointQ)
+
+                    self.setpoint_velocity = cmd_vel
                     self.setpoint_velocity_pub.publish(cmd_vel)
                     rate.sleep()
                 else :
@@ -423,14 +455,7 @@ class Yoink:
 
     # compute velocityL and velocityO from errorL and errorO
     def PID(self,errorL,errorLsum,errorLdiff,errorO,errorOsum,errorOdiff): 
-        velocityL_unweighted = ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(errorLdiff/self.dt)))
-        # need to find velocity with scaled K in ee axes
-        quaternion_rotation = np.array([self.filtered_grasp_pose.pose.orientation.x,self.filtered_grasp_pose.pose.orientation.y,self.filtered_grasp_pose.pose.orientation.z,self.filtered_grasp_pose.pose.orientation.w],dtype=float)
-        rot_obj = Rotation.from_quat(quaternion_rotation)
-        rot_obj_inv = rot_obj.inv()
-        velocityL_unweighted_ee_frame = rot_obj.as_matrix()@velocityL_unweighted.reshape((3,1))
-        velocityL_weighted_ee_frame = np.array([self.LINEAR_X_K*velocityL_unweighted_ee_frame[0],self.LINEAR_Y_K*velocityL_unweighted_ee_frame[1],self.LINEAR_Z_K*velocityL_unweighted_ee_frame[2]],dtype=float)
-        velocityL = rot_obj_inv.as_matrix()@velocityL_weighted_ee_frame.reshape((3,1))
+        velocityL = self.LINEAR_K* ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(errorLdiff/self.dt)))
         velocityO = self.ANGULAR_K* ((self.ANGULAR_P_GAIN*errorO) + (self.ANGULAR_I_GAIN*errorOsum*self.dt) + (self.ANGULAR_D_GAIN*(errorOdiff/self.dt)))
         return velocityL, velocityO
 
