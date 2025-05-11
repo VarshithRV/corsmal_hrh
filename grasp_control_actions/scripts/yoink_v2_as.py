@@ -36,6 +36,9 @@ class Yoink:
         self.LINEAR_I_GAIN = self.params["gains"]["linear"]["i"]
         self.LINEAR_D_GAIN = self.params["gains"]["linear"]["d"]
         self.LINEAR_K = self.params["gains"]["linear"]["k"]
+        self.LINEAR_X_K_GAIN = self.params["gains"]["linear"]["X"]["k"]
+        self.LINEAR_Y_K_GAIN = self.params["gains"]["linear"]["Y"]["k"]
+        self.LINEAR_Z_K_GAIN = self.params["gains"]["linear"]["Z"]["k"]
         self.ANGULAR_P_GAIN = self.params["gains"]["angular"]["p"]
         self.ANGULAR_I_GAIN = self.params["gains"]["angular"]["i"]
         self.ANGULAR_D_GAIN = self.params["gains"]["angular"]["d"]
@@ -158,6 +161,9 @@ class Yoink:
         self.ANGULAR_I_GAIN = self.params["gains"]["angular"]["i"]
         self.ANGULAR_D_GAIN = self.params["gains"]["angular"]["d"]
         self.ANGULAR_K = self.params["gains"]["angular"]["k"]
+        self.LINEAR_X_K_GAIN = self.params["gains"]["linear"]["X"]["k"]
+        self.LINEAR_Y_K_GAIN = self.params["gains"]["linear"]["Y"]["k"]
+        self.LINEAR_Z_K_GAIN = self.params["gains"]["linear"]["Z"]["k"]
 
         self.cmd_publish_frequency = self.params["cmd_publish_frequency"]
 
@@ -218,9 +224,10 @@ class Yoink:
             self.yoink_action_server.set_aborted(YoinkActionResult(result=False))
             return
         grasp_result1 = self.goto_pre_grasp()
-        grasp_result2 = self.grasp()
+        # grasp_result2 = self.grasp()
         result = YoinkActionResult()
-        result.result = grasp_result1 and grasp_result2
+        # result.result = grasp_result1 and grasp_result2
+        result.result = grasp_result1
         finish = rospy.get_time()
         rospy.loginfo("%s : Time taken for yoink : %s",rospy.get_name(),(finish-start))
         self.yoink_action_server.set_succeeded(result=result)
@@ -352,22 +359,29 @@ class Yoink:
         pose_setpointO = np.array(tft.euler_from_quaternion(pose_setpointQ.tolist()))
         pose_setpointM = tft.concatenate_matrices(tft.translation_matrix(pose_setpointL), tft.quaternion_matrix(pose_setpointQ))
 
-        transform = Pose()
-        transform.position.x = self.pre_grasp_transform["position"]["x"]
-        transform.position.y = self.pre_grasp_transform["position"]["y"]
-        transform.position.z = self.pre_grasp_transform["position"]["z"]
-        transform.orientation.x = self.pre_grasp_transform["orientation"]["x"]
-        transform.orientation.y = self.pre_grasp_transform["orientation"]["y"]
-        transform.orientation.z = self.pre_grasp_transform["orientation"]["z"]
-        transform.orientation.w = self.pre_grasp_transform["orientation"]["w"]
-        transformL = np.array([transform.position.x, transform.position.y, transform.position.z])
-        transformQ = np.array([transform.orientation.x, transform.orientation.y, transform.orientation.z, transform.orientation.w])
-        transformM = tft.concatenate_matrices(tft.translation_matrix(transformL), tft.quaternion_matrix(transformQ))
+        # this is where transformation happens to get the pregrasp_setpoint, but just use the filtered_grasp_pose instead for now
+
+        # transform = Pose()
+        # transform.position.x = self.pre_grasp_transform["position"]["x"]
+        # transform.position.y = self.pre_grasp_transform["position"]["y"]
+        # transform.position.z = self.pre_grasp_transform["position"]["z"]
+        # transform.orientation.x = self.pre_grasp_transform["orientation"]["x"]
+        # transform.orientation.y = self.pre_grasp_transform["orientation"]["y"]
+        # transform.orientation.z = self.pre_grasp_transform["orientation"]["z"]
+        # transform.orientation.w = self.pre_grasp_transform["orientation"]["w"]
+        # transformL = np.array([transform.position.x, transform.position.y, transform.position.z])
+        # transformQ = np.array([transform.orientation.x, transform.orientation.y, transform.orientation.z, transform.orientation.w])
+        # transformM = tft.concatenate_matrices(tft.translation_matrix(transformL), tft.quaternion_matrix(transformQ))
         
-        pose_optimal_setpointM = np.dot(pose_setpointM, transformM)
-        pose_optimal_setpointL = tft.translation_from_matrix(pose_optimal_setpointM)
-        pose_optimal_setpointQ = tft.quaternion_from_matrix(pose_optimal_setpointM)
-        pose_optimal_setpointO = tft.euler_from_quaternion(pose_optimal_setpointQ)
+        # pose_optimal_setpointM = np.dot(pose_setpointM, transformM)
+        # pose_optimal_setpointL = tft.translation_from_matrix(pose_optimal_setpointM)
+        # pose_optimal_setpointQ = tft.quaternion_from_matrix(pose_optimal_setpointM)
+        # pose_optimal_setpointO = tft.euler_from_quaternion(pose_optimal_setpointQ)
+        
+        pose_optimal_setpointM = pose_setpointM
+        pose_optimal_setpointL = pose_setpointL
+        pose_optimal_setpointQ = pose_setpointQ
+        pose_optimal_setpointO = pose_setpointO
 
 
         # Create PoseStamped message
@@ -482,7 +496,6 @@ class Yoink:
             # rospy.logwarn("%s : Input Stream error, message not received within timeout"%rospy.get_name())
             pass
     
-    # update grasp pose if stream is active
     def update_grasp_pose(self,event):
         if self.input_stream_timeout : 
             self.filtered_grasp_pose = self.proxy_filtered_grasp_pose
