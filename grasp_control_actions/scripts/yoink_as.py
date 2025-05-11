@@ -130,6 +130,9 @@ class Yoink:
         # Timer to log input stream diagnostics
         input_stream_diagnostics_timer = rospy.Timer(rospy.Duration(1), callback=self.filtered_grasp_pose_diagnostics)
         
+        # update parameters timer
+        update_parameters_timer = rospy.Timer(rospy.Duration(3),callback=self.update_parameters)
+
         self._qsum  = np.zeros((4,1),dtype=float)
 
         # create action server for Yoink
@@ -138,6 +141,37 @@ class Yoink:
         )
         self.yoink_action_server.register_preempt_callback(self.yoink_preempt_callback)
         self.yoink_action_server.start()
+
+    def update_parameters(self,event):
+        self.params = rospy.get_param("/yoink_as")
+        self.common_params = rospy.get_param("/common_parameters")
+
+        self.servo_topic = self.common_params["servo_topic"]
+        self.servo_controller = self.common_params["servo_controller"]
+        self.traj_controller = self.common_params["traj_controller"]
+        
+        self.LINEAR_P_GAIN = self.params["gains"]["linear"]["p"]
+        self.LINEAR_I_GAIN = self.params["gains"]["linear"]["i"]
+        self.LINEAR_D_GAIN = self.params["gains"]["linear"]["d"]
+        self.LINEAR_K = self.params["gains"]["linear"]["k"]
+        self.ANGULAR_P_GAIN = self.params["gains"]["angular"]["p"]
+        self.ANGULAR_I_GAIN = self.params["gains"]["angular"]["i"]
+        self.ANGULAR_D_GAIN = self.params["gains"]["angular"]["d"]
+        self.ANGULAR_K = self.params["gains"]["angular"]["k"]
+
+        self.cmd_publish_frequency = self.params["cmd_publish_frequency"]
+
+        self.max_linear_velocity = self.params["max_linear_velocity"]
+        self.max_linear_acceleration = self.params["max_linear_acceleration"]
+        self.max_angular_velocity = self.params["max_angular_velocity"]
+        self.max_angular_acceleration = self.params["max_angular_acceleration"]
+
+        self.linear_stop_threshold = self.params["linear_stop_threshold"]
+        self.angular_stop_threshold = self.params["angular_stop_threshold"]
+        self.linear_pre_grasp_stop_threshold = self.params["linear_pre_grasp_stop_threshold"]
+        self.angular_pre_grasp_stop_threshold = self.params["angular_pre_grasp_stop_threshold"]
+        self.pre_grasp_transform = self.params["pre_grasp_transform"]
+        self.input_stream_timeout = self.params["input_stream_timeout"]
 
     def update_current_pose(self,event):
         self.current_pose = self.move_group.get_current_pose() # as a PoseStamped

@@ -145,6 +145,9 @@ class RadialTracker:
         # Timer to log input stream diagnostics
         input_stream_diagnostics_timer = rospy.Timer(rospy.Duration(1), callback=self.filtered_grasp_pose_diagnostics)
 
+        # Timer to update parameters
+        update_parameters_timer = rospy.Timer(rospy.Duration(3),callback=self.update_parameters)
+
         self._qsum  = np.zeros((4,1),dtype=float)
 
         # create action server for Yoink
@@ -153,6 +156,47 @@ class RadialTracker:
         )
         self.radial_tracking_server.register_preempt_callback(self.radial_track_preempt_callback)
         self.radial_tracking_server.start()
+
+    def update_parameters(self,event):
+        self.params = rospy.get_param("/radial_track_as")
+        self.common_params = rospy.get_param("/common_parameters")
+
+        self.servo_topic = self.common_params["servo_topic"]
+        self.servo_controller = self.common_params["servo_controller"]
+        self.traj_controller = self.common_params["traj_controller"]
+        
+        self.LINEAR_P_GAIN = self.params["gains"]["linear"]["p"]
+        self.LINEAR_I_GAIN = self.params["gains"]["linear"]["i"]
+        self.LINEAR_D_GAIN = self.params["gains"]["linear"]["d"]
+        self.LINEAR_K = self.params["gains"]["linear"]["k"]
+        self.ANGULAR_P_GAIN = self.params["gains"]["angular"]["p"]
+        self.ANGULAR_I_GAIN = self.params["gains"]["angular"]["i"]
+        self.ANGULAR_D_GAIN = self.params["gains"]["angular"]["d"]
+        self.ANGULAR_K = self.params["gains"]["angular"]["k"]
+
+        self.cmd_publish_frequency = self.params["cmd_publish_frequency"]
+
+        self.max_linear_velocity = self.params["max_linear_velocity"]
+        self.max_linear_acceleration = self.params["max_linear_acceleration"]
+        self.max_angular_velocity = self.params["max_angular_velocity"]
+        self.max_angular_acceleration = self.params["max_angular_acceleration"]
+
+        self.linear_stop_threshold = self.params["linear_stop_threshold"]
+        self.angular_stop_threshold = self.params["angular_stop_threshold"]
+        self.pre_grasp_transform = self.params["pre_grasp_transform"]
+        self.linear_track_interpolation_factor = self.params["linear_track_interpolation_factor"]
+        self.input_stream_timeout = self.params["input_stream_timeout"]
+
+        self.track_duration = self.params["track_duration"]
+        self.ready_ee_pose = PoseStamped()
+        self.ready_ee_pose.header.frame_id = "world"
+        self.ready_ee_pose.pose.position.x = self.params["ready_ee_pose"]["position"]["x"]
+        self.ready_ee_pose.pose.position.y = self.params["ready_ee_pose"]["position"]["y"]
+        self.ready_ee_pose.pose.position.z = self.params["ready_ee_pose"]["position"]["z"]
+        self.ready_ee_pose.pose.orientation.x = self.params["ready_ee_pose"]["orientation"]["x"]
+        self.ready_ee_pose.pose.orientation.y = self.params["ready_ee_pose"]["orientation"]["y"]
+        self.ready_ee_pose.pose.orientation.z = self.params["ready_ee_pose"]["orientation"]["z"]
+        self.ready_ee_pose.pose.orientation.w = self.params["ready_ee_pose"]["orientation"]["w"]
 
     def switch_controller_to_moveit(self):
         switch_controller_msg = SwitchControllerRequest()
