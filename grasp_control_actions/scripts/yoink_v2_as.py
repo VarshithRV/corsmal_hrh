@@ -141,7 +141,7 @@ class Yoink:
 
         # create action server for Yoink
         self.yoink_action_server = actionlib.SimpleActionServer(
-            "yoink", YoinkAction, self.yoink_action_callback, auto_start=False
+            "yoink_v2", YoinkAction, self.yoink_action_callback, auto_start=False
         )
         self.yoink_action_server.register_preempt_callback(self.yoink_preempt_callback)
         self.yoink_action_server.start()
@@ -217,6 +217,7 @@ class Yoink:
 
     def yoink_action_callback(self,goal:YoinkActionGoal):
         start = rospy.get_time()
+        rospy.loginfo("Started Yoink V2")
         rospy.loginfo("%s : Action started",rospy.get_name())
         if self.switch_controller_to_servo() : 
             pass
