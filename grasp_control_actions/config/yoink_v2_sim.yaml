@@ -12,15 +12,15 @@ angular_stop_threshold : 0.02
 # vanilla pidk and filtered_grasp_pose axes weighted K for trajectory based pid control
 gains :
   linear : 
-    p : 150
-    i : 0
-    d : 0
+    p : 75
+    i : 75
+    d : 75
     X : 
-      k : 0.1
+      k : 0.01
     Y :
-      k : 0.1
+      k : 0.01
     Z : 
-      k : 0.05
+      k : 0.01
     
   angular : 
     p : 1000

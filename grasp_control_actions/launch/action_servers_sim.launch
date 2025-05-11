@@ -30,6 +30,7 @@
         <remap from="/linear_velocity" to="/yoink_v2/linear_velocity"/>
         <remap from="/angular_velocity" to="/yoink_v2/angular_velocity"/>
         <remap from="/optimal_pose" to="/yoink_v2/optimal_pose"/>
+        <remap from="/pid_error_gradient" to="/yoink_v2/pid_error_gradient"/>
     </node>
     <node pkg="grasp_control_actions" type="place_vel_as.py" name="place_vel_server" output="screen">
         <remap from="/linear_error" to="/place_vel/linear_error"/>
