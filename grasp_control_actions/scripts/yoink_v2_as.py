@@ -36,7 +36,6 @@ class Yoink:
         self.LINEAR_P_GAIN = self.params["gains"]["linear"]["p"]
         self.LINEAR_I_GAIN = self.params["gains"]["linear"]["i"]
         self.LINEAR_D_GAIN = self.params["gains"]["linear"]["d"]
-        self.LINEAR_K = self.params["gains"]["linear"]["k"]
         self.LINEAR_X_K_GAIN = self.params["gains"]["linear"]["X"]["k"]
         self.LINEAR_Y_K_GAIN = self.params["gains"]["linear"]["Y"]["k"]
         self.LINEAR_Z_K_GAIN = self.params["gains"]["linear"]["Z"]["k"]
@@ -54,9 +53,6 @@ class Yoink:
 
         self.linear_stop_threshold = self.params["linear_stop_threshold"]
         self.angular_stop_threshold = self.params["angular_stop_threshold"]
-        self.linear_pre_grasp_stop_threshold = self.params["linear_pre_grasp_stop_threshold"]
-        self.angular_pre_grasp_stop_threshold = self.params["angular_pre_grasp_stop_threshold"]
-        self.pre_grasp_transform = self.params["pre_grasp_transform"]
         self.input_stream_timeout = self.params["input_stream_timeout"]
 
         self.dt = 1/self.cmd_publish_frequency
@@ -157,14 +153,13 @@ class Yoink:
         self.LINEAR_P_GAIN = self.params["gains"]["linear"]["p"]
         self.LINEAR_I_GAIN = self.params["gains"]["linear"]["i"]
         self.LINEAR_D_GAIN = self.params["gains"]["linear"]["d"]
-        self.LINEAR_K = self.params["gains"]["linear"]["k"]
+        self.LINEAR_X_K_GAIN = self.params["gains"]["linear"]["X"]["k"]
+        self.LINEAR_Y_K_GAIN = self.params["gains"]["linear"]["Y"]["k"]
+        self.LINEAR_Z_K_GAIN = self.params["gains"]["linear"]["Z"]["k"]
         self.ANGULAR_P_GAIN = self.params["gains"]["angular"]["p"]
         self.ANGULAR_I_GAIN = self.params["gains"]["angular"]["i"]
         self.ANGULAR_D_GAIN = self.params["gains"]["angular"]["d"]
         self.ANGULAR_K = self.params["gains"]["angular"]["k"]
-        self.LINEAR_X_K_GAIN = self.params["gains"]["linear"]["X"]["k"]
-        self.LINEAR_Y_K_GAIN = self.params["gains"]["linear"]["Y"]["k"]
-        self.LINEAR_Z_K_GAIN = self.params["gains"]["linear"]["Z"]["k"]
 
         self.cmd_publish_frequency = self.params["cmd_publish_frequency"]
 
@@ -175,9 +170,6 @@ class Yoink:
 
         self.linear_stop_threshold = self.params["linear_stop_threshold"]
         self.angular_stop_threshold = self.params["angular_stop_threshold"]
-        self.linear_pre_grasp_stop_threshold = self.params["linear_pre_grasp_stop_threshold"]
-        self.angular_pre_grasp_stop_threshold = self.params["angular_pre_grasp_stop_threshold"]
-        self.pre_grasp_transform = self.params["pre_grasp_transform"]
         self.input_stream_timeout = self.params["input_stream_timeout"]
 
     def update_current_pose(self,event):
@@ -225,11 +217,9 @@ class Yoink:
             rospy.logerr("%s : Controller not switched from pos_joint_traj_controller to joint_group_pos_controller , aborting",rospy.get_name())
             self.yoink_action_server.set_aborted(YoinkActionResult(result=False))
             return
-        grasp_result1 = self.goto_pre_grasp()
-        # grasp_result2 = self.grasp()
+        grasp_result = self.goto_grasp()
         result = YoinkActionResult()
-        # result.result = grasp_result1 and grasp_result2
-        result.result = grasp_result1
+        result.result = grasp_result
         finish = rospy.get_time()
         rospy.loginfo("%s : Time taken for yoink : %s",rospy.get_name(),(finish-start))
         self.yoink_action_server.set_succeeded(result=result)
@@ -242,7 +232,7 @@ class Yoink:
         self.angular_velocity_publisher.publish(Float32(self.angular_velocity))
 
     # This commands the robot to go to pre grasp
-    def goto_pre_grasp(self):
+    def goto_grasp(self):
         if not self.input_stream_status:
             rospy.logerr("%s : Input Stream is not active"%rospy.get_name())
             return False
@@ -267,7 +257,7 @@ class Yoink:
                 current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
                                           self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
                 
-                if (abs(np.linalg.norm(optimal_poseL - current_poseL)) < self.linear_pre_grasp_stop_threshold) and (abs(np.linalg.norm(optimal_poseQ  - current_poseQ))<self.angular_pre_grasp_stop_threshold ): 
+                if (abs(np.linalg.norm(optimal_poseL - current_poseL)) < self.linear_stop_threshold) and (abs(np.linalg.norm(optimal_poseQ  - current_poseQ))<self.angular_stop_threshold ): 
                     cmd_vel = TwistStamped()
                     cmd_vel.header.frame_id = "base_link"
                     rospy.loginfo("%s : Reached pre grasp",rospy.get_name())
@@ -298,59 +288,6 @@ class Yoink:
                 rospy.loginfo("%s : Preempted requested while in pre grasp",rospy.get_name())
                 return False
     
-    # Grasp
-    def grasp(self):
-        if not self.input_stream_status:
-            rospy.logerr("%s : Input Stream is not active"%rospy.get_name())
-            return False
-        
-        self.errorLprev = np.zeros((3,),dtype=float)
-        self.errorLsum = np.zeros((3,),dtype=float)
-        self.errorOprev = np.zeros((4,),dtype=float)
-        self.errorOsum = np.zeros((4,),dtype=float)
-
-        if self.filtered_grasp_pose is not None :
-            pose_setpoint = self.filtered_grasp_pose
-        else : 
-            rospy.logerr("%s : No filtered grasp pose received"%rospy.get_name())
-            return False
-
-        if self.filtered_grasp_pose is not None:
-            rate = rospy.Rate(self.cmd_publish_frequency)
-            while True:
-                if not self.yoink_action_server.is_preempt_requested():
-                    pose_setpointL = np.array([pose_setpoint.pose.position.x,pose_setpoint.pose.position.y,pose_setpoint.pose.position.z],dtype=float)
-                    pose_setpointQ = np.array([pose_setpoint.pose.orientation.x,pose_setpoint.pose.orientation.y,pose_setpoint.pose.orientation.z,pose_setpoint.pose.orientation.w],dtype=float)
-
-                    current_pose = self.current_pose
-                    current_poseL = np.array([current_pose.pose.position.x,current_pose.pose.position.y,current_pose.pose.position.z],dtype=float)
-                    current_poseQ = np.array([current_pose.pose.orientation.x,current_pose.pose.orientation.y,current_pose.pose.orientation.z,current_pose.pose.orientation.w],dtype=float)
-
-                    if (abs(np.linalg.norm(pose_setpointL - current_poseL)) < self.linear_stop_threshold) and (abs(np.linalg.norm(pose_setpointQ  - current_poseQ))<self.angular_stop_threshold ): 
-                        cmd_vel = TwistStamped()
-                        cmd_vel.header.frame_id = "base_link"
-                        rospy.loginfo("%s : Reached Grasp Position",rospy.get_name())
-                        # command the gripper so that it closes here
-                        self.errorLprev = np.zeros((3,),dtype=float)
-                        self.errorLsum = np.zeros((3,),dtype=float)
-                        self.errorOprev = np.zeros((4,),dtype=float)
-                        self.errorOsum = np.zeros((4,),dtype=float)
-                        return True
-                    
-                    self.setpoint_velocity.header.stamp = rospy.Time.now()
-                    cmd_vel = self.compute_cmd_vel(optimal_setpointL=pose_setpointL,optimal_setpointQ=pose_setpointQ)
-
-                    self.setpoint_velocity = cmd_vel
-                    self.setpoint_velocity_pub.publish(cmd_vel)
-                    rate.sleep()
-                else :
-                    rospy.loginfo("%s : Preempted requested while in grasp",rospy.get_name())
-                    return False
-
-        
-        else : 
-            rospy.logerr("%s : Filtered grasp pose is not received",rospy.get_name())
-            return False
         
     # This computes the pre grasp setpoint in (linear, euler, quaterion) format
     def compute_pre_grasp_setpoint(self):
@@ -474,7 +411,7 @@ class Yoink:
         # instead of that, need to use weighted gains
         object_rotation = Rotation.from_quat(np.array([self.filtered_grasp_pose.pose.orientation.x,self.filtered_grasp_pose.pose.orientation.y,self.filtered_grasp_pose.pose.orientation.z,self.filtered_grasp_pose.pose.orientation.w]))
         M = object_rotation.as_matrix()
-        M_inv = object_rotation.inv().as_matrix()
+        M_inv = M.T
         velocityO = self.ANGULAR_K* ((self.ANGULAR_P_GAIN*errorO) + (self.ANGULAR_I_GAIN*errorOsum*self.dt) + (self.ANGULAR_D_GAIN*(errorOdiff/self.dt)))
         velocityL_unweighted = ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(errorLdiff/self.dt)))
         velocityL_unweighted_wrt_object = np.dot(M ,velocityL_unweighted.reshape(3,1))
