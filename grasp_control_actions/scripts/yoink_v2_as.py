@@ -26,7 +26,7 @@ from scipy.spatial.transform import Rotation
 class Yoink:
     def __init__(self):
         
-        self.params = rospy.get_param("/yoink_as")
+        self.params = rospy.get_param("/yoink_v2_as")
         self.common_params = rospy.get_param("/common_parameters")
 
         self.servo_topic = self.common_params["servo_topic"]
@@ -147,7 +147,7 @@ class Yoink:
         self.yoink_action_server.start()
 
     def update_parameters(self,event):
-        self.params = rospy.get_param("/yoink_as")
+        self.params = rospy.get_param("/yoink_v2_as")
         self.common_params = rospy.get_param("/common_parameters")
 
         self.servo_topic = self.common_params["servo_topic"]
