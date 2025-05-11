@@ -20,6 +20,7 @@ from controller_manager_msgs.srv import SwitchController,SwitchControllerRequest
 import moveit_commander, moveit_msgs.msg
 from moveit_commander.conversions import pose_to_list
 import sys
+from scipy.spatial.transform import Rotation
 
 
 class Yoink:
@@ -469,8 +470,17 @@ class Yoink:
 
     # compute velocityL and velocityO from errorL and errorO
     def PID(self,errorL,errorLsum,errorLdiff,errorO,errorOsum,errorOdiff): 
-        velocityL = self.LINEAR_K* ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(errorLdiff/self.dt)))
+        # instead of that, need to use weighted gains
+        object_rotation = Rotation.from_quat(np.array([self.filtered_grasp_pose.pose.orientation.x,self.filtered_grasp_pose.pose.orientation.y,self.filtered_grasp_pose.pose.orientation.z,self.filtered_grasp_pose.pose.orientation.w]))
+        M = object_rotation.as_matrix()
+        M_inv = object_rotation.inv().as_matrix()
         velocityO = self.ANGULAR_K* ((self.ANGULAR_P_GAIN*errorO) + (self.ANGULAR_I_GAIN*errorOsum*self.dt) + (self.ANGULAR_D_GAIN*(errorOdiff/self.dt)))
+        velocityL_unweighted = ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(errorLdiff/self.dt)))
+        velocityL_unweighted_wrt_object = np.dot(M ,velocityL_unweighted.reshape(3,1))
+        weights = np.array([self.LINEAR_X_K_GAIN,self.LINEAR_Y_K_GAIN,self.LINEAR_Z_K_GAIN],dtype=float).reshape(3,1)
+        velocityL_weighted_wrt_object = weights*velocityL_unweighted_wrt_object
+        velocityL_weighted = np.dot(M_inv,velocityL_weighted_wrt_object)
+        velocityL = velocityL_weighted
         return velocityL, velocityO
 
     def filtered_grasp_pose_cb(self,msg: PoseStamped):
