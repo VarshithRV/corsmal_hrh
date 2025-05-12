@@ -9,7 +9,7 @@ cmd_publish_frequency : 100 #hz
 linear_stop_threshold : 0.02 # having a higher threshold means faster stop because of how PID works
 angular_stop_threshold : 0.02
 
-linear_pre_grasp_stop_threshold : 0.1
+linear_pre_grasp_stop_threshold : 0.03
 angular_pre_grasp_stop_threshold : 0.01
 
 gains :

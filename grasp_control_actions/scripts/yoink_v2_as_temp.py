@@ -20,12 +20,13 @@ from controller_manager_msgs.srv import SwitchController,SwitchControllerRequest
 import moveit_commander, moveit_msgs.msg
 from moveit_commander.conversions import pose_to_list
 import sys
+from scipy.spatial.transform import Rotation
 
 
 class Yoink:
     def __init__(self):
         
-        self.params = rospy.get_param("/yoink_as")
+        self.params = rospy.get_param("/yoink_v2_as")
         self.common_params = rospy.get_param("/common_parameters")
 
         self.servo_topic = self.common_params["servo_topic"]
@@ -35,7 +36,9 @@ class Yoink:
         self.LINEAR_P_GAIN = self.params["gains"]["linear"]["p"]
         self.LINEAR_I_GAIN = self.params["gains"]["linear"]["i"]
         self.LINEAR_D_GAIN = self.params["gains"]["linear"]["d"]
-        self.LINEAR_K = self.params["gains"]["linear"]["k"]
+        self.LINEAR_X_K_GAIN = self.params["gains"]["linear"]["X"]["k"]
+        self.LINEAR_Y_K_GAIN = self.params["gains"]["linear"]["Y"]["k"]
+        self.LINEAR_Z_K_GAIN = self.params["gains"]["linear"]["Z"]["k"]
         self.ANGULAR_P_GAIN = self.params["gains"]["angular"]["p"]
         self.ANGULAR_I_GAIN = self.params["gains"]["angular"]["i"]
         self.ANGULAR_D_GAIN = self.params["gains"]["angular"]["d"]
@@ -50,9 +53,6 @@ class Yoink:
 
         self.linear_stop_threshold = self.params["linear_stop_threshold"]
         self.angular_stop_threshold = self.params["angular_stop_threshold"]
-        self.linear_pre_grasp_stop_threshold = self.params["linear_pre_grasp_stop_threshold"]
-        self.angular_pre_grasp_stop_threshold = self.params["angular_pre_grasp_stop_threshold"]
-        self.pre_grasp_transform = self.params["pre_grasp_transform"]
         self.input_stream_timeout = self.params["input_stream_timeout"]
 
         self.dt = 1/self.cmd_publish_frequency
@@ -147,7 +147,7 @@ class Yoink:
 
         # create action server for Yoink
         self.yoink_action_server = actionlib.SimpleActionServer(
-            "yoink", YoinkAction, self.yoink_action_callback, auto_start=False
+            "yoink_v2", YoinkAction, self.yoink_action_callback, auto_start=False
         )
         self.yoink_action_server.register_preempt_callback(self.yoink_preempt_callback)
         self.yoink_action_server.start()
@@ -171,8 +171,9 @@ class Yoink:
         self.pid_error_gradient = self.pid_error_gradient_alpha*self.pid_error_gradient + (1-self.pid_error_gradient_alpha)*gradient
         self.pid_gradient_publisher.publish(Float32(data = np.linalg.norm(self.pid_error_gradient)))
 
+
     def update_parameters(self,event):
-        self.params = rospy.get_param("/yoink_as")
+        self.params = rospy.get_param("/yoink_v2_as")
         self.common_params = rospy.get_param("/common_parameters")
 
         self.servo_topic = self.common_params["servo_topic"]
@@ -182,7 +183,9 @@ class Yoink:
         self.LINEAR_P_GAIN = self.params["gains"]["linear"]["p"]
         self.LINEAR_I_GAIN = self.params["gains"]["linear"]["i"]
         self.LINEAR_D_GAIN = self.params["gains"]["linear"]["d"]
-        self.LINEAR_K = self.params["gains"]["linear"]["k"]
+        self.LINEAR_X_K_GAIN = self.params["gains"]["linear"]["X"]["k"]
+        self.LINEAR_Y_K_GAIN = self.params["gains"]["linear"]["Y"]["k"]
+        self.LINEAR_Z_K_GAIN = self.params["gains"]["linear"]["Z"]["k"]
         self.ANGULAR_P_GAIN = self.params["gains"]["angular"]["p"]
         self.ANGULAR_I_GAIN = self.params["gains"]["angular"]["i"]
         self.ANGULAR_D_GAIN = self.params["gains"]["angular"]["d"]
@@ -197,9 +200,6 @@ class Yoink:
 
         self.linear_stop_threshold = self.params["linear_stop_threshold"]
         self.angular_stop_threshold = self.params["angular_stop_threshold"]
-        self.linear_pre_grasp_stop_threshold = self.params["linear_pre_grasp_stop_threshold"]
-        self.angular_pre_grasp_stop_threshold = self.params["angular_pre_grasp_stop_threshold"]
-        self.pre_grasp_transform = self.params["pre_grasp_transform"]
         self.input_stream_timeout = self.params["input_stream_timeout"]
 
     def update_current_pose(self,event):
@@ -247,6 +247,7 @@ class Yoink:
 
     def yoink_action_callback(self,goal:YoinkActionGoal):
         start = rospy.get_time()
+        rospy.loginfo("Started Yoink V2")
         rospy.loginfo("%s : Action started",rospy.get_name())
         if self.switch_controller_to_servo() : 
             pass
@@ -254,10 +255,9 @@ class Yoink:
             rospy.logerr("%s : Controller not switched from pos_joint_traj_controller to joint_group_pos_controller , aborting",rospy.get_name())
             self.yoink_action_server.set_aborted(YoinkActionResult(result=False))
             return
-        grasp_result1 = self.goto_pre_grasp()
-        grasp_result2 = self.grasp()
+        grasp_result = self.goto_grasp()
         result = YoinkActionResult()
-        result.result = grasp_result1 and grasp_result2
+        result.result = grasp_result
         finish = rospy.get_time()
         rospy.loginfo("%s : Time taken for yoink : %s",rospy.get_name(),(finish-start))
         self.yoink_action_server.set_succeeded(result=result)
@@ -270,10 +270,11 @@ class Yoink:
         self.angular_velocity_publisher.publish(Float32(self.angular_velocity))
 
     # This commands the robot to go to pre grasp
-    def goto_pre_grasp(self):
+    def goto_grasp(self):
         if not self.input_stream_status:
             rospy.logerr("%s : Input Stream is not active"%rospy.get_name())
             return False
+
 
         # reset all error variables
         self.errorLprev = np.zeros((3,),dtype=float)
@@ -299,18 +300,14 @@ class Yoink:
                 current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
                                           self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
                 
-                if (abs(np.linalg.norm(optimal_poseL - current_poseL)) < self.linear_pre_grasp_stop_threshold) and (abs(np.linalg.norm(optimal_poseQ  - current_poseQ))<self.angular_pre_grasp_stop_threshold ): 
+                if (abs(np.linalg.norm(optimal_poseL - current_poseL)) < self.linear_stop_threshold) and (abs(np.linalg.norm(optimal_poseQ  - current_poseQ))<self.angular_stop_threshold ): 
                     cmd_vel = TwistStamped()
                     cmd_vel.header.frame_id = "base_link"
                     rospy.loginfo("%s : Reached pre grasp",rospy.get_name())
-                    # reset all error variables
                     self.errorLprev = np.zeros((3,),dtype=float)
                     self.errorLsum = np.zeros((3,),dtype=float)
                     self.errorOprev = np.zeros((4,),dtype=float)
                     self.errorOsum = np.zeros((4,),dtype=float)
-                    self.pid_error_gradient = np.zeros((3,),dtype=float)
-                    self.time_stamped_errorL = {}
-                    self.time_stamped_errorL_list = []
                     return True
 
                 self.linear_error = np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)
@@ -334,67 +331,6 @@ class Yoink:
                 rospy.loginfo("%s : Preempted requested while in pre grasp",rospy.get_name())
                 return False
     
-    # Grasp
-    def grasp(self):
-        if not self.input_stream_status:
-            rospy.logerr("%s : Input Stream is not active"%rospy.get_name())
-            return False
-        
-        # reset all error variables
-        self.errorLprev = np.zeros((3,),dtype=float)
-        self.errorLsum = np.zeros((3,),dtype=float)
-        self.errorOprev = np.zeros((4,),dtype=float)
-        self.errorOsum = np.zeros((4,),dtype=float)
-        self.pid_error_gradient = np.zeros((3,),dtype=float)
-        self.time_stamped_errorL = {}
-        self.time_stamped_errorL_list = []
-
-        if self.filtered_grasp_pose is not None :
-            pose_setpoint = self.filtered_grasp_pose
-        else : 
-            rospy.logerr("%s : No filtered grasp pose received"%rospy.get_name())
-            return False
-
-        if self.filtered_grasp_pose is not None:
-            rate = rospy.Rate(self.cmd_publish_frequency)
-            while True:
-                if not self.yoink_action_server.is_preempt_requested():
-                    pose_setpointL = np.array([pose_setpoint.pose.position.x,pose_setpoint.pose.position.y,pose_setpoint.pose.position.z],dtype=float)
-                    pose_setpointQ = np.array([pose_setpoint.pose.orientation.x,pose_setpoint.pose.orientation.y,pose_setpoint.pose.orientation.z,pose_setpoint.pose.orientation.w],dtype=float)
-
-                    current_pose = self.current_pose
-                    current_poseL = np.array([current_pose.pose.position.x,current_pose.pose.position.y,current_pose.pose.position.z],dtype=float)
-                    current_poseQ = np.array([current_pose.pose.orientation.x,current_pose.pose.orientation.y,current_pose.pose.orientation.z,current_pose.pose.orientation.w],dtype=float)
-
-                    if (abs(np.linalg.norm(pose_setpointL - current_poseL)) < self.linear_stop_threshold) and (abs(np.linalg.norm(pose_setpointQ  - current_poseQ))<self.angular_stop_threshold ): 
-                        cmd_vel = TwistStamped()
-                        cmd_vel.header.frame_id = "base_link"
-                        rospy.loginfo("%s : Reached Grasp Position",rospy.get_name())
-                        # command the gripper so that it closes here
-                        # reset all error variables
-                        self.errorLprev = np.zeros((3,),dtype=float)
-                        self.errorLsum = np.zeros((3,),dtype=float)
-                        self.errorOprev = np.zeros((4,),dtype=float)
-                        self.errorOsum = np.zeros((4,),dtype=float)
-                        self.pid_error_gradient = np.zeros((3,),dtype=float)
-                        self.time_stamped_errorL = {}
-                        self.time_stamped_errorL_list = []
-                        return True
-                    
-                    self.setpoint_velocity.header.stamp = rospy.Time.now()
-                    cmd_vel = self.compute_cmd_vel(optimal_setpointL=pose_setpointL,optimal_setpointQ=pose_setpointQ)
-
-                    self.setpoint_velocity = cmd_vel
-                    self.setpoint_velocity_pub.publish(cmd_vel)
-                    rate.sleep()
-                else :
-                    rospy.loginfo("%s : Preempted requested while in grasp",rospy.get_name())
-                    return False
-
-        
-        else : 
-            rospy.logerr("%s : Filtered grasp pose is not received",rospy.get_name())
-            return False
         
     # This computes the pre grasp setpoint in (linear, euler, quaterion) format
     def compute_pre_grasp_setpoint(self):
@@ -405,22 +341,10 @@ class Yoink:
         pose_setpointO = np.array(tft.euler_from_quaternion(pose_setpointQ.tolist()))
         pose_setpointM = tft.concatenate_matrices(tft.translation_matrix(pose_setpointL), tft.quaternion_matrix(pose_setpointQ))
 
-        transform = Pose()
-        transform.position.x = self.pre_grasp_transform["position"]["x"]
-        transform.position.y = self.pre_grasp_transform["position"]["y"]
-        transform.position.z = self.pre_grasp_transform["position"]["z"]
-        transform.orientation.x = self.pre_grasp_transform["orientation"]["x"]
-        transform.orientation.y = self.pre_grasp_transform["orientation"]["y"]
-        transform.orientation.z = self.pre_grasp_transform["orientation"]["z"]
-        transform.orientation.w = self.pre_grasp_transform["orientation"]["w"]
-        transformL = np.array([transform.position.x, transform.position.y, transform.position.z])
-        transformQ = np.array([transform.orientation.x, transform.orientation.y, transform.orientation.z, transform.orientation.w])
-        transformM = tft.concatenate_matrices(tft.translation_matrix(transformL), tft.quaternion_matrix(transformQ))
-        
-        pose_optimal_setpointM = np.dot(pose_setpointM, transformM)
-        pose_optimal_setpointL = tft.translation_from_matrix(pose_optimal_setpointM)
-        pose_optimal_setpointQ = tft.quaternion_from_matrix(pose_optimal_setpointM)
-        pose_optimal_setpointO = tft.euler_from_quaternion(pose_optimal_setpointQ)
+        pose_optimal_setpointM = pose_setpointM
+        pose_optimal_setpointL = pose_setpointL
+        pose_optimal_setpointQ = pose_setpointQ
+        pose_optimal_setpointO = pose_setpointO
 
 
         # Create PoseStamped message
@@ -473,7 +397,7 @@ class Yoink:
         self.errorL = optimal_setpointL - pose_currentL
         self.time_stamped_errorL = {"stamp":rospy.get_time(),"error":self.errorL}
         self.time_stamped_errorL_list.append(self.time_stamped_errorL)
-        
+
         self.errorO = np.array(tft.euler_from_quaternion(q_error))
 
         self.errorLsum = self.errorLsum + self.errorL
@@ -511,7 +435,20 @@ class Yoink:
 
     # compute velocityL and velocityO from errorL and errorO
     def PID(self,errorL,errorLsum,errorLdiff,errorO,errorOsum,errorOdiff): 
-        velocityL = self.LINEAR_K* ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(self.pid_error_gradient)))
+        
+        object_pose_q = [self.filtered_grasp_pose.pose.orientation.x,self.filtered_grasp_pose.pose.orientation.y,self.filtered_grasp_pose.pose.orientation.z,self.filtered_grasp_pose.pose.orientation.w]
+        M = tft.quaternion_matrix(object_pose_q)[:3,:3]
+        M_inv = M.T
+        
+        velocityL_unweighted = ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(errorLdiff/self.dt)))
+        velocityL_unweighted_obj = M@velocityL_unweighted
+        print("velocity wrt base_link frame: ",velocityL_unweighted,velocityL_unweighted.shape)
+        print("velocity wrt obj frame: ",velocityL_unweighted_obj,velocityL_unweighted_obj.shape)
+
+        weights = np.array([self.LINEAR_X_K_GAIN,self.LINEAR_Y_K_GAIN,self.LINEAR_Z_K_GAIN],dtype=float).reshape(3,)
+        velocityL_obj = (weights*velocityL_unweighted_obj)
+        velocityL = M_inv @ velocityL_obj
+
         velocityO = self.ANGULAR_K* ((self.ANGULAR_P_GAIN*errorO) + (self.ANGULAR_I_GAIN*errorOsum*self.dt) + (self.ANGULAR_D_GAIN*(errorOdiff/self.dt)))
         return velocityL, velocityO
 
@@ -538,7 +475,6 @@ class Yoink:
             # rospy.logwarn("%s : Input Stream error, message not received within timeout"%rospy.get_name())
             pass
     
-    # update grasp pose if stream is active
     def update_grasp_pose(self,event):
         if self.input_stream_timeout : 
             self.filtered_grasp_pose = self.proxy_filtered_grasp_pose

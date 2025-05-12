@@ -434,18 +434,19 @@ class Yoink:
             self.optimal_pose_pub.publish(self.optimal_pose)
 
     # compute velocityL and velocityO from errorL and errorO
-    def PID(self,errorL,errorLsum,errorLdiff,errorO,errorOsum,errorOdiff): 
-        # instead of that, need to use weighted gains
-        object_rotation = Rotation.from_quat(np.array([self.filtered_grasp_pose.pose.orientation.x,self.filtered_grasp_pose.pose.orientation.y,self.filtered_grasp_pose.pose.orientation.z,self.filtered_grasp_pose.pose.orientation.w]))
-        M = object_rotation.as_matrix()
+    def PID(self,errorL,errorLsum,waste,errorO,errorOsum,errorOdiff): 
+        
+        object_pose_q = [self.filtered_grasp_pose.pose.orientation.x,self.filtered_grasp_pose.pose.orientation.y,self.filtered_grasp_pose.pose.orientation.z,self.filtered_grasp_pose.pose.orientation.w]
+        M = tft.quaternion_matrix(object_pose_q)[:3,:3]
         M_inv = M.T
-        velocityO = self.ANGULAR_K* ((self.ANGULAR_P_GAIN*errorO) + (self.ANGULAR_I_GAIN*errorOsum*self.dt) + (self.ANGULAR_D_GAIN*(errorOdiff/self.dt)))
+
         velocityL_unweighted = ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(self.pid_error_gradient)))
-        velocityL_unweighted_wrt_object = np.dot(M ,velocityL_unweighted.reshape(3,1))
-        weights = np.array([self.LINEAR_X_K_GAIN,self.LINEAR_Y_K_GAIN,self.LINEAR_Z_K_GAIN],dtype=float).reshape(3,1)
-        velocityL_weighted_wrt_object = weights*velocityL_unweighted_wrt_object
-        velocityL_weighted = np.dot(M_inv,velocityL_weighted_wrt_object)
-        velocityL = velocityL_weighted
+        velocityL_unweighted_obj = M@(velocityL_unweighted.reshape((3,1)))
+        weights = np.array([self.LINEAR_X_K_GAIN,self.LINEAR_Y_K_GAIN,self.LINEAR_Z_K_GAIN],dtype=float).reshape((3,1))
+        velocityL_obj = (weights*velocityL_unweighted_obj)
+        velocityL = M_inv @ velocityL_obj
+
+        velocityO = self.ANGULAR_K* ((self.ANGULAR_P_GAIN*errorO) + (self.ANGULAR_I_GAIN*errorOsum*self.dt) + (self.ANGULAR_D_GAIN*(errorOdiff/self.dt)))
         return velocityL, velocityO
 
     def filtered_grasp_pose_cb(self,msg: PoseStamped):
