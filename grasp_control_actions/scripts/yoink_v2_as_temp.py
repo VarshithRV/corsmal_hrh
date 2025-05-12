@@ -434,15 +434,18 @@ class Yoink:
             self.optimal_pose_pub.publish(self.optimal_pose)
 
     # compute velocityL and velocityO from errorL and errorO
-    def PID(self,errorL,errorLsum,waste,errorO,errorOsum,errorOdiff): 
+    def PID(self,errorL,errorLsum,errorLdiff,errorO,errorOsum,errorOdiff): 
         
         object_pose_q = [self.filtered_grasp_pose.pose.orientation.x,self.filtered_grasp_pose.pose.orientation.y,self.filtered_grasp_pose.pose.orientation.z,self.filtered_grasp_pose.pose.orientation.w]
         M = tft.quaternion_matrix(object_pose_q)[:3,:3]
         M_inv = M.T
+        
+        velocityL_unweighted = ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(errorLdiff/self.dt)))
+        velocityL_unweighted_obj = M@velocityL_unweighted
+        print("velocity wrt base_link frame: ",velocityL_unweighted,velocityL_unweighted.shape)
+        print("velocity wrt obj frame: ",velocityL_unweighted_obj,velocityL_unweighted_obj.shape)
 
-        velocityL_unweighted = ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(self.pid_error_gradient)))
-        velocityL_unweighted_obj = M@(velocityL_unweighted.reshape((3,1)))
-        weights = np.array([self.LINEAR_X_K_GAIN,self.LINEAR_Y_K_GAIN,self.LINEAR_Z_K_GAIN],dtype=float).reshape((3,1))
+        weights = np.array([self.LINEAR_X_K_GAIN,self.LINEAR_Y_K_GAIN,self.LINEAR_Z_K_GAIN],dtype=float).reshape(3,)
         velocityL_obj = (weights*velocityL_unweighted_obj)
         velocityL = M_inv @ velocityL_obj
 
