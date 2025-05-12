@@ -271,6 +271,7 @@ class Yoink:
 
     # This commands the robot to go to pre grasp
     def goto_pre_grasp(self):
+        rospy.wait_for_message("/filtered_grasp_pose",PoseStamped)
         if not self.input_stream_status:
             rospy.logerr("%s : Input Stream is not active"%rospy.get_name())
             return False
@@ -313,8 +314,11 @@ class Yoink:
                     self.time_stamped_errorL_list = []
                     return True
 
-                self.linear_error = np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)
-                self.angular_error = np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)
+                final_L = np.array([self.filtered_grasp_pose.pose.position.x,self.filtered_grasp_pose.pose.position.y,self.filtered_grasp_pose.pose.position.z],dtype=float)
+                final_Q = np.array([self.filtered_grasp_pose.pose.orientation.x,self.filtered_grasp_pose.pose.orientation.y,self.filtered_grasp_pose.pose.orientation.z,self.filtered_grasp_pose.pose.orientation.w],dtype=float)
+                
+                self.linear_error = np.linalg.norm(final_L - current_poseL)
+                self.angular_error = np.linalg.norm(final_Q - current_poseQ)
 
                 cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ)
 
@@ -386,6 +390,20 @@ class Yoink:
 
                     self.setpoint_velocity = cmd_vel
                     self.setpoint_velocity_pub.publish(cmd_vel)
+                    
+                    final_L = np.array([self.filtered_grasp_pose.pose.position.x,self.filtered_grasp_pose.pose.position.y,self.filtered_grasp_pose.pose.position.z],dtype=float)
+                    final_Q = np.array([self.filtered_grasp_pose.pose.orientation.x,self.filtered_grasp_pose.pose.orientation.y,self.filtered_grasp_pose.pose.orientation.z,self.filtered_grasp_pose.pose.orientation.w],dtype=float)
+
+                    self.linear_error = np.linalg.norm(final_L - current_poseL)
+                    self.angular_error = np.linalg.norm(final_Q - current_poseQ)
+
+                    # need to publish feedback here for the action
+                    self.feedback.linear_error.data = self.linear_error
+                    self.feedback.linear_velocity.data = self.linear_velocity
+                    self.feedback.angular_velocity.data = self.angular_velocity
+                    self.feedback.angular_error.data = self.angular_error
+                    self.yoink_action_server.publish_feedback(self.feedback)
+
                     rate.sleep()
                 else :
                     rospy.loginfo("%s : Preempted requested while in grasp",rospy.get_name())

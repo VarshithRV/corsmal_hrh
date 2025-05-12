@@ -110,6 +110,7 @@ class Place:
 
         # plan a cartesian path
         # Need to check how to make this faster
+        self.move_group.set_start_state_to_current_state()
         try : 
             (plan, fraction) = self.move_group.compute_cartesian_path(
                 waypoints,  # waypoints to follow

@@ -13,13 +13,23 @@ import threading
 import copy
 from std_msgs.msg import Float32
 
-YOINK_FEEDBACK_THRESHOLD = 0.05
+'''
+rest state
+  base: 3.180511713027954
+  shoulder: -0.765713707809784
+  elbow: -2.063561201095581
+  wrist1: -3.4858814678587855
+  wrist2: -1.6338766256915491
+  wrist3: -0.026324097310201466
+'''
+
+YOINK_FEEDBACK_THRESHOLD = 0.1
 PLACE_FEEDBACK_THRESHOLD = 0.15 # made it super high to test
 VELOCITY_AVG_WINDOW_SIZE = 10
 ALPHA = 0.5 # more means trust filtered data more
-Z_DISPLACEMENT = 0.20 #m, should reduce to make it faster
-MAX_VELOCITY_THRESHOLD = 0.07 #ms-1, should reduce to make it faster
-HANDOVER_VELOCITY_THRESHOLD = 0.07 #ms-1 should increase to make it faster
+Z_DISPLACEMENT = 0.10 #m, should reduce to make it faster
+MAX_VELOCITY_THRESHOLD = 0.0 #ms-1, should reduce to make it faster
+HANDOVER_VELOCITY_THRESHOLD = 0.5 #ms-1 should increase to make it faster
 
 class MpClass:
     def __init__(self):
@@ -54,11 +64,12 @@ class MpClass:
         rospy.loginfo("%s Waiting for clients", rospy.get_name())
         
         client_connection1 = self.yoink_client.wait_for_server(timeout=rospy.Duration(secs=3))
-        client_connection2 = self.radial_tracking_client.wait_for_server(timeout=rospy.Duration(secs=3))
-        client_connection3 = self.rest_client.wait_for_server(timeout=rospy.Duration(secs=3))
-        client_connection4 = self.place_client.wait_for_server(timeout=rospy.Duration(secs=3))
-        client_connection5 = self.place_vel_client.wait_for_server(timeout=rospy.Duration(secs=3))
-        client_connection6 = self.place_br_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection2 = self.yoink_v2_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection3 = self.radial_tracking_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection4 = self.rest_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection5 = self.place_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection6 = self.place_vel_client.wait_for_server(timeout=rospy.Duration(secs=3))
+        client_connection7 = self.place_br_client.wait_for_server(timeout=rospy.Duration(secs=3))
         
         # connect to ur pin service to commands gripper pins
         self.set_io_client = rospy.ServiceProxy("/ur_hardware_interface/set_io", SetIO)
@@ -76,7 +87,7 @@ class MpClass:
         rospy.loginfo("Message received")
         self.fgp_inital = copy.deepcopy(self.fgp)
 
-        if not (client_connection1 and client_connection2 and client_connection3 and client_connection4 and client_connection5 and client_connection6):
+        if not (client_connection1 and client_connection2 and client_connection3 and client_connection4 and client_connection5 and client_connection6 and client_connection7):
             rospy.logwarn("%s Some clients are not connected!!",rospy.get_name())
         else : 
             rospy.loginfo("%s : All servers connected",rospy.get_name())
@@ -146,7 +157,8 @@ class MpClass:
         rospy.loginfo(f"{rospy.get_name()} : waiting for grasp")
         rospy.wait_for_message("/yoink/linear_error",Float32,3.0)
         start = rospy.get_time()
-        rospy.sleep(0.2)
+        rospy.sleep(0.3)
+        print(self.yoink_feedback.data)
         while self.yoink_feedback.data > self.yoink_feedback_threshold:
             rate.sleep()
         rospy.sleep(0.5)
@@ -162,32 +174,24 @@ class MpClass:
         print("Waited for : ",rospy.get_time() - start)
 
     def gripper_on(self):
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT2,1) #positive to reinforce grip
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT3,0) #vacuum to open more
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,1) #vacuum to close
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT7,1) #vacuum for suction cup
+        self.set_io_client(1,SetIORequest.PIN_CONF_OUT7,1) #positive to reinforce grip
+        self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,0) #vacuum to open more
+        self.set_io_client(1,SetIORequest.PIN_CONF_OUT4,1) #vacuum to close
+        self.set_io_client(1,SetIORequest.PIN_CONF_OUT5,1) #vacuum for suction cup
 
     def gripper_neutral(self):
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT2,0) #positive to reinforce grip
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT3,0) #vacuum to open more
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,0) #vacuum to close
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT7,0) #vacuum for suction cup
+        self.set_io_client(1,SetIORequest.PIN_CONF_OUT7,0) #positive to reinforce grip
+        self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,0) #vacuum to open more
+        self.set_io_client(1,SetIORequest.PIN_CONF_OUT4,0) #vacuum to close
+        self.set_io_client(1,SetIORequest.PIN_CONF_OUT5,0) #vacuum for suction cup
 
     def gripper_off(self):
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT2,0)
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT3,1)
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,0)
         self.set_io_client(1,SetIORequest.PIN_CONF_OUT7,0)
+        self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,1)
+        self.set_io_client(1,SetIORequest.PIN_CONF_OUT4,0)
+        self.set_io_client(1,SetIORequest.PIN_CONF_OUT5,0)
 
-
-if __name__ == "__main__":
-    mp = MpClass()
-    rospy.sleep(0.2)
-    mp.gripper_neutral()
-
-    # This is the wait for handover function
-    # mp.wait_for_handover()
-
+def rest(mp):
     # rest
     rospy.loginfo("%s : rest",rospy.get_name())
     restGoal = RestActionGoal()
@@ -196,82 +200,95 @@ if __name__ == "__main__":
     result = mp.rest_client.get_result()
     rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
 
-    # rest
-    rospy.loginfo("%s : rest",rospy.get_name())
-    restGoal = RestActionGoal()
-    mp.rest_client.send_goal(restGoal)
-    mp.rest_client.wait_for_result()
-    result = mp.rest_client.get_result()
-    rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
+def start_radial_track(mp):
+    # radial track for a few seconds
+    print("Gonna start radial tracking now")
+    rospy.loginfo("%s : radial tracking",rospy.get_name())
+    radial_trackGoal = RadialTrackingGoal()
+    radial_trackGoal.timeout.data = 0.0
+    mp.radial_tracking_client.send_goal(radial_trackGoal)
+    mp.radial_tracking_client.wait_for_result() # uncomment this if you wanna block execution
 
-    mp.gripper_off()
-    start = rospy.get_time()
+def stop_radial_track(mp):
+    print("Stopping radial tracking starting handover")
+    mp.radial_tracking_client.cancel_goal()
+    result = mp.radial_tracking_client.get_result()
+    rospy.loginfo("%s : radial tracking result : %s",rospy.get_name(), result)
+    print("Radial tracking stopped")
 
-    # # radial track for a few seconds
-    # print("Gonna start radial tracking now")
-    # rospy.loginfo("%s : radial tracking",rospy.get_name())
-    # radial_trackGoal = RadialTrackingGoal()
-    # radial_trackGoal.timeout.data = 0.0
-    # mp.radial_tracking_client.send_goal(radial_trackGoal)
-    # mp.radial_tracking_client.wait_for_result()
-    
-    # mp.wait_for_handover()
-    # print("Stopping radial tracking starting handover")
+def yoink(mp):
+    # yoink
+    rospy.loginfo("%s : yoink",rospy.get_name())
+    yoinkGoal = YoinkActionGoal()
+    mp.yoink_client.send_goal(yoinkGoal)
+    mp.wait_to_grasp()
+    mp.gripper_on()
+    mp.yoink_client.wait_for_result()
+    result = mp.yoink_client.get_result()
+    rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
 
-    # mp.radial_tracking_client.cancel_goal()
-    # result = mp.radial_tracking_client.get_result()
-    # rospy.loginfo("%s : radial tracking result : %s",rospy.get_name(), result)
-    # print("Radial tracking stopped")
-    
-    # # yoink
-    # rospy.loginfo("%s : yoink",rospy.get_name())
-    # yoinkGoal = YoinkActionGoal()
-    # mp.yoink_client.send_goal(yoinkGoal)
-    # print("waiting for grasp")
-    # mp.wait_to_grasp()
-    # mp.gripper_on()
-    # mp.yoink_client.wait_for_result()
-    # result = mp.yoink_client.get_result()
-    # rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
+def yoink_v2(mp):
+    # yoink
+    rospy.loginfo("%s : yoink",rospy.get_name())
+    yoinkGoal = YoinkActionGoal()
+    mp.yoink_v2_client.send_goal(yoinkGoal)
+    mp.wait_to_grasp()
+    mp.gripper_on()
+    mp.yoink_v2_client.wait_for_result()
+    result = mp.yoink_v2_client.get_result()
+    rospy.loginfo("%s : yoink result : %s",rospy.get_name(), result)
 
+def place(mp):
     # place
     rospy.loginfo("%s : place",rospy.get_name())
     placeGoal = PlaceMsgGoal()
     mp.place_br_client.send_goal(placeGoal)
+    print("waiting to release")
     mp.wait_to_release()
     print("done waiting to release")
     mp.gripper_off()
+    finish_timestamp = rospy.get_time()
     mp.place_br_client.wait_for_result()
     result = mp.place_br_client.get_result()
+    return finish_timestamp
+
+## !!!! CAUTION !!!! ##
+# This needs modification, do not use this right away
+def place_vel(mp):
+    # place vel
+    rospy.loginfo("%s : place",rospy.get_name())
+    placeGoal = PlaceVelGoal()
+    mp.place_vel_client.send_goal(placeGoal)
+    # mp.place_client.cancel_goal()
+    mp.place_vel_client.wait_for_result()
+    result = mp.place_vel_client.get_result()
     rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
-    finish = rospy.get_time()
+
+if __name__ == "__main__":
+    mp = MpClass()
+    rospy.sleep(0.2)
+
+    #### mp functionality
+    # mp.gripper_neutral()
+    # mp.wait_for_handover()
+    # mp.wait_to_grasp()
+    # mp.gripper_off()
+    # mp.gripper_on()
     
-    # # place vel
-    # rospy.loginfo("%s : place",rospy.get_name())
-    # placeGoal = PlaceVelGoal()
-    # mp.place_vel_client.send_goal(placeGoal)
-    # # mp.place_client.cancel_goal()
-    # mp.place_vel_client.wait_for_result()
-    # result = mp.place_vel_client.get_result()
-    # rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
-
-    # report
+    # start_radial_track(mp)
+    # rospy.sleep(10)
+    # stop_radial_track(mp)
+    # mp.gripper_neutral()
+    
+    rest(mp)
+    mp.gripper_off()
+    mp.wait_for_handover()
+    start = rospy.get_time()
+    yoink(mp)
+    rospy.sleep(0.5) # if its greater than 0.5, the start state for traj planning varies and traj fails
+    finish = place(mp)
     rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
-
-    # rest
-    rospy.loginfo("%s : rest",rospy.get_name())
-    restGoal = RestActionGoal()
-    mp.rest_client.send_goal(restGoal)
-    mp.rest_client.wait_for_result()
-    result = mp.rest_client.get_result()
-    rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
-
-    # rest
-    rospy.loginfo("%s : rest",rospy.get_name())
-    restGoal = RestActionGoal()
-    mp.rest_client.send_goal(restGoal)
-    mp.rest_client.wait_for_result()
-    result = mp.rest_client.get_result()
-    rospy.loginfo("%s : rest result : %s",rospy.get_name(), result)
-
+    
     mp.gripper_neutral()
+    rest(mp)
+
