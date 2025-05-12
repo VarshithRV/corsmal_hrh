@@ -9,12 +9,12 @@ cmd_publish_frequency : 100 #hz
 linear_stop_threshold : 0.03 # having a higher threshold means faster stop because of how PID works
 angular_stop_threshold : 0.01
 
-linear_pre_grasp_stop_threshold : 0.03
-angular_pre_grasp_stop_threshold : 0.02
+linear_pre_grasp_stop_threshold : 0.05
+angular_pre_grasp_stop_threshold : 0.05
 
 gains :
   linear :
-    p : 60
+    p : 80
     i : 80
     d : 0
     k : 0.01
@@ -27,7 +27,7 @@ gains :
 pre_grasp_transform : # transformation from grasp -> pregrasp
   position :
     x : 0.0
-    y : 0.0
+    y : 0.05
     z : -0.1
   orientation :
     w : 1 
