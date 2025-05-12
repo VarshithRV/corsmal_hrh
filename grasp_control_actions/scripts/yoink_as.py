@@ -84,6 +84,12 @@ class Yoink:
         self.linear_error = 0.0
         self.angular_error = 0.0
 
+        # error gradient calculation tools
+        self.pid_error_gradient = np.zeros((3,),dtype =float)
+        self.pid_error_gradient_alpha = 0.9
+        self.time_stamped_errorL = {}
+        self.time_stamped_errorL_list = []
+
         self.mutex = Lock()
         self.optimal_pose = None
 
@@ -108,6 +114,7 @@ class Yoink:
         self.angular_error_publisher = rospy.Publisher("/angular_error",Float32,queue_size=1)
         self.linear_velocity_publisher = rospy.Publisher("/linear_velocity",Float32,queue_size=1)
         self.angular_velocity_publisher = rospy.Publisher("/angular_velocity",Float32,queue_size=1)
+        self.pid_gradient_publisher = rospy.Publisher("/pid_error_gradient",Float32,queue_size = 1)
 
         # filtered grasp pose connection
         self.filtered_grasp_pose_sub = rospy.Subscriber("/filtered_grasp_pose",PoseStamped,callback=self.filtered_grasp_pose_cb)
@@ -133,6 +140,9 @@ class Yoink:
         # update parameters timer
         update_parameters_timer = rospy.Timer(rospy.Duration(3),callback=self.update_parameters)
 
+        # calculate pid error gradient timer
+        calc_pid_error_gradient_timer = rospy.Timer(rospy.Duration(0.01),callback=self.calc_pid_error_gradient)
+
         self._qsum  = np.zeros((4,1),dtype=float)
 
         # create action server for Yoink
@@ -141,6 +151,25 @@ class Yoink:
         )
         self.yoink_action_server.register_preempt_callback(self.yoink_preempt_callback)
         self.yoink_action_server.start()
+
+    def calc_pid_error_gradient(self,event):
+        # modify self.pid_error_gradient here(sliding window + IIR filter)
+        # use self.pid_error_gradient_alpha for IIR filter
+        # use the timestamped list : self.time_stamped_errorL_list
+        sliding_window_size = 5
+        error_error = np.zeros((3,),dtype=float)
+        delta_t = 0.01 # non zero to avoid divide by zero error
+        if len(self.time_stamped_errorL_list) <= 1:
+            error_error = 0.0
+        elif len(self.time_stamped_errorL_list) < 5 and len(self.time_stamped_errorL_list) > 1:
+            error_error = self.time_stamped_errorL_list[-1]["error"] - self.time_stamped_errorL_list[0]["error"]
+            delta_t = self.time_stamped_errorL_list[-1]["stamp"] - self.time_stamped_errorL_list[0]["stamp"]
+        else : 
+            error_error = self.time_stamped_errorL_list[-1]["error"] - self.time_stamped_errorL_list[-1-sliding_window_size+1]["error"]
+            delta_t = self.time_stamped_errorL_list[-1]["stamp"] - self.time_stamped_errorL_list[-1-sliding_window_size+1]["stamp"]
+        gradient = error_error/delta_t
+        self.pid_error_gradient = self.pid_error_gradient_alpha*self.pid_error_gradient + (1-self.pid_error_gradient_alpha)*gradient
+        self.pid_gradient_publisher.publish(Float32(data = np.linalg.norm(self.pid_error_gradient)))
 
     def update_parameters(self,event):
         self.params = rospy.get_param("/yoink_as")
@@ -207,6 +236,14 @@ class Yoink:
 
     def yoink_preempt_callback(self):
         rospy.loginfo("%s: Preempt requested",rospy.get_name())
+        # reset all error variables
+        self.errorLprev = np.zeros((3,),dtype=float)
+        self.errorLsum = np.zeros((3,),dtype=float)
+        self.errorOprev = np.zeros((4,),dtype=float)
+        self.errorOsum = np.zeros((4,),dtype=float)
+        self.pid_error_gradient = np.zeros((3,),dtype=float)
+        self.time_stamped_errorL = {}
+        self.time_stamped_errorL_list = []
 
     def yoink_action_callback(self,goal:YoinkActionGoal):
         start = rospy.get_time()
@@ -238,10 +275,14 @@ class Yoink:
             rospy.logerr("%s : Input Stream is not active"%rospy.get_name())
             return False
 
+        # reset all error variables
         self.errorLprev = np.zeros((3,),dtype=float)
         self.errorLsum = np.zeros((3,),dtype=float)
         self.errorOprev = np.zeros((4,),dtype=float)
         self.errorOsum = np.zeros((4,),dtype=float)
+        self.pid_error_gradient = np.zeros((3,),dtype=float)
+        self.time_stamped_errorL = {}
+        self.time_stamped_errorL_list = []
 
 
         rate = rospy.Rate(self.cmd_publish_frequency)
@@ -262,10 +303,14 @@ class Yoink:
                     cmd_vel = TwistStamped()
                     cmd_vel.header.frame_id = "base_link"
                     rospy.loginfo("%s : Reached pre grasp",rospy.get_name())
+                    # reset all error variables
                     self.errorLprev = np.zeros((3,),dtype=float)
                     self.errorLsum = np.zeros((3,),dtype=float)
                     self.errorOprev = np.zeros((4,),dtype=float)
                     self.errorOsum = np.zeros((4,),dtype=float)
+                    self.pid_error_gradient = np.zeros((3,),dtype=float)
+                    self.time_stamped_errorL = {}
+                    self.time_stamped_errorL_list = []
                     return True
 
                 self.linear_error = np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)
@@ -295,10 +340,14 @@ class Yoink:
             rospy.logerr("%s : Input Stream is not active"%rospy.get_name())
             return False
         
+        # reset all error variables
         self.errorLprev = np.zeros((3,),dtype=float)
         self.errorLsum = np.zeros((3,),dtype=float)
         self.errorOprev = np.zeros((4,),dtype=float)
         self.errorOsum = np.zeros((4,),dtype=float)
+        self.pid_error_gradient = np.zeros((3,),dtype=float)
+        self.time_stamped_errorL = {}
+        self.time_stamped_errorL_list = []
 
         if self.filtered_grasp_pose is not None :
             pose_setpoint = self.filtered_grasp_pose
@@ -322,10 +371,14 @@ class Yoink:
                         cmd_vel.header.frame_id = "base_link"
                         rospy.loginfo("%s : Reached Grasp Position",rospy.get_name())
                         # command the gripper so that it closes here
+                        # reset all error variables
                         self.errorLprev = np.zeros((3,),dtype=float)
                         self.errorLsum = np.zeros((3,),dtype=float)
                         self.errorOprev = np.zeros((4,),dtype=float)
                         self.errorOsum = np.zeros((4,),dtype=float)
+                        self.pid_error_gradient = np.zeros((3,),dtype=float)
+                        self.time_stamped_errorL = {}
+                        self.time_stamped_errorL_list = []
                         return True
                     
                     self.setpoint_velocity.header.stamp = rospy.Time.now()
@@ -418,6 +471,9 @@ class Yoink:
         q_error = tft.quaternion_multiply(optimal_setpointQ, tft.quaternion_conjugate(pose_currentQ))
 
         self.errorL = optimal_setpointL - pose_currentL
+        self.time_stamped_errorL = {"stamp":rospy.get_time(),"error":self.errorL}
+        self.time_stamped_errorL_list.append(self.time_stamped_errorL)
+        
         self.errorO = np.array(tft.euler_from_quaternion(q_error))
 
         self.errorLsum = self.errorLsum + self.errorL
@@ -455,7 +511,7 @@ class Yoink:
 
     # compute velocityL and velocityO from errorL and errorO
     def PID(self,errorL,errorLsum,errorLdiff,errorO,errorOsum,errorOdiff): 
-        velocityL = self.LINEAR_K* ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(errorLdiff/self.dt)))
+        velocityL = self.LINEAR_K* ((self.LINEAR_P_GAIN*errorL) + (self.LINEAR_I_GAIN*errorLsum*self.dt) + (self.LINEAR_D_GAIN*(self.pid_error_gradient)))
         velocityO = self.ANGULAR_K* ((self.ANGULAR_P_GAIN*errorO) + (self.ANGULAR_I_GAIN*errorOsum*self.dt) + (self.ANGULAR_D_GAIN*(errorOdiff/self.dt)))
         return velocityL, velocityO
 
