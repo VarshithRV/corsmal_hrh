@@ -49,6 +49,7 @@ class MpClass:
         self.rest_client = actionlib.SimpleActionClient("rest", RestAction)
         self.radial_tracking_client = actionlib.SimpleActionClient("radial_track", RadialTrackingAction)
         self.yoink_client = actionlib.SimpleActionClient("yoink", YoinkAction)
+        self.yoink_v2_client = actionlib.SimpleActionClient("yoink_v2", YoinkAction)
         
         rospy.loginfo("%s Waiting for clients", rospy.get_name())
         
