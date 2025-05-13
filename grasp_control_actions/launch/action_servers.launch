@@ -47,13 +47,24 @@
         <remap from="/linear_error" to="/place_br/linear_error"/>
     </node>
 
-    <node pkg="aruco_proxy_pose_estimation" type="pose_post_processing.py" name="pose_post_processor_for_real_object">
+    <node pkg="aruco_proxy_pose_estimation" type="pose_post_processing_v2.py" name="pose_post_processor_for_real_object">
         <param name="parent_frame" value="base_link"/>
         <param name="X" value="0"/>
         <param name="Y" value="0"/>
         <param name="D" value="0"/>
         <param name="P" value="0"/>
         <param name="input_pose_topic" value="/corrected_pose"/>
+        <param name="output_pose_topic" value="/filtered_grasp_pose"/>
+    </node>
+
+    <node pkg="aruco_proxy_pose_estimation" type="pose_post_processing.py" name="pose_post_processor">
+        <param name="parent_frame" value="base_link"/>
+        <param name="X" value="40"/>
+        <param name="Y" value="40"/>
+        <param name="D" value="50"/>
+        <param name="P" value="0"/>
+        <param name="input_pose_topic" value="/left_side_filtered_pose"/>
         <param name="output_pose_topic" value="/filtered_grasp_pose2"/>
     </node>
+
 </launch>

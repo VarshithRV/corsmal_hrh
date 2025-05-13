@@ -166,6 +166,7 @@ catkin_install_python(PROGRAMS
   scripts/aruco_proxy_pose_estimation_filtered.py
   scripts/apriltag_grid_detection.py
   scripts/pose_post_processing.py
+  scripts/pose_post_processing_v2.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
