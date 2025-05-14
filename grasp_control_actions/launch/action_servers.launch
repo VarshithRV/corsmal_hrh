@@ -57,7 +57,7 @@
         <param name="output_pose_topic" value="/filtered_grasp_pose2"/>
     </node>
 
-    <node pkg="aruco_proxy_pose_estimation" type="pose_post_processing.py" name="pose_post_processor">
+    <node pkg="aruco_proxy_pose_estimation" type="pose_post_processing.py" name="pose_post_processor_for_proxy_object">
         <param name="parent_frame" value="base_link"/>
         <param name="X" value="40"/>
         <param name="Y" value="40"/>

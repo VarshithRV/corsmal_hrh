@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="config_file" default="$(find aruco_proxy_pose_estimation)/config/mediapipe_ros_driver.yaml"/> <!--provide path the the detector config file here-->
+    <node pkg="aruco_proxy_pose_estimation" type="mediapipe_ros_driver.py" name="mediapipe_ros_driver" output="screen">
+         <rosparam command="load" file="$(arg config_file)"/>
+    </node>
+</launch>
