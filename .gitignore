@@ -2,3 +2,4 @@
 build/
 grasp_control_actions/scripts/client_demo.py
 moveit/moveit_commander/src/moveit_commander/__pycache__/
+*.bag
