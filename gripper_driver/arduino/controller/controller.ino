@@ -98,18 +98,18 @@
     gripper1_state.publish( &setpoint_gripper1 );
     
     // write for gripper 1, even pins from 22-46
-    digitalWrite(22,setpoint_gripper1.data[0]);
-    digitalWrite(24,setpoint_gripper1.data[1]);
-    digitalWrite(26,setpoint_gripper1.data[2]);
-    digitalWrite(28,setpoint_gripper1.data[3]);
-    digitalWrite(30,setpoint_gripper1.data[4]);
-    digitalWrite(32,setpoint_gripper1.data[5]);
-    digitalWrite(34,setpoint_gripper1.data[6]);
-    digitalWrite(36,setpoint_gripper1.data[7]);
-    digitalWrite(38,setpoint_gripper1.data[8]);
-    digitalWrite(40,setpoint_gripper1.data[9]);
-    digitalWrite(42,setpoint_gripper1.data[10]);
-    digitalWrite(44,setpoint_gripper1.data[11]);
+    digitalWrite(26,setpoint_gripper1.data[0]);
+    digitalWrite(44,setpoint_gripper1.data[1]);
+    digitalWrite(22,setpoint_gripper1.data[2]);
+    digitalWrite(24,setpoint_gripper1.data[3]);
+    digitalWrite(28,setpoint_gripper1.data[4]);
+    digitalWrite(30,setpoint_gripper1.data[5]);
+    digitalWrite(32,setpoint_gripper1.data[6]);
+    digitalWrite(34,setpoint_gripper1.data[7]);
+    digitalWrite(36,setpoint_gripper1.data[8]);
+    digitalWrite(38,setpoint_gripper1.data[9]);
+    digitalWrite(40,setpoint_gripper1.data[10]);
+    digitalWrite(42,setpoint_gripper1.data[11]);
     digitalWrite(46,setpoint_gripper1.data[12]);
 
     // write for gripper 2, odd pins from 23 to 47

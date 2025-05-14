@@ -410,7 +410,7 @@ class Deprojection:
             for hand in hand_data:
                 cv2.circle(image,(hand["x"],hand["y"]),5,(0,0,255),5)
             
-            x,y,z = self.get_hand_position_3d_left_cam(hand_data)
+            # x,y,z = self.get_hand_position_3d_left_cam(hand_data)
 
         if self.left_camera_model is not None : 
             intrinsics = self.left_camera_model.K

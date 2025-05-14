@@ -209,7 +209,7 @@ class Place:
         post_place_position.pose.orientation.z = copy.deepcopy(place_position.pose.orientation.z)
 
         post_place_position2 = copy.deepcopy(post_place_position)
-        post_place_position2.pose.position.z += 0.2
+        post_place_position2.pose.position.z += 0.3
 
         ## need to change from here to 
 
