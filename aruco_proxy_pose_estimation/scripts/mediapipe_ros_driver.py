@@ -11,12 +11,15 @@ from geometry_msgs.msg import PoseStamped, Pose
 import quaternion
 import tf.transformations as tft
 import mediapipe as mp
+import tf
 import sys
 from scipy.spatial.transform import Rotation as R
 
 
 class Deprojection:
     def __init__(self) -> None:
+        self.count = 0 
+
         # left camera topics
         left_camera_color_topic = rospy.get_param("~left_color_image_topic","/camera/color/image_raw")
         left_camera_info_topic = rospy.get_param("~left_camera_info_topic","/camera/color/image_raw")
@@ -36,6 +39,7 @@ class Deprojection:
         self.left_color_image = None
         self.left_camera_model = PinholeCameraModel()
         self.left_detected_image = None
+        self.base_to_left_cam_tf_mat = np.eye(4,4)
         
         # right camera elements
         self.right_depth_image = None
@@ -44,6 +48,7 @@ class Deprojection:
         self.right_color_image = None
         self.right_camera_model = PinholeCameraModel()
         self.right_detected_image = None
+        self.base_to_right_cam_tf_mat = np.eye(4,4)
 
         # left detection elements
         self.left_rvec = None
@@ -53,6 +58,7 @@ class Deprojection:
         self.left_qvec = None
         self.left_qvec_impulse = None
         self.left_filtered_qvec = np.array([0,0,0,1],dtype=float)
+        self.left_confidence_threshold = rospy.get_param("~left_confidence_threshold",0.5)
         
         # right detection elements
         self.right_rvec = None
@@ -62,6 +68,7 @@ class Deprojection:
         self.right_qvec = None
         self.right_qvec_impulse = None
         self.right_filtered_qvec = np.array([0,0,0,1],dtype=float)
+        self.right_confidence_threshold = rospy.get_param("~right_confidence_threshold",0.5)
 
         # left linear IIR filter elements
         self.left_alpha = rospy.get_param("~left_alpha",0.25)
@@ -69,15 +76,43 @@ class Deprojection:
         # right linear IIR filter elements
         self.right_alpha = rospy.get_param("~right_alpha",0.25)
 
+        # hand_side 
+        self.hand_side = rospy.get_param("~hand_side","Right")
+
+
         # left mp initialization
         self.left_mp_hands = mp.solutions.hands
         self.left_mp_drawing = mp.solutions.drawing_utils
-        self.left_hands =  self.left_mp_hands.Hands(static_image_mode=False,max_num_hands=2,min_detection_confidence=0.5)
+        self.left_hands =  self.left_mp_hands.Hands(static_image_mode=False,max_num_hands=5,min_detection_confidence=self.left_confidence_threshold)
         
         # right mp initialization
         self.right_mp_hands = mp.solutions.hands
         self.right_mp_drawing = mp.solutions.drawing_utils
-        self.right_hands =  self.right_mp_hands.Hands(static_image_mode=False,max_num_hands=2,min_detection_confidence=0.5)
+        self.right_hands =  self.right_mp_hands.Hands(static_image_mode=False,max_num_hands=5,min_detection_confidence=self.right_confidence_threshold)
+
+        # bounding box in base link frame for detecting false positives
+        self.bounding_box_base_link_x_min = rospy.get_param("~bounding_box/x_min",0.0)
+        self.bounding_box_base_link_x_max = rospy.get_param("~bounding_box/x_max",2.0)
+        self.bounding_box_base_link_y_min = rospy.get_param("~bounding_box/y_min",0.0)
+        self.bounding_box_base_link_y_max = rospy.get_param("~bounding_box/y_max",2.0)
+        self.bounding_box_base_link_z_min = rospy.get_param("~bounding_box/z_min",0.0)
+        self.bounding_box_base_link_z_max = rospy.get_param("~bounding_box/z_max",2.0)
+
+        # bounding box in left and right camera frame 
+        self.left_bounding_box_cam_x_min = None
+        self.left_bounding_box_cam_x_max = None
+        self.left_bounding_box_cam_y_min = None
+        self.left_bounding_box_cam_y_max = None
+        self.left_bounding_box_cam_z_min = None
+        self.left_bounding_box_cam_z_max = None
+
+        self.right_bounding_box_cam_x_min = None
+        self.right_bounding_box_cam_x_max = None
+        self.right_bounding_box_cam_y_min = None
+        self.right_bounding_box_cam_y_max = None
+        self.right_bounding_box_cam_z_min = None
+        self.right_bounding_box_cam_z_max = None
+
 
         self.cv_bridge = cv_bridge.CvBridge()
         self.detection_rate = 20
@@ -126,9 +161,120 @@ class Deprojection:
         self.right_filtered_pose_publisher_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.right_filtered_pose_publisher_cb)
         self.right_pose_publisher_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.right_pose_publisher_cb)
 
+
+        rospy.wait_for_message(left_camera_info_topic,CameraInfo)
+        rospy.wait_for_message(right_camera_info_topic,CameraInfo)
+
+        self.base_to_left_cam_tf_mat = self.lookup_transform_matrix(target_frame = self.left_camera_info.header.frame_id,source_frame = "base_link")
+        self.base_to_right_cam_tf_mat = self.lookup_transform_matrix(target_frame = self.right_camera_info.header.frame_id,source_frame = "base_link")
+        self.get_bounding_box_wrt_cameras()
+
+
+
     def __del__(self):
         del self.left_camera_model
         del self.right_camera_model
+
+    def get_bounding_box_wrt_cameras(self):
+        # 8 corners of the bounding box in base_link frame
+        corners = np.array([
+            [self.bounding_box_base_link_x_min, self.bounding_box_base_link_y_min, self.bounding_box_base_link_z_min, 1],
+            [self.bounding_box_base_link_x_min, self.bounding_box_base_link_y_min, self.bounding_box_base_link_z_max, 1],
+            [self.bounding_box_base_link_x_min, self.bounding_box_base_link_y_max, self.bounding_box_base_link_z_min, 1],
+            [self.bounding_box_base_link_x_min, self.bounding_box_base_link_y_max, self.bounding_box_base_link_z_max, 1],
+            [self.bounding_box_base_link_x_max, self.bounding_box_base_link_y_min, self.bounding_box_base_link_z_min, 1],
+            [self.bounding_box_base_link_x_max, self.bounding_box_base_link_y_min, self.bounding_box_base_link_z_max, 1],
+            [self.bounding_box_base_link_x_max, self.bounding_box_base_link_y_max, self.bounding_box_base_link_z_min, 1],
+            [self.bounding_box_base_link_x_max, self.bounding_box_base_link_y_max, self.bounding_box_base_link_z_max, 1],
+        ]).T  # Shape (4, 8)
+
+        # Transform to left camera frame
+        left_corners = self.base_to_left_cam_tf_mat @ corners
+        self.left_bounding_box_cam_x_min = np.min(left_corners[0])
+        self.left_bounding_box_cam_x_max = np.max(left_corners[0])
+        self.left_bounding_box_cam_y_min = np.min(left_corners[1])
+        self.left_bounding_box_cam_y_max = np.max(left_corners[1])
+        self.left_bounding_box_cam_z_min = np.min(left_corners[2])
+        self.left_bounding_box_cam_z_max = np.max(left_corners[2])
+
+        # Transform to right camera frame
+        right_corners = self.base_to_right_cam_tf_mat @ corners
+        self.right_bounding_box_cam_x_min = np.min(right_corners[0])
+        self.right_bounding_box_cam_x_max = np.max(right_corners[0])
+        self.right_bounding_box_cam_y_min = np.min(right_corners[1])
+        self.right_bounding_box_cam_y_max = np.max(right_corners[1])
+        self.right_bounding_box_cam_z_min = np.min(right_corners[2])
+        self.right_bounding_box_cam_z_max = np.max(right_corners[2])
+
+
+    def lookup_transform_matrix(self,target_frame, source_frame, tf_listener=None, timeout=5.0):
+        if tf_listener is None:
+            tf_listener = tf.TransformListener()
+
+        try:
+            tf_listener.waitForTransform(target_frame, source_frame, rospy.Time(0), rospy.Duration(timeout))
+            (trans, rot) = tf_listener.lookupTransform(target_frame, source_frame, rospy.Time(0))
+            rotation_matrix = tf.transformations.quaternion_matrix(rot)
+            rotation_matrix[0:3, 3] = trans
+            return rotation_matrix
+        except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+            rospy.logerr("Transform lookup failed: %s", e)
+            raise
+
+    def print_hand_landmarks_from_results(self,results):
+            if results.multi_hand_landmarks and results.multi_handedness:
+                for idx, (hand_landmarks, handedness) in enumerate(zip(results.multi_hand_landmarks, results.multi_handedness)):
+                    hand_type = handedness.classification[0].label  # 'Left' or 'Right'
+                    confidence = handedness.classification[0].score
+                    print(f"\nHand {idx + 1} - Type: {hand_type} (Confidence: {confidence:.2f})")
+                    for i, lm in enumerate(hand_landmarks.landmark):
+                        print(f"  Landmark {i:2d}: x={lm.x:.3f}, y={lm.y:.3f}, z={lm.z:.3f}")
+            else:
+                print("No hands detected.")
+
+    def get_average_pixel_xy_per_hand(self,results, image_shape):
+        height, width, _ = image_shape
+        hand_data = []
+
+        if results.multi_hand_landmarks and results.multi_handedness:
+            for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+                total_x = 0
+                total_y = 0
+                count = 0
+
+                for lm in hand_landmarks.landmark:
+                    pixel_x = lm.x * width
+                    pixel_y = lm.y * height
+                    total_x += pixel_x
+                    total_y += pixel_y
+                    count += 1
+
+                if count > 0:
+                    avg_x = int(total_x / count)
+                    avg_y = int(total_y / count)
+                    classification = handedness.classification[0]
+                    hand_data.append({
+                        "x": avg_x,
+                        "y": avg_y,
+                        "conf": round(classification.score, 2),
+                        "label": classification.label  # "Left" or "Right"
+                    })
+
+        return hand_data
+    
+    def get_hand_position_3d_left_cam(self,hand_data):
+        # need to detect all hand coordinates, select the ones in the bounding box and then sort by confidence, and then select the coordinate closes to the object
+        for hand in hand_data:
+            u, v = int(hand["x"]), int(hand["y"])  # pixel coordinates (x = col, y = row)
+            ray = self.left_camera_model.projectPixelTo3dRay((u, v)) 
+            depth_image = self.left_depth_image.copy()
+            mask = np.uint8(depth_image == 0) * 255 
+            depth_image_filtered = cv2.inpaint(depth_image, mask, inpaintRadius=3, flags=cv2.INPAINT_NS)
+            z = depth_image_filtered[v, u] / 1000.0 
+            x = ray[0] * z
+            y = ray[1] * z
+            z = ray[2] * z
+            return x,y,z
 
     def draw_axes(self,image, rvec, tvec, intrinsics, distortion_coeffs, axis_length=0.05):
         # Define the axes in 3D space (in the object coordinate frame)
@@ -242,7 +388,7 @@ class Deprojection:
         # Convert BGR to RGB
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         results = self.left_hands.process(image_rgb)
-        
+
         # Draw the hand annotations on the image
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
@@ -255,8 +401,16 @@ class Deprojection:
         
         rvec = None
         tvec = None
+        x = None
+        y = None
+        z = None
 
-
+        if results.multi_hand_landmarks is not None and not self.count :
+            hand_data = self.get_average_pixel_xy_per_hand(results,image.shape)
+            for hand in hand_data:
+                cv2.circle(image,(hand["x"],hand["y"]),5,(0,0,255),5)
+            
+            x,y,z = self.get_hand_position_3d_left_cam(hand_data)
 
         if self.left_camera_model is not None : 
             intrinsics = self.left_camera_model.K
@@ -264,8 +418,8 @@ class Deprojection:
             unit_rotation_mat = np.eye(3,3,dtype=float)
             rvec = np.zeros((3,),dtype=float)
             rvec, _ = cv2.Rodrigues(unit_rotation_mat)
-            tvec = np.array([0,0,0],dtype = float)
-            image = self.draw_axes(image,rvec,tvec,intrinsics,distortion_coefficients)
+            tvec = np.array([x,y,z],dtype = float)
+            # image = self.draw_axes(image,rvec,tvec,intrinsics,distortion_coefficients)
 
         return image,rvec.reshape((3,)),tvec
         
@@ -381,7 +535,8 @@ class Deprojection:
         rvec = None
         tvec = None
 
-
+        # if results.multi_hand_landmarks is not None and not self.count :
+        #     self.print_hand_landmarks_from_results(results)
 
         if self.right_camera_model is not None : 
             intrinsics = self.right_camera_model.K

@@ -165,8 +165,8 @@ include_directories(
 catkin_install_python(PROGRAMS
   scripts/aruco_proxy_pose_estimation_filtered.py
   scripts/apriltag_grid_detection.py
-  scripts/pose_post_processing.py
-  scripts/pose_post_processing_v2.py
+  scripts/pose_post_processing_for_proxy_object.py
+  scripts/pose_post_processing_for_real_object.py
   scripts/mediapipe_ros_driver.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
