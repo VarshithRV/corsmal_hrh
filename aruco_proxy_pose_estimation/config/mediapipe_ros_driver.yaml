@@ -1,11 +1,16 @@
 # Linear filter parameters
-alpha : 0.25 # range = [0,1], more means trust the filtered data more
+left_alpha : 0.25 # range = [0,1], more means trust the filtered data more
+right_alpha : 0.25 # range = [0,1], more means trust the filtered data more
 
 # grid configuration
 object:
   name: "hand" # the published pose and filtered pose will be preappended with this value
 
 # Camera topics
-color_image_topic : "/left_camera/rgb/image_raw"
-depth_image_topic : "/left_camera/depth_to_rgb/image_raw" # of aligned depth to rgb
-camera_info_topic : "/left_camera/rgb/camera_info"
+left_color_image_topic : "/left_camera/rgb/image_raw"
+left_depth_image_topic : "/left_camera/depth_to_rgb/image_raw" # of aligned depth to rgb
+left_camera_info_topic : "/left_camera/rgb/camera_info"
+
+right_color_image_topic : "/right_camera/rgb/image_raw"
+right_depth_image_topic : "/right_camera/depth_to_rgb/image_raw" # of aligned depth to rgb
+right_camera_info_topic : "/right_camera/rgb/camera_info"
