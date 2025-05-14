@@ -1,8 +1,8 @@
 default_position :
   position: 
-    x: 0.5802925278171578
-    y: -0.11142659893152244
-    z: 0.05812389832781554
+    x: 0.6071384949240759
+    y: -0.27234375574092984
+    z: 0.07048422048586082
   orientation: 
     x: 0.47355956642108105
     y: 0.5409451607608722
@@ -18,7 +18,7 @@ default_position_joint_states :
   - -1.6057263996584847
 
 use_default_position : True
-go_back : 0.15
+go_back : 0.075
 
 preplace_transformation :
   position:
