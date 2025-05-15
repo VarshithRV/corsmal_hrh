@@ -12,6 +12,9 @@ angular_stop_threshold : 0.01
 linear_pre_grasp_stop_threshold : 0.05
 angular_pre_grasp_stop_threshold : 0.05
 
+# Linear IIR filter coeff, higher means trust filtered data more
+alpha : 0.9
+
 gains :
   linear :
     p : 80

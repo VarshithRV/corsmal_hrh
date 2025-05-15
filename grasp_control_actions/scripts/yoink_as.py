@@ -42,6 +42,7 @@ class Yoink:
         self.ANGULAR_K = self.params["gains"]["angular"]["k"]
 
         self.cmd_publish_frequency = self.params["cmd_publish_frequency"]
+        self.alpha = self.params["alpha"]
 
         self.max_linear_velocity = self.params["max_linear_velocity"]
         self.max_linear_acceleration = self.params["max_linear_acceleration"]
@@ -83,6 +84,8 @@ class Yoink:
         self.angular_velocity  = 0.0
         self.linear_error = 0.0
         self.angular_error = 0.0
+        self.filtered_linear_cmd_vel = np.array([0,0,0],dtype = float)
+        self.filtered_angular_cmd_vel = np.array([0,0,0],dtype = float)
 
         # error gradient calculation tools
         self.pid_error_gradient = np.zeros((3,),dtype =float)
@@ -151,6 +154,16 @@ class Yoink:
         )
         self.yoink_action_server.register_preempt_callback(self.yoink_preempt_callback)
         self.yoink_action_server.start()
+    
+    def filter_command_vel(self,vel:TwistStamped):
+        self.filtered_linear_cmd_vel = self.alpha*(self.filtered_linear_cmd_vel) + (1-self.alpha)*(np.array([vel.twist.linear.x,vel.twist.linear.y,vel.twist.linear.z]))
+        vel_out = TwistStamped()
+        vel_out.header = vel.header
+        vel_out.twist.angular = vel.twist.angular
+        vel_out.twist.linear.x = self.filtered_linear_cmd_vel[0]
+        vel_out.twist.linear.y = self.filtered_linear_cmd_vel[1]
+        vel_out.twist.linear.z = self.filtered_linear_cmd_vel[2]
+        return vel_out
 
     def calc_pid_error_gradient(self,event):
         # modify self.pid_error_gradient here(sliding window + IIR filter)
@@ -321,10 +334,11 @@ class Yoink:
                 self.angular_error = np.linalg.norm(final_Q - current_poseQ)
 
                 cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ)
+                cmd_vel_filtered = self.filter_command_vel(cmd_vel)
 
                 self.setpoint_velocity = cmd_vel  
                 self.setpoint_velocity.header.stamp = rospy.Time.now()
-                self.setpoint_velocity_pub.publish(cmd_vel)
+                self.setpoint_velocity_pub.publish(cmd_vel_filtered)
 
                 # need to publish feedback here for the action
                 self.feedback.linear_error.data = self.linear_error
@@ -387,9 +401,11 @@ class Yoink:
                     
                     self.setpoint_velocity.header.stamp = rospy.Time.now()
                     cmd_vel = self.compute_cmd_vel(optimal_setpointL=pose_setpointL,optimal_setpointQ=pose_setpointQ)
-
-                    self.setpoint_velocity = cmd_vel
-                    self.setpoint_velocity_pub.publish(cmd_vel)
+                    cmd_vel_filtered = self.filter_command_vel(cmd_vel)
+    
+                    self.setpoint_velocity = cmd_vel  
+                    self.setpoint_velocity.header.stamp = rospy.Time.now()
+                    self.setpoint_velocity_pub.publish(cmd_vel_filtered)
                     
                     final_L = np.array([self.filtered_grasp_pose.pose.position.x,self.filtered_grasp_pose.pose.position.y,self.filtered_grasp_pose.pose.position.z],dtype=float)
                     final_Q = np.array([self.filtered_grasp_pose.pose.orientation.x,self.filtered_grasp_pose.pose.orientation.y,self.filtered_grasp_pose.pose.orientation.z,self.filtered_grasp_pose.pose.orientation.w],dtype=float)
