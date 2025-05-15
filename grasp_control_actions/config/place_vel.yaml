@@ -1,15 +1,21 @@
 default_position :
-  position: 
-    x: 0.5802925278171578
-    y: -0.11142659893152244
-    z: 0.05812389832781554
-  orientation: 
-    x: 0.47355956642108105
-    y: 0.5409451607608722
-    z: 0.5099788738225833
-    w: 0.4722723984684286
+  position:
+    x: 0.719485937580114
+    y: 0.11426366098174431
+    z: 0.9601198065416131
+  orientation:
+    x: 0.5158333052982221
+    y: 0.49760767471961076
+    z: 0.4910325096569348
+    w: 0.4951663131365716
 
 use_default_position : True
+
+go_back : 0.15 #m
+
+alpha : 0.6
+
+input_stream_timeout : 0.2 #s
 
 preplace_transformation :
   position:
@@ -35,12 +41,12 @@ angular_stop_threshold : 0.01
 
 gains :
   linear : 
-    p : 750
+    p : 1000
     i : 0
     d : 0
     k : 0.01
   angular : 
-    p : 150
+    p : 300
     i : 0
     d : 0
     k : 0.01
