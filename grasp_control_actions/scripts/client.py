@@ -14,6 +14,7 @@ import copy
 from std_msgs.msg import Float32
 from gripper_driver.srv import SetGripper, SetGripperRequest
 import numpy as np
+import tf2_ros, tf2_geometry_msgs
 
 '''
 rest state
@@ -32,7 +33,9 @@ ALPHA = 0.5 # more means trust filtered data more
 Z_DISPLACEMENT = 0.10 #m, should reduce to make it faster
 MAX_VELOCITY_THRESHOLD = 0.0 #ms-1, should reduce to make it faster
 HANDOVER_VELOCITY_THRESHOLD = 0.5 #ms-1 should increase to make it faster
-HAND_PROXIMITY_THRESHOLD = 0.05 # m, should be higher to start sooner
+MIN_HAND_Z = 0.05
+HAND_PROXIMITY_THRESHOLD = 0.07 # m, should be higher to start sooner
+PROXIMITY_BASED_WAIT_LOWER_BOUND = 0.2 #m, this is used to decide if we choose to perform handvelbasedwait
 
 class MpClass:
     def __init__(self):
@@ -58,7 +61,7 @@ class MpClass:
         self.array_access_lock = threading.Lock()
         self._max_vel_z = 0.0
         self.start_handover = 0.0 # this is just for debugging
-        self.hand_pose = None
+        
         
         # connect to action servers
         rospy.loginfo("%s Started client, connecting to action servers", rospy.get_name())
@@ -96,16 +99,43 @@ class MpClass:
         self.calculate_hand_linear_velocity_timer = rospy.Timer(rospy.Duration(1/30),self.calculate_hand_linear_velocity_cb)
         self.filter_hand_vel_timer = rospy.Timer(rospy.Duration(1/30),self.filter_hand_vel_cb)
 
+        # tf shit
+        self.tf_buffer = tf2_ros.Buffer()
+        self.listener = tf2_ros.TransformListener(self.tf_buffer)
+
         rospy.loginfo("Waiting for one fgp message")
         rospy.wait_for_message("/filtered_grasp_pose",PoseStamped)
         rospy.loginfo("Message received")
+        rospy.loginfo("Waiting for one hand message")
+        rospy.wait_for_message("/hand_filtered_pose",PoseStamped)
+        rospy.loginfo("Message received")
         self.fgp_inital = copy.deepcopy(self.fgp)
+        self.hand_inital = copy.deepcopy(self.hand)
 
         if not (client_connection1 and client_connection2 and client_connection3 and client_connection4 and client_connection5 and client_connection6 and client_connection7):
             rospy.logwarn("%s Some clients are not connected!!",rospy.get_name())
         else : 
             rospy.loginfo("%s : All servers connected",rospy.get_name())
 
+    def transform_pose(self, point, target_frame):
+        try:
+            return self.tf_buffer.transform(point, target_frame, rospy.Duration(1.0))
+        except (tf2_ros.LookupException, tf2_ros.ExtrapolationException) as e:
+            rospy.logwarn(f"Transform failed: {e}")
+            return None
+
+    def to_tf_msg(self,input:PoseStamped):
+        result = tf2_geometry_msgs.PoseStamped()
+        result.header.stamp = input.header.stamp
+        result.header.frame_id = input.header.frame_id
+        result.pose.position.x = input.pose.position.x
+        result.pose.position.y = input.pose.position.y
+        result.pose.position.z = input.pose.position.z
+        result.pose.orientation.x = input.pose.orientation.x
+        result.pose.orientation.y = input.pose.orientation.y
+        result.pose.orientation.z = input.pose.orientation.z
+        result.pose.orientation.w = input.pose.orientation.w
+        return result
 
     def calculate_fgp_linear_velocity_cb(self,event):
         with self.array_access_lock:
@@ -173,7 +203,7 @@ class MpClass:
         self.place_br_feedback = msg
 
     def hand_pose_cb(self,msg):
-        self.hand_pose = msg
+        self.hand = self.transform_pose(self.to_tf_msg(msg),"base_link")
 
     def fgp_cb(self,msg):
         self.fgp = msg
@@ -183,28 +213,33 @@ class MpClass:
         self.start_handover_publisher.publish(Float32(data=self.start_handover))
 
     def wait_for_handover_hand_proximity_based(self):
-        rate = 30
+        rate = rospy.Rate(30)
+        rospy.loginfo(f"Waiting for hand proximity based handover ")
+        start = rospy.get_time()
         while not rospy.is_shutdown():
-            hand_position = np.array([self.hand_pose.pose.position.x,self.hand_pose.pose.position.y,self.hand_pose.pose.position.z],dtype=float)
+            hand_position = np.array([self.hand.pose.position.x,self.hand.pose.position.y,self.hand.pose.position.z],dtype=float)
             object_position = np.array([self.fgp.pose.position.x,self.fgp.pose.position.y,self.fgp.pose.position.z],dtype=float)
             delta_d = np.linalg.norm(hand_position-object_position)
             if delta_d < HAND_PROXIMITY_THRESHOLD:
                 break
+            print(delta_d)
             rate.sleep()
+        return rospy.get_time() - start
+    
 
     def wait_for_handover_hand_vel_based(self):
         rate = rospy.Rate(50)
         start = rospy.get_time()
-
+        rospy.loginfo(f"Waiting for hand vel based handover ")
         while not rospy.is_shutdown():
-            if (self.hand.pose.position.z - self.hand_inital.pose.position.z > Z_DISPLACEMENT and 
+            if (self.hand.pose.position.z > MIN_HAND_Z and
+                self.hand.pose.position.z - self.hand_inital.pose.position.z > Z_DISPLACEMENT and 
                 self.hand_linear_velocity_filtered.linear.z < HANDOVER_VELOCITY_THRESHOLD and 
                 self._max_vel_z > MAX_VELOCITY_THRESHOLD):
                 self.start_handover = 0.5
                 break
             else :
                 self.start_handover = 0.0
-
             rate.sleep()
 
         rospy.loginfo(f"Done waiting for handover, waited {rospy.get_time()-start}")
@@ -212,7 +247,7 @@ class MpClass:
     def wait_for_handover(self):
         rate = rospy.Rate(50)
         start = rospy.get_time()
-
+        rospy.loginfo(f"Waiting for object vel based handover ")
         while not rospy.is_shutdown():
             if (self.fgp.pose.position.z - self.fgp_inital.pose.position.z > Z_DISPLACEMENT and 
                 self.fgp_linear_velocity_filtered.linear.z < HANDOVER_VELOCITY_THRESHOLD and 
@@ -225,6 +260,15 @@ class MpClass:
             rate.sleep()
 
         rospy.loginfo(f"Done waiting for handover, waited {rospy.get_time()-start}")
+
+    def wait_for_handover_v2(self):
+        rospy.loginfo(f"Waiting for wait for handover v2 ")
+        start = rospy.get_time()
+        delta_t = mp.wait_for_handover_hand_proximity_based()
+        if delta_t < PROXIMITY_BASED_WAIT_LOWER_BOUND:
+            mp.wait_for_handover_hand_vel_based()
+        rospy.loginfo(f"Done waiting for handover, waited {rospy.get_time()-start}")
+        
                 
     def wait_to_grasp(self):
         rate = rospy.Rate(30)
@@ -335,6 +379,7 @@ def place(mp):
     result = mp.place_br_client.get_result()
     return finish_timestamp
 
+
 ## !!!! CAUTION !!!! ##
 # This needs modification, do not use this right away
 def place_vel(mp):
@@ -354,6 +399,10 @@ if __name__ == "__main__":
     #### mp functionality
     # mp.gripper_neutral()
     # mp.wait_for_handover()
+    # mp.wait_for_handover_hand_proximity_based()
+    # mp.wait_for_handover_hand_vel_based()
+    # mp.wait_for_handover_v2()
+
     # mp.wait_to_grasp()
     # mp.gripper_off()
     # mp.gripper_on()
@@ -363,20 +412,28 @@ if __name__ == "__main__":
     # stop_radial_track(mp)
     # mp.gripper_neutral()
     
-    rest(mp)
-    mp.gripper_off()
+    # rest(mp)
+    # mp.gripper_off()
     
-    # rospy.sleep(2)
-    # mp.gripper_on()
-    # rospy.sleep(2)
+    # # rospy.sleep(2)
+    # # mp.gripper_on()
+    # # rospy.sleep(2)
     
-    mp.wait_for_handover()
-    start = rospy.get_time()
-    yoink(mp)
-    rospy.sleep(0.5) # if its greater than 0.5, the start state for traj planning varies and traj fails
-    finish = place(mp)
-    rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
+    # mp.wait_for_handover()
+    # start = rospy.get_time()
+    # yoink(mp)
+    # rospy.sleep(0.5) # if its greater than 0.5, the start state for traj planning varies and traj fails
+    # finish = place(mp)
+    # rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
     
-    mp.gripper_neutral()
-    rest(mp)
+    # mp.gripper_neutral()
+    # rest(mp)
+    
 
+    ##############################3
+    # mp.wait_for_handover_hand_vel_based()
+    # mp.wait_for_handover()
+    
+    # delta_t = mp.wait_for_handover_hand_proximity_based()
+    # if delta_t < PROXIMITY_BASED_WAIT_LOWER_BOUND:
+    #     mp.wait_for_handover_hand_vel_based()
