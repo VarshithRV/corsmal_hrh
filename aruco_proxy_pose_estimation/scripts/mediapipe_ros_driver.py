@@ -30,13 +30,13 @@ class Deprojection:
         left_camera_color_topic = rospy.get_param("~left_color_image_topic","/camera/color/image_raw")
         left_camera_info_topic = rospy.get_param("~left_camera_info_topic","/camera/color/image_raw")
         left_camera_depth_topic = rospy.get_param("~left_depth_image_topic","/camera/color/image_raw")
-        left_detected_image_topic = f"/left_detected_image_raw"
+        left_detected_image_topic = f"/left_camera/hand_detected_image_raw"
         
         # right camera topics
         right_camera_color_topic = rospy.get_param("~right_color_image_topic","/camera/color/image_raw")
         right_camera_info_topic = rospy.get_param("~right_camera_info_topic","/camera/color/image_raw")
         right_camera_depth_topic = rospy.get_param("~right_depth_image_topic","/camera/color/image_raw")
-        right_detected_image_topic = f"/right_detected_image_raw"
+        right_detected_image_topic = f"/right_camera/hand_detected_image_raw"
 
         # left camera elements
         self.left_depth_image = None
@@ -76,11 +76,20 @@ class Deprojection:
         self.right_filtered_qvec = np.array([0,0,0,1],dtype=float)
         self.right_confidence_threshold = rospy.get_param("~right_confidence_threshold",0.5)
 
+        # object topics
+        self.tvec = None
+        self.qvec = None
+        self.filtered_tvec = np.array([0,0,0],dtype = float)
+        self.filtered_qvec = np.array([0,0,0,1],dtype = float)
+
         # left linear IIR filter elements
         self.left_alpha = rospy.get_param("~left_alpha",0.25)
         
         # right linear IIR filter elements
         self.right_alpha = rospy.get_param("~right_alpha",0.25)
+
+        # overall IIR filter element 
+        self.alpha = rospy.get_param("~alpha",0.25)
 
         # hand_side 
         self.hand_side = rospy.get_param("~hand_side","Right")
@@ -104,7 +113,6 @@ class Deprojection:
         self.bounding_box_world_z_min = rospy.get_param("~bounding_box/z_min",0.0)
         self.bounding_box_world_z_max = rospy.get_param("~bounding_box/z_max",2.0)
 
-
         self.cv_bridge = cv_bridge.CvBridge()
         self.detection_rate = 20
         
@@ -123,6 +131,8 @@ class Deprojection:
         left_filtered_pose_topic = f"/left/{self.object_name}_filtered_pose"
         right_pose_topic = f"/right/{self.object_name}_pose"
         right_filtered_pose_topic = f"/right/{self.object_name}_filtered_pose"
+        object_pose_topic = f"{self.object_name}_pose"
+        object_filtered_pose_topic = f"{self.object_name}_filtered_pose"
 
         # Subscribers
         self.left_depth_image_sub = rospy.Subscriber(left_camera_depth_topic, Image, self.left_depth_image_callback)
@@ -141,6 +151,9 @@ class Deprojection:
         self.right_pose_pub = rospy.Publisher(right_pose_topic,PoseStamped,queue_size=10)
         self.right_filtered_pose_pub = rospy.Publisher(right_filtered_pose_topic,PoseStamped,queue_size=10)
 
+        self.object_pose_pub = rospy.Publisher(object_pose_topic,PoseStamped,queue_size=10)
+        self.object_filtered_pose_pub = rospy.Publisher(object_filtered_pose_topic,PoseStamped,queue_size=10)
+
         # Timers
         self.left_hand_detector_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.left_hand_detector_cb)
         self.left_detected_image_publisher_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.left_detected_image_publisher_cb)
@@ -151,11 +164,112 @@ class Deprojection:
         self.right_detected_image_publisher_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.right_detected_image_publisher_cb)
         self.right_filtered_pose_publisher_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.right_filtered_pose_publisher_cb)
         self.right_pose_publisher_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.right_pose_publisher_cb)
+        
+        self.calculate_pose_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.calculate_pose)
+        self.filter_pose_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.filter_pose)
+        self.pose_publisher_timer = rospy.Timer(rospy.Duration(1/self.detection_rate),callback=self.pose_publisher_cb)
 
     def __del__(self):
         del self.left_camera_model
         del self.right_camera_model
 
+    def filter_pose(self,event):
+        if self.tvec is None : 
+            return
+        self.filtered_tvec = self.alpha*self.filtered_tvec + (1-self.alpha)*self.tvec
+
+        if self.qvec is None :
+            return
+        q1 = self.filtered_qvec
+        q2 = self.qvec
+
+        dot = np.dot(q1,q2)
+        if dot < 0.0:
+            q2 = -q2
+            dot = -dot
+        if dot > 0.9995:
+            filtered_quat = (self.alpha)*q1 + (1-self.alpha)*q2
+        else : 
+            theta_0 = np.arccos(dot)
+            sin_theta_0 = np.sin(theta_0)
+            theta = theta_0*(1-self.alpha)
+            sin_theta = np.sin(theta)
+
+            s1 = np.sin(theta_0 - theta) / sin_theta_0
+            s2 = sin_theta / sin_theta_0
+
+            filtered_quat = s1 * q1 + s2 * q2
+        filtered_quat = filtered_quat / np.linalg.norm(filtered_quat)
+        self.filtered_qvec = filtered_quat
+
+    def pose_publisher_cb(self,event):
+        if self.qvec is None or self.tvec is None : 
+            return
+
+        msg = PoseStamped()
+        msg.header.frame_id = "world"
+        msg.header.stamp = rospy.Time.now()
+        msg.pose.position.x = self.tvec[0]
+        msg.pose.position.y = self.tvec[1]
+        msg.pose.position.z = self.tvec[2]
+        msg.pose.orientation.x = self.qvec[0]
+        msg.pose.orientation.y = self.qvec[1]
+        msg.pose.orientation.z = self.qvec[2]
+        msg.pose.orientation.w = self.qvec[3]
+
+        self.object_pose_pub.publish(msg)
+
+        msg = PoseStamped()
+        msg.header.frame_id = "world"
+        msg.header.stamp = rospy.Time.now()
+        msg.pose.position.x = self.filtered_tvec[0]
+        msg.pose.position.y = self.filtered_tvec[1]
+        msg.pose.position.z = self.filtered_tvec[2]
+        msg.pose.orientation.x = self.filtered_qvec[0]
+        msg.pose.orientation.y = self.filtered_qvec[1]
+        msg.pose.orientation.z = self.filtered_qvec[2]
+        msg.pose.orientation.w = self.filtered_qvec[3]
+
+        self.object_filtered_pose_pub.publish(msg)
+
+    def calculate_pose(self,event):
+        # here we need to update self.tvec and self.qvec by determining the self.left_tvec, self.left_qvec in world frame, self.right_tvec and self.right_qvec in world frame, averaging
+        left_world_tvec = None 
+        right_world_tvec = None 
+
+        if self.left_tvec is not None and self.left_camera_info is not None:
+            left_point = tf2_geometry_msgs.PointStamped()
+            left_point.header.frame_id = self.left_camera_info.header.frame_id
+            left_point.header.stamp = rospy.Time.now()
+            left_point.point.x = self.left_tvec[0]
+            left_point.point.y = self.left_tvec[1]
+            left_point.point.z = self.left_tvec[2]
+            left_world_point = self.transform_point(left_point,"world")
+            left_world_tvec = np.array([left_world_point.point.x,left_world_point.point.y,left_world_point.point.z],dtype=float)
+        
+        if self.right_tvec is not None and self.right_camera_info is not None:
+            right_point = tf2_geometry_msgs.PointStamped()
+            right_point.header.frame_id = self.right_camera_info.header.frame_id
+            right_point.header.stamp = rospy.Time.now()
+            right_point.point.x = self.right_tvec[0]
+            right_point.point.y = self.right_tvec[1]
+            right_point.point.z = self.right_tvec[2]
+            right_world_point = self.transform_point(right_point,"world")
+            right_world_tvec = np.array([right_world_point.point.x,right_world_point.point.y,right_world_point.point.z],dtype=float)
+
+        if left_world_tvec is None and right_world_tvec is None :
+            pass
+        elif left_world_tvec is not None and right_world_tvec is None :
+            self.tvec = left_world_tvec
+        elif left_world_tvec is None and right_world_tvec is not None :
+            self.tvec = right_world_tvec
+        elif left_world_tvec is not None and right_world_tvec is not None :
+            self.tvec = (left_world_tvec + right_world_tvec)/2
+
+        self.qvec = np.array([0,0,0,1],dtype=float)
+        print(self.tvec)
+        print(self.qvec)
+    
     def get_average_pixel_xy_per_hand(self,results, image_shape):
         height, width, _ = image_shape
         hand_data = []
@@ -227,6 +341,13 @@ class Deprojection:
     def transform_pose(self, pose, target_frame):
         try:
             return self.tf_buffer.transform(pose, target_frame, rospy.Duration(1.0))
+        except (tf2_ros.LookupException, tf2_ros.ExtrapolationException) as e:
+            rospy.logwarn(f"Transform failed: {e}")
+            return None
+
+    def transform_point(self, point, target_frame):
+        try:
+            return self.tf_buffer.transform(point, target_frame, rospy.Duration(1.0))
         except (tf2_ros.LookupException, tf2_ros.ExtrapolationException) as e:
             rospy.logwarn(f"Transform failed: {e}")
             return None
@@ -442,7 +563,6 @@ class Deprojection:
 
         return position
             
-
     def right_hand_detector_cb(self,event):
         if self.right_color_image is None : 
             return
