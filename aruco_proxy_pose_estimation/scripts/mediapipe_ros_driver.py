@@ -309,6 +309,13 @@ class Deprojection:
 
         return image
     
+    def transform_pose(self, pose, target_frame):
+        try:
+            return self.tf_buffer.transform(pose, target_frame, rospy.Duration(1.0))
+        except (tf2_ros.LookupException, tf2_ros.ExtrapolationException) as e:
+            rospy.logwarn(f"Transform failed: {e}")
+            return None
+
     def get_hand_position_3d_left_cam(self,hand_data):
         # need to detect all hand coordinates, select the ones in the bounding box and then sort by confidence, and then select the coordinate closes to the object
         position = None
@@ -326,16 +333,30 @@ class Deprojection:
             x = ray[0] * z
             y = ray[1] * z
             z = ray[2] * z
+            
             # need to validate here
-            case_1 = self.left_bounding_box_cam_x_min <= x <= self.left_bounding_box_cam_x_max
-            case_2 = self.left_bounding_box_cam_y_min <= y <= self.left_bounding_box_cam_y_max
-            case_3 = self.left_bounding_box_cam_z_min <= z <= self.left_bounding_box_cam_z_max
+            pose = PoseStamped()
+            pose.header.frame_id = self.left_camera_info.header.frame_id
+            pose.header.stamp = rospy.Time.now()
+            pose.pose.position.x = x
+            pose.pose.position.y = y
+            pose.pose.position.z = z
+            pose.pose.orientation.w = 1
+
+            pose_wrt_world = self.transform_pose(pose,"world")
+
+            case_1 = self.left_bounding_box_cam_x_min <= pose_wrt_world.pose.position.x <= self.left_bounding_box_cam_x_max
+            case_2 = self.left_bounding_box_cam_y_min <= pose_wrt_world.pose.position.y <= self.left_bounding_box_cam_y_max
+            case_3 = self.left_bounding_box_cam_z_min <= pose_wrt_world.pose.position.z <= self.left_bounding_box_cam_z_max
+            
             print(case_1,case_2,case_3)
+            
             if case_1 and case_2 and case_3 :
                 position = [x,y,z]
                 break
             else:
                 position = None
+            
             # position = [x,y,z]
             # break
         return position
