@@ -267,8 +267,6 @@ class Deprojection:
             self.tvec = (left_world_tvec + right_world_tvec)/2
 
         self.qvec = np.array([0,0,0,1],dtype=float)
-        print(self.tvec)
-        print(self.qvec)
     
     def get_average_pixel_xy_per_hand(self,results, image_shape):
         height, width, _ = image_shape
