@@ -165,9 +165,9 @@ class Deprojection:
         rospy.wait_for_message(left_camera_info_topic,CameraInfo)
         rospy.wait_for_message(right_camera_info_topic,CameraInfo)
 
-        self.base_to_left_cam_tf_mat = self.lookup_transform_matrix(target_frame = self.left_camera_info.header.frame_id,source_frame = "base_link")
-        self.base_to_right_cam_tf_mat = self.lookup_transform_matrix(target_frame = self.right_camera_info.header.frame_id,source_frame = "base_link")
-        self.get_bounding_box_wrt_cameras()
+        # self.base_to_left_cam_tf_mat = self.lookup_transform_matrix(target_frame = self.left_camera_info.header.frame_id,source_frame = "base_link")
+        # self.base_to_right_cam_tf_mat = self.lookup_transform_matrix(target_frame = self.right_camera_info.header.frame_id,source_frame = "base_link")
+        # self.get_bounding_box_wrt_cameras()
 
 
     def __del__(self):
@@ -248,6 +248,44 @@ class Deprojection:
                     })
 
         return hand_data
+
+    def print_hand_landmarks_from_results(self,results):
+        if results.multi_hand_landmarks and results.multi_handedness:
+            for idx, (hand_landmarks, handedness) in enumerate(zip(results.multi_hand_landmarks, results.multi_handedness)):
+                hand_type = handedness.classification[0].label  # 'Left' or 'Right'
+                confidence = handedness.classification[0].score
+                print(f"\nHand {idx + 1} - Type: {hand_type} (Confidence: {confidence:.2f})")
+                for i, lm in enumerate(hand_landmarks.landmark):
+                    print(f"  Landmark {i:2d}: x={lm.x:.3f}, y={lm.y:.3f}, z={lm.z:.3f}")
+        else:
+            print("No hands detected.")
+  
+    def draw_axes(self,image, rvec, tvec, intrinsics, distortion_coeffs, axis_length=0.05):
+        # Define the axes in 3D space (in the object coordinate frame)
+        axis_3d = np.float32([
+            [0, 0, 0],# origin
+            [axis_length, 0, 0],# X axis (red)
+            [0, axis_length, 0],# Y axis (green)
+            [0, 0, axis_length]# Z axis (blue)
+        ]).reshape(-1, 3)
+
+        # Project 3D points to image plane
+        imgpts, _ = cv2.projectPoints(axis_3d, rvec, tvec, intrinsics, distortion_coeffs)
+
+        imgpts = imgpts.astype(int)
+
+        origin = tuple(imgpts[0].ravel())
+        x_axis = tuple(imgpts[1].ravel())
+        y_axis = tuple(imgpts[2].ravel())
+        z_axis = tuple(imgpts[3].ravel())
+
+        # Draw the axes
+        cv2.line(image, origin, x_axis, (0, 0, 255), 2)   # X in red
+        cv2.line(image, origin, y_axis, (0, 255, 0), 2)   # Y in green
+        cv2.line(image, origin, z_axis, (255, 0, 0), 2)   # Z in blue
+        cv2.circle(image, origin, 3, (0, 0, 0), -1)       # Draw origin point
+
+        return image
     
     def get_hand_position_3d_left_cam(self,hand_data):
         # need to detect all hand coordinates, select the ones in the bounding box and then sort by confidence, and then select the coordinate closes to the object
@@ -256,7 +294,7 @@ class Deprojection:
             ray = self.left_camera_model.projectPixelTo3dRay((u, v)) 
             depth_image = self.left_depth_image.copy()
             mask = np.uint8(depth_image == 0) * 255 
-            mask = np.uint8(mask == None) * 255 
+            # mask = np.uint8(mask == None) * 255 
             depth_image_filtered = cv2.inpaint(depth_image, mask, inpaintRadius=3, flags=cv2.INPAINT_NS)
             z = depth_image_filtered[v, u] / 1000.0 
             x = ray[0] * z
@@ -314,44 +352,6 @@ class Deprojection:
             return image,None,None
         
         return image,rvec.reshape((3,)),tvec
-    
-    def draw_axes(self,image, rvec, tvec, intrinsics, distortion_coeffs, axis_length=0.05):
-        # Define the axes in 3D space (in the object coordinate frame)
-        axis_3d = np.float32([
-            [0, 0, 0],# origin
-            [axis_length, 0, 0],# X axis (red)
-            [0, axis_length, 0],# Y axis (green)
-            [0, 0, axis_length]# Z axis (blue)
-        ]).reshape(-1, 3)
-
-        # Project 3D points to image plane
-        imgpts, _ = cv2.projectPoints(axis_3d, rvec, tvec, intrinsics, distortion_coeffs)
-
-        imgpts = imgpts.astype(int)
-
-        origin = tuple(imgpts[0].ravel())
-        x_axis = tuple(imgpts[1].ravel())
-        y_axis = tuple(imgpts[2].ravel())
-        z_axis = tuple(imgpts[3].ravel())
-
-        # Draw the axes
-        cv2.line(image, origin, x_axis, (0, 0, 255), 2)   # X in red
-        cv2.line(image, origin, y_axis, (0, 255, 0), 2)   # Y in green
-        cv2.line(image, origin, z_axis, (255, 0, 0), 2)   # Z in blue
-        cv2.circle(image, origin, 3, (0, 0, 0), -1)       # Draw origin point
-
-        return image
-    
-    def print_hand_landmarks_from_results(self,results):
-            if results.multi_hand_landmarks and results.multi_handedness:
-                for idx, (hand_landmarks, handedness) in enumerate(zip(results.multi_hand_landmarks, results.multi_handedness)):
-                    hand_type = handedness.classification[0].label  # 'Left' or 'Right'
-                    confidence = handedness.classification[0].score
-                    print(f"\nHand {idx + 1} - Type: {hand_type} (Confidence: {confidence:.2f})")
-                    for i, lm in enumerate(hand_landmarks.landmark):
-                        print(f"  Landmark {i:2d}: x={lm.x:.3f}, y={lm.y:.3f}, z={lm.z:.3f}")
-            else:
-                print("No hands detected.")
 
     def left_detected_image_publisher_cb(self,event):
         if self.left_detected_image is not None:
@@ -433,19 +433,71 @@ class Deprojection:
 
     ##############################################################
 
+    def get_hand_position_3d_right_cam(self,hand_data):
+        # need to detect all hand coordinates, select the ones in the bounding box and then sort by confidence, and then select the coordinate closes to the object
+        for hand in hand_data:
+            u, v = int(hand["x"]), int(hand["y"])  # pixel coordinates (x = col, y = row)
+            ray = self.right_camera_model.projectPixelTo3dRay((u, v)) 
+            depth_image = self.right_depth_image.copy()
+            mask = np.uint8(depth_image == 0) * 255 
+            # mask = np.uint8(mask == None) * 255 
+            depth_image_filtered = cv2.inpaint(depth_image, mask, inpaintRadius=3, flags=cv2.INPAINT_NS)
+            z = depth_image_filtered[v, u] / 1000.0 
+            x = ray[0] * z
+            y = ray[1] * z
+            z = ray[2] * z
+            return x,y,z
+
     def right_hand_detector_cb(self,event):
         if self.right_color_image is None : 
             return
         image_detected,rvec,tvec = self.right_detect_hands(self.right_color_image)
         self.right_detected_image = image_detected
         
-        if tvec is not None or rvec is not None:
+        if tvec is not None and rvec is not None:
             self.right_tvec = tvec
             r = R.from_rotvec(rvec)
             self.right_qvec = r.as_quat()
         else :
             self.right_tvec = None
             self.right_qvec = None
+
+    def right_detect_hands(self,image):
+        # Convert BGR to RGB
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = self.right_hands.process(image_rgb)
+        rvec = None
+        tvec = None
+
+        # Draw the hand annotations on the image
+        if results.multi_hand_landmarks:
+            for hand_landmarks in results.multi_hand_landmarks:
+                self.right_mp_drawing.draw_landmarks(
+                    image,  # draw on original BGR image
+                    hand_landmarks,
+                    self.right_mp_hands.HAND_CONNECTIONS,
+                    self.right_mp_drawing.DrawingSpec(color=(0,255,0), thickness=2, circle_radius=2),
+                    self.right_mp_drawing.DrawingSpec(color=(255,0,0), thickness=2))
+
+        if results.multi_hand_landmarks is not None and not self.count : # this is the condition to check if there are hands exist or not
+            hand_data = self.get_average_pixel_xy_per_hand(results,image.shape)
+            for hand in hand_data:
+                cv2.circle(image,(hand["x"],hand["y"]),5,(0,0,255),5)
+            
+            x,y,z = self.get_hand_position_3d_right_cam(hand_data)
+
+            if self.right_camera_model is not None : 
+                intrinsics = self.right_camera_model.K
+                distortion_coefficients = self.right_camera_model.D
+                unit_rotation_mat = np.eye(3,3,dtype=float)
+                rvec = np.zeros((3,),dtype=float)
+                rvec, _ = cv2.Rodrigues(unit_rotation_mat)
+                tvec = np.array([x,y,z],dtype = float)
+                image = self.draw_axes(image,rvec,tvec,intrinsics,distortion_coefficients)
+        else : 
+            return image,None,None
+        
+        return image,rvec.reshape((3,)),tvec
     
     def right_detected_image_publisher_cb(self,event):
         if self.right_detected_image is not None:
@@ -513,38 +565,6 @@ class Deprojection:
         msg.pose.orientation.z = self.right_filtered_qvec[2]
         msg.pose.orientation.w = self.right_filtered_qvec[3]
         self.right_filtered_pose_pub.publish(msg)
-
-    def right_detect_hands(self,image):
-        # Convert BGR to RGB
-        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        results = self.right_hands.process(image_rgb)
-        
-        # Draw the hand annotations on the image
-        if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                self.right_mp_drawing.draw_landmarks(
-                    image,  # draw on original BGR image
-                    hand_landmarks,
-                    self.right_mp_hands.HAND_CONNECTIONS,
-                    self.right_mp_drawing.DrawingSpec(color=(0,255,0), thickness=2, circle_radius=2),
-                    self.right_mp_drawing.DrawingSpec(color=(255,0,0), thickness=2))
-        
-        rvec = None
-        tvec = None
-
-        # if results.multi_hand_landmarks is not None and not self.count :
-        #     self.print_hand_landmarks_from_results(results)
-
-        if self.right_camera_model is not None : 
-            intrinsics = self.right_camera_model.K
-            distortion_coefficients = self.right_camera_model.D
-            unit_rotation_mat = np.eye(3,3,dtype=float)
-            rvec = np.zeros((3,),dtype=float)
-            rvec, _ = cv2.Rodrigues(unit_rotation_mat)
-            tvec = np.array([0,0,0],dtype = float)
-            image = self.draw_axes(image,rvec,tvec,intrinsics,distortion_coefficients)
-
-        return image,rvec.reshape((3,)),tvec
         
     def right_color_image_callback(self, msg: Image):
         self.right_grayscale_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="mono8")

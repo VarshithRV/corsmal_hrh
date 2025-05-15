@@ -1,6 +1,6 @@
 # Linear filter parameters
-left_alpha : 0.25 # range = [0,1], more means trust the filtered data more
-right_alpha : 0.25 # range = [0,1], more means trust the filtered data more
+left_alpha : 0.9 # range = [0,1], more means trust the filtered data more
+right_alpha : 0.9 # range = [0,1], more means trust the filtered data more
 
 # grid configuration
 object:
