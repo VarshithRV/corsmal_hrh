@@ -319,21 +319,25 @@ class Deprojection:
             mask = np.uint8(depth_image == 0) * 255 
             # mask = np.uint8(mask == None) * 255 
             depth_image_filtered = cv2.inpaint(depth_image, mask, inpaintRadius=3, flags=cv2.INPAINT_NS)
-            z = depth_image_filtered[v, u] / 1000.0 
+            if v < self.left_camera_info.height and u < self.left_camera_info.width:
+                z = depth_image_filtered[v, u] / 1000.0 
+            else :
+                return None
             x = ray[0] * z
             y = ray[1] * z
             z = ray[2] * z
-            # # need to validate here
-            # case_1 = self.left_bounding_box_cam_x_min <= x <= self.left_bounding_box_cam_x_max
-            # case_2 = self.left_bounding_box_cam_y_min <= y <= self.left_bounding_box_cam_y_max
-            # case_3 = self.left_bounding_box_cam_z_min <= z <= self.left_bounding_box_cam_z_max
-            # if case_1 and case_2 and case_3 :
-            #     position = [x,y,z]
-            #     break
-            # else:
-            #     position = None
-            position = [x,y,z]
-            break
+            # need to validate here
+            case_1 = self.left_bounding_box_cam_x_min <= x <= self.left_bounding_box_cam_x_max
+            case_2 = self.left_bounding_box_cam_y_min <= y <= self.left_bounding_box_cam_y_max
+            case_3 = self.left_bounding_box_cam_z_min <= z <= self.left_bounding_box_cam_z_max
+            print(case_1,case_2,case_3)
+            if case_1 and case_2 and case_3 :
+                position = [x,y,z]
+                break
+            else:
+                position = None
+            # position = [x,y,z]
+            # break
         return position
 
     def left_hand_detector_cb(self,event):
