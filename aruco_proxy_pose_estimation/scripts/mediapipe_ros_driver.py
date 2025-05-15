@@ -170,17 +170,14 @@ class Deprojection:
         rospy.wait_for_message(left_camera_info_topic,CameraInfo)
         rospy.wait_for_message(right_camera_info_topic,CameraInfo)
 
-        self.base_to_left_cam_tf_mat = self.lookup_transform_matrix(target_frame = self.left_camera_info.header.frame_id,source_frame = "world")
-        self.base_to_right_cam_tf_mat = self.lookup_transform_matrix(target_frame = self.right_camera_info.header.frame_id,source_frame = "world")
         self.get_bounding_box_wrt_cameras()
-
 
     def __del__(self):
         del self.left_camera_model
         del self.right_camera_model
 
     def get_bounding_box_wrt_cameras(self):
-        # 8 corners of the bounding box in base_link frame
+        # 8 corners of the bounding box in world (base) frame
         corners = np.array([
             [self.bounding_box_world_x_min, self.bounding_box_world_y_min, self.bounding_box_world_z_min, 1],
             [self.bounding_box_world_x_min, self.bounding_box_world_y_min, self.bounding_box_world_z_max, 1],
@@ -190,10 +187,12 @@ class Deprojection:
             [self.bounding_box_world_x_max, self.bounding_box_world_y_min, self.bounding_box_world_z_max, 1],
             [self.bounding_box_world_x_max, self.bounding_box_world_y_max, self.bounding_box_world_z_min, 1],
             [self.bounding_box_world_x_max, self.bounding_box_world_y_max, self.bounding_box_world_z_max, 1],
-        ]).T  # Shape (4, 8)
+        ]).T  # (4, 8) shape
 
-        # Transform to left camera frame
-        left_corners = self.base_to_left_cam_tf_mat @ corners
+        # Transform corners to left camera frame
+        T_left_world = self.lookup_transform_matrix(self.left_camera_info.header.frame_id, "world")
+        left_corners = T_left_world @ corners  # (4,8)
+
         self.left_bounding_box_cam_x_min = np.min(left_corners[0])
         self.left_bounding_box_cam_x_max = np.max(left_corners[0])
         self.left_bounding_box_cam_y_min = np.min(left_corners[1])
@@ -201,8 +200,10 @@ class Deprojection:
         self.left_bounding_box_cam_z_min = np.min(left_corners[2])
         self.left_bounding_box_cam_z_max = np.max(left_corners[2])
 
-        # Transform to right camera frame
-        right_corners = self.base_to_right_cam_tf_mat @ corners
+        # Transform corners to right camera frame
+        T_right_world = self.lookup_transform_matrix(self.right_camera_info.header.frame_id, "world")
+        right_corners = T_right_world @ corners
+
         self.right_bounding_box_cam_x_min = np.min(right_corners[0])
         self.right_bounding_box_cam_x_max = np.max(right_corners[0])
         self.right_bounding_box_cam_y_min = np.min(right_corners[1])
@@ -210,23 +211,35 @@ class Deprojection:
         self.right_bounding_box_cam_z_min = np.min(right_corners[2])
         self.right_bounding_box_cam_z_max = np.max(right_corners[2])
 
-    def lookup_transform_matrix(self,target_frame, source_frame, tf_listener=None, timeout=5.0):
-        rate = rospy.Rate(30)
-        trans = None
-        while not rospy.is_shutdown():
-            try:
-                trans = self.tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
-                break
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                rate.sleep()
-                continue
-        rotation = [trans.transform.rotation.x,trans.transform.rotation.y,trans.transform.rotation.z,trans.transform.rotation.w]
-        translation = [trans.transform.translation.x,trans.transform.translation.y,trans.transform.translation.z]
-        homogenous_transformation = np.eye(4,4,dtype=float)
-        homogenous_transformation = tft.quaternion_matrix(rotation)
-        homogenous_transformation[:3,3] = translation
-        return homogenous_transformation
+        # Debug print for sanity
+        rospy.loginfo(f"Left bounding box in cam frame: x[{self.left_bounding_box_cam_x_min:.2f},{self.left_bounding_box_cam_x_max:.2f}], "
+                      f"y[{self.left_bounding_box_cam_y_min:.2f},{self.left_bounding_box_cam_y_max:.2f}], "
+                      f"z[{self.left_bounding_box_cam_z_min:.2f},{self.left_bounding_box_cam_z_max:.2f}]")
+        rospy.loginfo(f"Right bounding box in cam frame: x[{self.right_bounding_box_cam_x_min:.2f},{self.right_bounding_box_cam_x_max:.2f}], "
+                      f"y[{self.right_bounding_box_cam_y_min:.2f},{self.right_bounding_box_cam_y_max:.2f}], "
+                      f"z[{self.right_bounding_box_cam_z_min:.2f},{self.right_bounding_box_cam_z_max:.2f}]")
 
+    def lookup_transform_matrix(self, target_frame, source_frame, timeout=5.0):
+        try:
+            trans = self.tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time(0), rospy.Duration(timeout))
+            # tf2 gives translation and quaternion in the transform
+            translation = [
+                trans.transform.translation.x,
+                trans.transform.translation.y,
+                trans.transform.translation.z,
+            ]
+            rotation = [
+                trans.transform.rotation.x,
+                trans.transform.rotation.y,
+                trans.transform.rotation.z,
+                trans.transform.rotation.w,
+            ]
+            T = tft.quaternion_matrix(rotation)  # This is 4x4
+            T[:3, 3] = translation
+            return T
+        except Exception as e:
+            rospy.logerr(f"Failed to lookup transform from {source_frame} to {target_frame}: {e}")
+            return np.eye(4)
 
     def get_average_pixel_xy_per_hand(self,results, image_shape):
         height, width, _ = image_shape
@@ -310,15 +323,18 @@ class Deprojection:
             x = ray[0] * z
             y = ray[1] * z
             z = ray[2] * z
-            # need to validate here
-            case_1 = x < self.left_bounding_box_cam_x_max and x > self.left_bounding_box_cam_x_min
-            case_2 = y < self.left_bounding_box_cam_y_max and y > self.left_bounding_box_cam_y_min
-            case_3 = z < self.left_bounding_box_cam_z_max and z > self.left_bounding_box_cam_z_min
-            print(case_1,case_2,case_3)
-            if case_1 and case_2 and case_3 :
-                position = [x,y,z]
+            # # need to validate here
+            # case_1 = self.left_bounding_box_cam_x_min <= x <= self.left_bounding_box_cam_x_max
+            # case_2 = self.left_bounding_box_cam_y_min <= y <= self.left_bounding_box_cam_y_max
+            # case_3 = self.left_bounding_box_cam_z_min <= z <= self.left_bounding_box_cam_z_max
+            # if case_1 and case_2 and case_3 :
+            #     position = [x,y,z]
+            #     break
+            # else:
+            #     position = None
+            position = [x,y,z]
+            break
         return position
-            
 
     def left_hand_detector_cb(self,event):
         if self.left_color_image is None : 
@@ -455,6 +471,7 @@ class Deprojection:
 
     def get_hand_position_3d_right_cam(self,hand_data):
         # need to detect all hand coordinates, select the ones in the bounding box and then sort by confidence, and then select the coordinate closes to the object
+        position = None
         for hand in hand_data:
             u, v = int(hand["x"]), int(hand["y"])  # pixel coordinates (x = col, y = row)
             ray = self.right_camera_model.projectPixelTo3dRay((u, v)) 
@@ -466,7 +483,19 @@ class Deprojection:
             x = ray[0] * z
             y = ray[1] * z
             z = ray[2] * z
-            return x,y,z
+            # # need to validate here
+            # case_1 = self.right_bounding_box_cam_x_min <= x <= self.right_bounding_box_cam_x_max
+            # case_2 = self.right_bounding_box_cam_y_min <= y <= self.right_bounding_box_cam_y_max
+            # case_3 = self.right_bounding_box_cam_z_min <= z <= self.right_bounding_box_cam_z_max
+            # if case_1 and case_2 and case_3 :
+            #     position = [x,y,z]
+            #     break
+            # else:
+            #     position = None
+            position = [x,y,z]
+            break
+        return position
+            
 
     def right_hand_detector_cb(self,event):
         if self.right_color_image is None : 
@@ -504,16 +533,18 @@ class Deprojection:
             for hand in hand_data:
                 cv2.circle(image,(hand["x"],hand["y"]),5,(0,0,255),5)
             
-            x,y,z = self.get_hand_position_3d_right_cam(hand_data)
+            position = self.get_hand_position_3d_right_cam(hand_data)
 
-            if self.right_camera_model is not None : 
+            if self.right_camera_model is not None and position is not None: 
                 intrinsics = self.right_camera_model.K
                 distortion_coefficients = self.right_camera_model.D
                 unit_rotation_mat = np.eye(3,3,dtype=float)
                 rvec = np.zeros((3,),dtype=float)
                 rvec, _ = cv2.Rodrigues(unit_rotation_mat)
-                tvec = np.array([x,y,z],dtype = float)
+                tvec = np.array(position,dtype = float)
                 image = self.draw_axes(image,rvec,tvec,intrinsics,distortion_coefficients)
+            else : 
+                return image,None,None
         else : 
             return image,None,None
         
