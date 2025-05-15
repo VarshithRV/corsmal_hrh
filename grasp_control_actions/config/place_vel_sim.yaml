@@ -11,6 +11,12 @@ default_position :
 
 use_default_position : True
 
+go_back : 0.15 #m
+
+alpha : 0.6
+
+input_stream_timeout : 0.2 #s
+
 preplace_transformation :
   position:
     x: 0.0
