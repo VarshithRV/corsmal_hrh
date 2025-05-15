@@ -12,6 +12,7 @@ from ur_msgs.srv import SetIO, SetIORequest
 import threading
 import copy
 from std_msgs.msg import Float32
+from gripper_driver.srv import SetGripper, SetGripperRequest
 
 '''
 rest state
@@ -24,7 +25,7 @@ rest state
 '''
 
 YOINK_FEEDBACK_THRESHOLD = 0.1
-PLACE_FEEDBACK_THRESHOLD = 0.15 # made it super high to test
+PLACE_FEEDBACK_THRESHOLD = 0.02 # made it super high to test
 VELOCITY_AVG_WINDOW_SIZE = 10
 ALPHA = 0.5 # more means trust filtered data more
 Z_DISPLACEMENT = 0.10 #m, should reduce to make it faster
@@ -74,6 +75,7 @@ class MpClass:
         # connect to ur pin service to commands gripper pins
         self.set_io_client = rospy.ServiceProxy("/ur_hardware_interface/set_io", SetIO)
         self.set_io_client.wait_for_service(5.0)
+        self.set_gripper_client = rospy.ServiceProxy("/gripper1",SetGripper)
         self.yoink_feedback_sub = rospy.Subscriber("/yoink/linear_error",Float32,callback=self.yoink_feedback_cb)
         self.yoink_feedback_sub = rospy.Subscriber("/place_br/linear_error",Float32,callback=self.place_br_feedback_cb)
         self.fgp_sub = rospy.Subscriber("/filtered_grasp_pose",PoseStamped,callback=self.fgp_cb)
@@ -174,22 +176,31 @@ class MpClass:
         print("Waited for : ",rospy.get_time() - start)
 
     def gripper_on(self):
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT7,1) #positive to reinforce grip
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,0) #vacuum to open more
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT4,1) #vacuum to close
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT5,1) #vacuum for suction cup
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT7,1) #positive to reinforce grip
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,0) #vacuum to open more
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT4,1) #vacuum to close
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT5,1) #vacuum for suction cup
+        setpoint = SetGripperRequest()
+        setpoint.setpoint.data = [0,1,1,0,1,0,0,0,0,0,0,0,0]
+        self.set_gripper_client.call(setpoint)
 
     def gripper_neutral(self):
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT7,0) #positive to reinforce grip
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,0) #vacuum to open more
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT4,0) #vacuum to close
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT5,0) #vacuum for suction cup
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT7,0) #positive to reinforce grip
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,0) #vacuum to open more
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT4,0) #vacuum to close
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT5,0) #vacuum for suction cup
+        setpoint = SetGripperRequest()
+        setpoint.setpoint.data = [0,0,0,0,0,0,0,0,0,0,0,0,0]
+        self.set_gripper_client.call(setpoint)
 
     def gripper_off(self):
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT7,0)
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,1)
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT4,0)
-        self.set_io_client(1,SetIORequest.PIN_CONF_OUT5,0)
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT7,0)
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT6,1)
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT4,0)
+        # self.set_io_client(1,SetIORequest.PIN_CONF_OUT5,0)
+        setpoint = SetGripperRequest()
+        setpoint.setpoint.data = [1,0,0,0,0,0,0,0,0,0,0,0,0]
+        self.set_gripper_client.call(setpoint)
 
 def rest(mp):
     # rest
@@ -282,6 +293,11 @@ if __name__ == "__main__":
     
     rest(mp)
     mp.gripper_off()
+    
+    # rospy.sleep(2)
+    # mp.gripper_on()
+    # rospy.sleep(2)
+    
     mp.wait_for_handover()
     start = rospy.get_time()
     yoink(mp)
