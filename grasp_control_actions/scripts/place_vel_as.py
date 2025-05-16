@@ -340,6 +340,7 @@ class Place:
         ############need to change stuff here################
         # grasp_result1 = self.goto_pose(preplace_position)
         grasp_result2 = self.goto_pose(place_position)
+        grasp_result2 = self.goto_pose(post_place_position)
         result = PlaceVelActionResult()
         # result.result = grasp_result1 and grasp_result2
         result.result = grasp_result2
