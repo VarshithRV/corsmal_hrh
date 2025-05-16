@@ -2,12 +2,14 @@ default_position :
   position:
     x: 0.719485937580114
     y: 0.11426366098174431
-    z: 0.9601198065416131
+    z: 1.251198065416131
   orientation:
     x: 0.5158333052982221
     y: 0.49760767471961076
     z: 0.4910325096569348
     w: 0.4951663131365716
+
+acceleration : 0.5 # in ms-1, this moves with a trapezoid velocity profile
 
 use_default_position : True
 
@@ -41,7 +43,7 @@ angular_stop_threshold : 0.01
 
 gains :
   linear : 
-    p : 1000
+    p : 100
     i : 0
     d : 0
     k : 0.01

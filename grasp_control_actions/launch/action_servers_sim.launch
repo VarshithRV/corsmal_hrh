@@ -8,6 +8,7 @@
     <rosparam command="load" file="$(find grasp_control_actions)/config/place_sim.yaml" ns="place_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place_blended_radius_sim.yaml" ns="place_blended_radius_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/place_vel_sim.yaml" ns="place_vel_as"/>
+    <rosparam command="load" file="$(find grasp_control_actions)/config/place_traj_vel_sim.yaml" ns="place_traj_vel_as"/>
     <rosparam command="load" file="$(find grasp_control_actions)/config/common_parameters_ur5e_sim.yaml" ns="common_parameters"/>
 
     <node pkg="grasp_control_actions" type="radial_track_as.py" name="radial_track_server" output="screen">
@@ -38,6 +39,13 @@
         <remap from="/linear_velocity" to="/place_vel/linear_velocity"/>
         <remap from="/angular_velocity" to="/place_vel/angular_velocity"/>
         <remap from="/optimal_pose" to="/place_vel/optimal_pose"/>
+    </node>
+    <node pkg="grasp_control_actions" type="place_traj_vel_as.py" name="place_traj_vel_server" output="screen">
+        <remap from="/linear_error" to="/place_traj_vel/linear_error"/>
+        <remap from="/angular_error" to="/place_traj_vel/angular_error"/>
+        <remap from="/linear_velocity" to="/place_traj_vel/linear_velocity"/>
+        <remap from="/angular_velocity" to="/place_traj_vel/angular_velocity"/>
+        <remap from="/optimal_pose" to="/place_traj_vel/optimal_pose"/>
     </node>
     <node pkg="grasp_control_actions" type="rest_as.py" name="rest_server" output="screen"/>
     <node pkg="grasp_control_actions" type="place_as.py" name="place_object_server" output="screen">
