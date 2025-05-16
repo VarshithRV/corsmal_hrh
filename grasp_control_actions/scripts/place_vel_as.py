@@ -52,6 +52,7 @@ class Place:
         self.angular_stop_threshold = self.params["angular_stop_threshold"]
         self.pre_grasp_transform = self.params["pre_grasp_transform"]
         self.input_stream_timeout = self.params["input_stream_timeout"]
+        self.setpoint_interpolation_duration = self.params["setpoint_interpolation_duration"]
 
         self.go_back = self.params["go_back"]
 
@@ -337,10 +338,13 @@ class Place:
         post_place_position.pose.orientation.y = copy.deepcopy(place_position.pose.orientation.y)
         post_place_position.pose.orientation.z = copy.deepcopy(place_position.pose.orientation.z)
         
+        post_place_position2 = copy.deepcopy(post_place_position)
+        post_place_position2.pose.position.z += 0.2
         ############need to change stuff here################
         # grasp_result1 = self.goto_pose(preplace_position)
         grasp_result2 = self.goto_pose(place_position)
         grasp_result2 = self.goto_pose(post_place_position)
+        grasp_result2 = self.goto_pose(post_place_position2)
         result = PlaceVelActionResult()
         # result.result = grasp_result1 and grasp_result2
         result.result = grasp_result2
@@ -354,57 +358,100 @@ class Place:
         self.linear_velocity_publisher.publish(Float32(self.linear_velocity))
         self.angular_velocity_publisher.publish(Float32(self.angular_velocity))
 
-    # goto a fixed PoseStamped
-    def goto_pose(self, pose:PoseStamped):
-        if pose is None :
-            rospy.logerr("%s : improper pose received",rospy.get_name())
+    def goto_pose(self, pose: PoseStamped):
+        if pose is None:
+            rospy.logerr("%s : improper pose received", rospy.get_name())
             return False
 
-        # reset all error variables
-        self.errorLprev = np.zeros((3,),dtype=float)
-        self.errorLsum = np.zeros((3,),dtype=float)
-        self.errorOprev = np.zeros((4,),dtype=float)
-        self.errorOsum = np.zeros((4,),dtype=float)
-        self.pid_error_gradient = np.zeros((3,),dtype=float)
+        # Reset all error variables
+        self.errorLprev = np.zeros((3,), dtype=float)
+        self.errorLsum = np.zeros((3,), dtype=float)
+        self.errorOprev = np.zeros((4,), dtype=float)
+        self.errorOsum = np.zeros((4,), dtype=float)
+        self.pid_error_gradient = np.zeros((3,), dtype=float)
         self.time_stamped_errorL = {}
         self.time_stamped_errorL_list = []
 
-
         rate = rospy.Rate(self.cmd_publish_frequency)
-        while not rospy.is_shutdown() :
-            
+
+        # Interpolation setup
+        start_time = rospy.Time.now()
+        interp_duration = rospy.Duration(self.setpoint_interpolation_duration)  # seconds for linear interpolation
+
+        initial_poseL = np.array([
+            self.current_pose.pose.position.x,
+            self.current_pose.pose.position.y,
+            self.current_pose.pose.position.z
+        ])
+
+        final_poseL = np.array([
+            pose.pose.position.x,
+            pose.pose.position.y,
+            pose.pose.position.z
+        ])
+
+        optimal_poseQ = np.array([
+            pose.pose.orientation.x,
+            pose.pose.orientation.y,
+            pose.pose.orientation.z,
+            pose.pose.orientation.w
+        ])
+
+        while not rospy.is_shutdown():
             if not self.place_action_server.is_preempt_requested():
-                optimal_poseL = np.array([pose.pose.position.x,pose.pose.position.y,pose.pose.position.z])
-                optimal_poseQ = np.array([pose.pose.orientation.x,pose.pose.orientation.y,pose.pose.orientation.z,pose.pose.orientation.w])
+                current_poseL = np.array([
+                    self.current_pose.pose.position.x,
+                    self.current_pose.pose.position.y,
+                    self.current_pose.pose.position.z
+                ])
 
-                current_poseL = np.array([self.current_pose.pose.position.x,self.current_pose.pose.position.y,self.current_pose.pose.position.z])
-                current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
-                                          self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
+                current_poseQ = np.array([
+                    self.current_pose.pose.orientation.x,
+                    self.current_pose.pose.orientation.y,
+                    self.current_pose.pose.orientation.z,
+                    self.current_pose.pose.orientation.w
+                ])
 
-                if abs(np.linalg.norm(optimal_poseL - current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(optimal_poseQ - current_poseQ))<self.angular_stop_threshold : 
+                # Compute interpolation factor alpha
+                elapsed_time = (rospy.Time.now() - start_time).to_sec()
+                alpha = min(elapsed_time / interp_duration.to_sec(), 1.0)
+
+                # Linearly interpolate position
+                optimal_poseL = (1 - alpha) * initial_poseL + alpha * final_poseL
+
+                # Stop condition check
+                if (
+                    np.linalg.norm(final_poseL - current_poseL) < self.linear_stop_threshold and
+                    np.linalg.norm(optimal_poseQ - current_poseQ) < self.angular_stop_threshold
+                ):
                     cmd_vel = TwistStamped()
                     cmd_vel.header.frame_id = "world"
-                    rospy.loginfo("%s : Reached pose",rospy.get_name())
-                    # reset all error variables
-                    self.errorLprev = np.zeros((3,),dtype=float)
-                    self.errorLsum = np.zeros((3,),dtype=float)
-                    self.errorOprev = np.zeros((4,),dtype=float)
-                    self.errorOsum = np.zeros((4,),dtype=float)
-                    self.pid_error_gradient = np.zeros((3,),dtype=float)
+                    rospy.loginfo("%s : Reached pose", rospy.get_name())
+
+                    # Reset error variables
+                    self.errorLprev = np.zeros((3,), dtype=float)
+                    self.errorLsum = np.zeros((3,), dtype=float)
+                    self.errorOprev = np.zeros((4,), dtype=float)
+                    self.errorOsum = np.zeros((4,), dtype=float)
+                    self.pid_error_gradient = np.zeros((3,), dtype=float)
                     self.time_stamped_errorL = {}
                     self.time_stamped_errorL_list = []
                     return True
 
-                self.linear_error = np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)
-                self.angular_error = np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)
+                # Compute current error (using actual final pose for error calculation)
+                self.linear_error = np.linalg.norm(final_poseL - current_poseL)
 
-                cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ)
+                # Use quaternion dot product to compute angular error
+                dot = np.dot(optimal_poseQ, current_poseQ)
+                self.angular_error = 2 * np.arccos(np.clip(abs(dot), -1.0, 1.0))
 
+                # Compute and publish velocity
+                cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL, optimal_setpointQ=optimal_poseQ)
                 self.setpoint_velocity = cmd_vel
                 self.setpoint_velocity.header.stamp = rospy.Time.now()
                 self.setpoint_velocity_pub.publish(cmd_vel)
 
-                # need to publish feedback here for the action
+                # Publish feedback
                 self.feedback.linear_error.data = self.linear_error
                 self.feedback.linear_velocity.data = self.linear_velocity
                 self.feedback.angular_velocity.data = self.angular_velocity
@@ -412,8 +459,8 @@ class Place:
                 self.place_action_server.publish_feedback(self.feedback)
 
                 rate.sleep()
-            else : 
-                rospy.loginfo("%s : Preempted requested while in pre grasp",rospy.get_name())
+            else:
+                rospy.loginfo("%s : Preempted requested while in pre grasp", rospy.get_name())
                 return False
 
     # This commands the robot to go to pre grasp
@@ -448,8 +495,8 @@ class Place:
                     self.errorOsum = np.zeros((4,),dtype=float)
                     return True
 
-                self.linear_error = np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)
-                self.angular_error = np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ)
+                self.linear_error = np.linalg.norm(optimal_poseL-current_poseL)
+                self.angular_error = np.linalg.norm(optimal_poseQ-current_poseQ)
 
                 if self.filtered_grasp_pose is not None :
                     cmd_vel = self.compute_cmd_vel(optimal_setpointL=optimal_poseL,optimal_setpointQ=optimal_poseQ)
