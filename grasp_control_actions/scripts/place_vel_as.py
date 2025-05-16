@@ -110,7 +110,7 @@ class Place:
 
         # error gradient calculation tools
         self.pid_error_gradient = np.zeros((3,),dtype =float)
-        self.pid_error_gradient_alpha = 0.9
+        self.pid_error_gradient_alpha = 0.97
         self.time_stamped_errorL = {}
         self.time_stamped_errorL_list = []
 
@@ -381,7 +381,7 @@ class Place:
                 current_poseQ = np.array([self.current_pose.pose.orientation.x,self.current_pose.pose.orientation.y,
                                           self.current_pose.pose.orientation.z,self.current_pose.pose.orientation.w])
 
-                if abs(np.linalg.norm(optimal_poseL) - np.linalg.norm(current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(optimal_poseQ) - np.linalg.norm(current_poseQ))<self.angular_stop_threshold : 
+                if abs(np.linalg.norm(optimal_poseL - current_poseL)) < self.linear_stop_threshold and abs(np.linalg.norm(optimal_poseQ - current_poseQ))<self.angular_stop_threshold : 
                     cmd_vel = TwistStamped()
                     cmd_vel.header.frame_id = "world"
                     rospy.loginfo("%s : Reached pose",rospy.get_name())

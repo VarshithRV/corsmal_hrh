@@ -110,7 +110,6 @@ class Place:
 
         # plan a cartesian path
         # Need to check how to make this faster
-        self.move_group.set_start_state_to_current_state()
         try : 
             (plan, fraction) = self.move_group.compute_cartesian_path(
                 waypoints,  # waypoints to follow
@@ -182,7 +181,8 @@ class Place:
             rospy.logerr("%s : Controller not switched from joint_group_pos_controller to pos_joint_traj_controller, aborting",rospy.get_name())
             self.place_action_server.set_aborted(PlaceMsgActionResult(result=False))
             return
-        
+        self.move_group.set_start_state_to_current_state()
+        self.move_group.set_planner_id("LIN")
         rospy.loginfo("%s : Starting place now",rospy.get_name())
         place_position = goal.place_position if not self.use_default_position else self.default_position
         self.place_position = place_position
