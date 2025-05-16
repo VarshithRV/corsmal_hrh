@@ -423,6 +423,6 @@ if __name__ == "__main__":
     # mp.gripper_neutral()
     # rest(mp)
 
-    mp.gripper_off()
-    mp.gripper_on()
+    # mp.gripper_off()
+    # mp.gripper_on()
     mp.gripper_neutral()
