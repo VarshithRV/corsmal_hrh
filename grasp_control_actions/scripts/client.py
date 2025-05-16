@@ -27,14 +27,14 @@ rest state
 '''
 
 YOINK_FEEDBACK_THRESHOLD = 0.1
-PLACE_FEEDBACK_THRESHOLD = 0.02 # made it super high to test
+PLACE_FEEDBACK_THRESHOLD = 0.05 # made it super high to test
 VELOCITY_AVG_WINDOW_SIZE = 10
 ALPHA = 0.5 # more means trust filtered data more
 Z_DISPLACEMENT = 0.10 #m, should reduce to make it faster
 MAX_VELOCITY_THRESHOLD = 0.0 #ms-1, should reduce to make it faster
 HANDOVER_VELOCITY_THRESHOLD = 0.5 #ms-1 should increase to make it faster
 MIN_HAND_Z = 0.05
-HAND_PROXIMITY_THRESHOLD = 0.07 # m, should be higher to start sooner
+HAND_PROXIMITY_THRESHOLD = 0.15 # m, should be higher to start sooner
 PROXIMITY_BASED_WAIT_LOWER_BOUND = 0.2 #m, this is used to decide if we choose to perform handvelbasedwait
 
 class MpClass:
@@ -62,7 +62,6 @@ class MpClass:
         self._max_vel_z = 0.0
         self.start_handover = 0.0 # this is just for debugging
         
-        
         # connect to action servers
         rospy.loginfo("%s Started client, connecting to action servers", rospy.get_name())
         self.place_client = actionlib.SimpleActionClient("place_server", PlaceMsgAction)
@@ -88,7 +87,7 @@ class MpClass:
         self.set_io_client.wait_for_service(5.0)
         self.set_gripper_client = rospy.ServiceProxy("/gripper1",SetGripper)
         self.yoink_feedback_sub = rospy.Subscriber("/yoink/linear_error",Float32,callback=self.yoink_feedback_cb)
-        self.yoink_feedback_sub = rospy.Subscriber("/place_br/linear_error",Float32,callback=self.place_br_feedback_cb)
+        self.yoink_feedback_sub = rospy.Subscriber("/place_vel/linear_error",Float32,callback=self.place_br_feedback_cb)
         self.fgp_sub = rospy.Subscriber("/filtered_grasp_pose",PoseStamped,callback=self.fgp_cb)
         self.hand_pose_sub = rospy.Subscriber("/hand_filtered_pose",PoseStamped,callback=self.hand_pose_cb)
         self.start_handover_publisher = rospy.Publisher("/start_handover",Float32,queue_size=1)
@@ -103,11 +102,11 @@ class MpClass:
         self.tf_buffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tf_buffer)
 
-        rospy.loginfo("Waiting for one fgp message")
-        rospy.wait_for_message("/filtered_grasp_pose",PoseStamped)
-        rospy.loginfo("Message received")
-        rospy.loginfo("Waiting for one hand message")
-        rospy.wait_for_message("/hand_filtered_pose",PoseStamped)
+        # rospy.loginfo("Waiting for one fgp message")
+        # rospy.wait_for_message("/filtered_grasp_pose",PoseStamped)
+        # rospy.loginfo("Message received")
+        # rospy.loginfo("Waiting for one hand message")
+        # rospy.wait_for_message("/hand_pose",PoseStamped)
         rospy.loginfo("Message received")
         self.fgp_inital = copy.deepcopy(self.fgp)
         self.hand_inital = copy.deepcopy(self.hand)
@@ -222,7 +221,6 @@ class MpClass:
             delta_d = np.linalg.norm(hand_position-object_position)
             if delta_d < HAND_PROXIMITY_THRESHOLD:
                 break
-            print(delta_d)
             rate.sleep()
         return rospy.get_time() - start
     
@@ -274,9 +272,9 @@ class MpClass:
         rate = rospy.Rate(30)
         rospy.loginfo(f"{rospy.get_name()} : waiting for grasp")
         rospy.wait_for_message("/yoink/linear_error",Float32,3.0)
+        rospy.sleep(0.1)
         start = rospy.get_time()
         rospy.sleep(0.3)
-        print(self.yoink_feedback.data)
         while self.yoink_feedback.data > self.yoink_feedback_threshold:
             rate.sleep()
         rospy.sleep(0.5)
@@ -285,8 +283,9 @@ class MpClass:
     def wait_to_release(self):
         rate = rospy.Rate(30)
         rospy.loginfo(f"{rospy.get_name()} : waiting for release")
-        rospy.wait_for_message("/place_br/linear_error",Float32)
+        rospy.wait_for_message("/place_vel/linear_error",Float32)
         start = rospy.get_time()
+        rospy.sleep(0.1)
         while self.place_br_feedback.data > self.place_br_feedback_threshold:
             rate.sleep()
         print("Waited for : ",rospy.get_time() - start)
@@ -379,18 +378,20 @@ def place(mp):
     result = mp.place_br_client.get_result()
     return finish_timestamp
 
-
-## !!!! CAUTION !!!! ##
-# This needs modification, do not use this right away
 def place_vel(mp):
     # place vel
     rospy.loginfo("%s : place",rospy.get_name())
     placeGoal = PlaceVelGoal()
     mp.place_vel_client.send_goal(placeGoal)
-    # mp.place_client.cancel_goal()
+    print("waiting to release")
+    mp.wait_to_release()
+    print("done waiting to release")
+    mp.gripper_off()
+    finish_timestamp = rospy.get_time()
     mp.place_vel_client.wait_for_result()
     result = mp.place_vel_client.get_result()
     rospy.loginfo("%s : place result : %s",rospy.get_name(), result)
+    return finish_timestamp
 
 if __name__ == "__main__":
     mp = MpClass()
@@ -402,7 +403,6 @@ if __name__ == "__main__":
     # mp.wait_for_handover_hand_proximity_based()
     # mp.wait_for_handover_hand_vel_based()
     # mp.wait_for_handover_v2()
-
     # mp.wait_to_grasp()
     # mp.gripper_off()
     # mp.gripper_on()
@@ -414,26 +414,15 @@ if __name__ == "__main__":
     
     # rest(mp)
     # mp.gripper_off()
-    
-    # # rospy.sleep(2)
-    # # mp.gripper_on()
-    # # rospy.sleep(2)
-    
     # mp.wait_for_handover()
     # start = rospy.get_time()
     # yoink(mp)
-    # rospy.sleep(0.5) # if its greater than 0.5, the start state for traj planning varies and traj fails
-    # finish = place(mp)
+    # rospy.sleep(0.2) # if its greater than 0.5, the start state for traj planning varies and traj fails
+    # finish  = place_vel(mp)
     # rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
-    
     # mp.gripper_neutral()
     # rest(mp)
-    
 
-    ##############################3
-    # mp.wait_for_handover_hand_vel_based()
-    # mp.wait_for_handover()
-    
-    # delta_t = mp.wait_for_handover_hand_proximity_based()
-    # if delta_t < PROXIMITY_BASED_WAIT_LOWER_BOUND:
-    #     mp.wait_for_handover_hand_vel_based()
+    mp.gripper_off()
+    mp.gripper_on()
+    mp.gripper_neutral()
