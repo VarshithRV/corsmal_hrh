@@ -258,7 +258,7 @@ class Deprojection:
             right_world_tvec = np.array([right_world_point.point.x,right_world_point.point.y,right_world_point.point.z],dtype=float)
 
         if left_world_tvec is None and right_world_tvec is None :
-            pass
+            self.tvec = None
         elif left_world_tvec is not None and right_world_tvec is None :
             self.tvec = left_world_tvec
         elif left_world_tvec is None and right_world_tvec is not None :
