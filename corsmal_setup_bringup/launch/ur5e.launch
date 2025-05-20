@@ -2,7 +2,7 @@
 <launch>
 
     <arg name="debug" value="false" doc="Debug flag that will get passed on to ur_common.launch"/>
-    <arg name="robot_ip" value="192.168.1.1" doc="IP address by which the robot can be reached."/>
+    <arg name="robot_ip" value="192.168.1.7" doc="IP address by which the robot can be reached."/>
     <arg name="reverse_ip" value="" doc="IP of the driver, if set to empty it will detect it automatically."/>
     <arg name="reverse_port" value="60001" doc="Port that will be opened by the driver to allow direct communication between the driver and the robot controller."/>
     <arg name="script_sender_port" value="60002" doc="The driver will offer an interface to receive the program's URScript on this port. If the robot cannot connect to this port, `External Control` will stop immediately."/>
