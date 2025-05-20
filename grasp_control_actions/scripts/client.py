@@ -102,9 +102,9 @@ class MpClass:
         self.tf_buffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tf_buffer)
 
-        # rospy.loginfo("Waiting for one fgp message")
-        # rospy.wait_for_message("/filtered_grasp_pose",PoseStamped)
-        # rospy.loginfo("Message received")
+        rospy.loginfo("Waiting for one fgp message")
+        rospy.wait_for_message("/filtered_grasp_pose",PoseStamped)
+        rospy.loginfo("Message received")
         # rospy.loginfo("Waiting for one hand message")
         # rospy.wait_for_message("/hand_pose",PoseStamped)
         rospy.loginfo("Message received")
@@ -414,7 +414,7 @@ if __name__ == "__main__":
     
     # rest(mp)
     # mp.gripper_off()
-    # mp.wait_for_handover()
+    mp.wait_for_handover()
     # start = rospy.get_time()
     # yoink(mp)
     # rospy.sleep(0.2) # if its greater than 0.5, the start state for traj planning varies and traj fails
@@ -425,4 +425,4 @@ if __name__ == "__main__":
 
     # mp.gripper_off()
     # mp.gripper_on()
-    mp.gripper_neutral()
+    # mp.gripper_neutral()
