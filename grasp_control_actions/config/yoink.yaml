@@ -20,7 +20,7 @@ gains :
     p : 80
     i : 80
     d : 0
-    k : 0.01
+    k : 0.005
   angular :
     p : 150
     i : 0

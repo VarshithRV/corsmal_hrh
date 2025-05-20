@@ -412,16 +412,16 @@ if __name__ == "__main__":
     # stop_radial_track(mp)
     # mp.gripper_neutral()
     
-    # rest(mp)
-    # mp.gripper_off()
+    rest(mp)
+    mp.gripper_off()
     mp.wait_for_handover()
-    # start = rospy.get_time()
-    # yoink(mp)
-    # rospy.sleep(0.2) # if its greater than 0.5, the start state for traj planning varies and traj fails
-    # finish  = place_vel(mp)
-    # rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
-    # mp.gripper_neutral()
-    # rest(mp)
+    start = rospy.get_time()
+    yoink(mp)
+    rospy.sleep(0.3) # if its greater than 0.5, the start state for traj planning varies and traj fails
+    finish  = place_vel(mp)
+    rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
+    mp.gripper_neutral()
+    rest(mp)
 
     # mp.gripper_off()
     # mp.gripper_on()
