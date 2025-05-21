@@ -30,7 +30,7 @@ YOINK_FEEDBACK_THRESHOLD = 0.1
 PLACE_FEEDBACK_THRESHOLD = 0.05 # made it super high to test
 VELOCITY_AVG_WINDOW_SIZE = 10
 ALPHA = 0.5 # more means trust filtered data more
-Z_DISPLACEMENT = 0.10 #m, should reduce to make it faster
+Z_DISPLACEMENT = 0.2 #m, should reduce to make it faster
 MAX_VELOCITY_THRESHOLD = 0.0 #ms-1, should reduce to make it faster
 HANDOVER_VELOCITY_THRESHOLD = 0.5 #ms-1 should increase to make it faster
 MIN_HAND_Z = 0.05
@@ -105,8 +105,8 @@ class MpClass:
         rospy.loginfo("Waiting for one fgp message")
         rospy.wait_for_message("/filtered_grasp_pose",PoseStamped)
         rospy.loginfo("Message received")
-        # rospy.loginfo("Waiting for one hand message")
-        # rospy.wait_for_message("/hand_pose",PoseStamped)
+        rospy.loginfo("Waiting for one hand message")
+        rospy.wait_for_message("/hand_pose",PoseStamped)
         rospy.loginfo("Message received")
         self.fgp_inital = copy.deepcopy(self.fgp)
         self.hand_inital = copy.deepcopy(self.hand)
@@ -216,11 +216,12 @@ class MpClass:
         rospy.loginfo(f"Waiting for hand proximity based handover ")
         start = rospy.get_time()
         while not rospy.is_shutdown():
-            hand_position = np.array([self.hand.pose.position.x,self.hand.pose.position.y,self.hand.pose.position.z],dtype=float)
-            object_position = np.array([self.fgp.pose.position.x,self.fgp.pose.position.y,self.fgp.pose.position.z],dtype=float)
-            delta_d = np.linalg.norm(hand_position-object_position)
-            if delta_d < HAND_PROXIMITY_THRESHOLD:
-                break
+            if self.hand is not None and self.fgp is not None :
+                hand_position = np.array([self.hand.pose.position.x,self.hand.pose.position.y,self.hand.pose.position.z],dtype=float)
+                object_position = np.array([self.fgp.pose.position.x,self.fgp.pose.position.y,self.fgp.pose.position.z],dtype=float)
+                delta_d = np.linalg.norm(hand_position-object_position)
+                if delta_d < HAND_PROXIMITY_THRESHOLD:
+                    break
             rate.sleep()
         return rospy.get_time() - start
     
@@ -247,6 +248,7 @@ class MpClass:
         start = rospy.get_time()
         rospy.loginfo(f"Waiting for object vel based handover ")
         while not rospy.is_shutdown():
+            # if self.hand is not None and self.fgp is not None and self.fgp_inital is not None and self.fgp_linear_velocity_filtered is not None :
             if (self.fgp.pose.position.z - self.fgp_inital.pose.position.z > Z_DISPLACEMENT and 
                 self.fgp_linear_velocity_filtered.linear.z < HANDOVER_VELOCITY_THRESHOLD and 
                 self._max_vel_z > MAX_VELOCITY_THRESHOLD):
@@ -255,7 +257,25 @@ class MpClass:
             else :
                 self.start_handover = 0.0
 
-            rate.sleep()
+        rate.sleep()
+
+        rospy.loginfo(f"Done waiting for handover, waited {rospy.get_time()-start}")
+
+    def wait_for_handover_v3(self):
+        rate = rospy.Rate(50)
+        start = rospy.get_time()
+        rospy.loginfo(f"Waiting for object vel based handover ")
+        while not rospy.is_shutdown():
+            # if self.hand is not None and self.fgp is not None and self.fgp_inital is not None and self.fgp_linear_velocity_filtered is not None :
+            if (self.fgp.pose.position.z > Z_DISPLACEMENT and 
+                self.fgp_linear_velocity_filtered.linear.z < HANDOVER_VELOCITY_THRESHOLD and 
+                self._max_vel_z > MAX_VELOCITY_THRESHOLD):
+                self.start_handover = 0.5
+                break
+            else :
+                self.start_handover = 0.0
+
+        rate.sleep()
 
         rospy.loginfo(f"Done waiting for handover, waited {rospy.get_time()-start}")
 
@@ -414,14 +434,14 @@ if __name__ == "__main__":
     
     rest(mp)
     mp.gripper_off()
-    mp.wait_for_handover()
+    mp.wait_for_handover_v3()
     start = rospy.get_time()
     yoink(mp)
-    rospy.sleep(0.3) # if its greater than 0.5, the start state for traj planning varies and traj fails
+    rospy.sleep(0.5) # if its greater than 0.5, the start state for traj planning varies and traj fails
     finish  = place_vel(mp)
     rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
-    mp.gripper_neutral()
     rest(mp)
+    mp.gripper_neutral()
 
     # mp.gripper_off()
     # mp.gripper_on()

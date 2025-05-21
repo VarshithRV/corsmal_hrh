@@ -438,10 +438,10 @@ if __name__ == "__main__":
     # start = rospy.get_time()
     # yoink(mp)
     # rospy.sleep(0.5) # if its greater than 0.5, the start state for traj planning varies and traj fails
-    # # finish  = place_vel(mp)
-    # # rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
-    # rest(mp)
-    mp.gripper_neutral()
+    # finish  = place_vel(mp)
+    # rospy.loginfo("%s : time taken to finish is %s",rospy.get_name(),(finish-start))
+    rest(mp)
+    # mp.gripper_neutral()
 
     # mp.gripper_off()
     # mp.gripper_on()

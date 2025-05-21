@@ -12,10 +12,13 @@
         <node pkg="corsmal_setup_bringup" type="extrinsic_publisher_azure_right.py" name="extrinsic_publisher_azure_right" /> 
     </group>
 
-    <include file="$(find aruco_proxy_pose_estimation)/launch/apriltag_grid_detector.launch">
+    <!-- <include file="$(find aruco_proxy_pose_estimation)/launch/apriltag_grid_detector.launch">
         <arg name="config_file" value="$(find aruco_proxy_pose_estimation)/config/apriltag_grid_detector_config.yaml"/>
-    </include>
+    </include> -->
 
+    <include file="$(find gripper_driver)/launch/gripper_driver.launch"/>
+    <include file="$(find aruco_proxy_pose_estimation)/launch/mediapipe_ros_driver.launch"/>
+    
     <!--Dont use this, this is really bad-->
     <!-- <node pkg="tf" type="static_transform_publisher" name="wrist3_to_camera_tf" args="0.02 0.099 0.016 0.5 0.5 0.5 -0.5 wrist_3_link camera_link 50" />  -->
     <!-- Use this, measured calibration is way better -->
