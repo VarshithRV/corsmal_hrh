@@ -2,7 +2,7 @@
 <launch>
     <arg name="is_calibrated" default="true"/> <!--set true to calibrate the system-->
 
-    <include file="$(find corsmal_setup_bringup)/launch/ur5e.launch"/>
+    <include file="$(find corsmal_setup_bringup)/launch/ur16e.launch"/>
     <!-- <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch"/> -->
     <include file="$(find corsmal_setup_bringup)/launch/azuredk_left.launch"/>
     

@@ -16,7 +16,7 @@
     <arg name="kinematics_config" value="$(find corsmal_setup_bringup)/config/right_ur16e_kinematics_config.yaml" doc="Kinematics config file used for calibration correction. This will be used to verify the robot's calibration is matching the robot_description."/>
     <arg name="tool0_tcp_x" default="0.0"/>
     <arg name="tool0_tcp_y" default="0.0"/>
-    <arg name="tool0_tcp_z" default="0.15"/>
+    <arg name="tool0_tcp_z" default="0.1"/>
     <arg name="use_tool_communication" value="false" doc="On e-Series robots tool communication can be enabled with this argument"/>
     <arg name="tool_voltage" value="0" doc="Tool voltage set at the beginning of the UR program. Only used, when `use_tool_communication` is set to true."/>
     <arg name="tool_parity" value="0" doc="Parity configuration used for tool communication. Only used, when `use_tool_communication` is set to true."/>
@@ -73,8 +73,6 @@
         <param name="timeout" value="0.05" />
         <param name="source_frame" value="base_link" /> <!-- this is the planning frame -->
         <param name="target_frame" value="base_link" /> <!-- this is always base -->
-        <param name="alpha" value="0.65"/>
+        <param name="alpha" value="0.25"/>
     </node>
-
-    <node pkg="corsmal_setup_bringup" type="calibration_publisher_robot.py" name="robot_calibration_publisher" />
 </launch>
